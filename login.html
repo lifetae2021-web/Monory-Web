@@ -101,14 +101,19 @@
         <div class="login-logo">MONORY<span>ADMIN</span></div>
         <div class="login-subtitle">관리자 페이지 보안 접속</div>
         
-        <form id="login-form">
+        <form id="login-form" autocomplete="off">
+            <!-- 브라우저 경고 팝업(비밀번호 유출/도용) 우회용 가짜 필드 -->
+            <input style="display:none" type="text" name="fakeusernameremembered"/>
+            <input style="display:none" type="password" name="fakepasswordremembered"/>
+
             <div class="form-group">
                 <label class="form-label" for="email">이메일 주소</label>
-                <input type="email" id="email" class="form-input" placeholder="admin@monory.com" required autocomplete="email">
+                <input type="email" id="email" class="form-input" placeholder="admin@monory.com" required autocomplete="off" spellcheck="false">
             </div>
             <div class="form-group">
                 <label class="form-label" for="password">비밀번호</label>
-                <input type="password" id="password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+                <!-- 비밀번호 유출 경고 방지를 위해 autocomplete 설정을 new-password로 강제 변경 -->
+                <input type="password" id="password" class="form-input" placeholder="••••••••" required autocomplete="new-password" spellcheck="false">
             </div>
             
             <div class="form-group" style="margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
