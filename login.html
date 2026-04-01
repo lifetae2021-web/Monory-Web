@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monory Admin - Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: radial-gradient(circle at center, rgba(30, 30, 40, 1) 0%, var(--bg-main) 100%);
+        }
+        .login-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-logo {
+            font-size: 2rem;
+            font-family: var(--font-heading);
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+        .login-logo span {
+            color: var(--accent-gold);
+            font-weight: 300;
+        }
+        .login-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        .form-input {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px 16px;
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            transition: 0.3s;
+        }
+        .form-input:focus {
+            border-color: var(--accent-gold);
+            outline: none;
+            box-shadow: 0 0 10px rgba(212, 175, 55, 0.2);
+        }
+        .login-btn {
+            background: var(--accent-gold);
+            color: var(--bg-main);
+            border: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+        .login-btn:hover {
+            background: var(--accent-gold-hover);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+        .error-message {
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-top: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="login-logo">MONORY<span>ADMIN</span></div>
+        <div class="login-subtitle">관리자 페이지 보안 접속</div>
+        
+        <form id="login-form">
+            <div class="form-group">
+                <label class="form-label" for="email">이메일 주소</label>
+                <input type="email" id="email" class="form-input" placeholder="admin@monory.com" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="password">비밀번호</label>
+                <input type="password" id="password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            
+            <div id="error-msg" class="error-message">이메일 또는 비밀번호가 올바르지 않습니다.</div>
+            
+            <button type="submit" class="login-btn" id="submit-btn"><i class="fa-solid fa-right-to-bracket"></i> 로그인</button>
+        </form>
+    </div>
+
+    <!-- Firebase Auth 설정 -->
+    <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const auth = firebase.auth();
+                
+                // 로그인 상태면 바로 대시보드로 이동
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        window.location.href = 'admin.html';
+                    }
+                });
+
+                document.getElementById('login-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    const email = document.getElementById('email').value;
+                    const password = document.getElementById('password').value;
+                    const btn = document.getElementById('submit-btn');
+                    const errorMsg = document.getElementById('error-msg');
+                    
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 확인 중...';
+                    errorMsg.style.display = 'none';
+
+                    auth.signInWithEmailAndPassword(email, password)
+                        .then((userCredential) => {
+                            // 로그인 성공 시 onAuthStateChanged에 의해 리다이렉트됨
+                        })
+                        .catch((error) => {
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> 로그인';
+                            errorMsg.style.display = 'block';
+                            
+                            if(error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                                errorMsg.innerText = '이메일 또는 비밀번호가 올바르지 않습니다.';
+                            } else {
+                                errorMsg.innerText = '인증 에러가 발생했습니다: ' + error.message;
+                            }
+                        });
+                });
+            }, 500); // init.js 로딩 대기
+        });
+    </script>
+</body>
+</html>

@@ -29,8 +29,10 @@
     <header id="home" class="hero-section">
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <h1 class="fade-in-up">모임, 놀기, 리프레시가 함께하는 공간<br><span>Monory</span></h1>
-            <p class="fade-in-up delay-1">당신의 소중한 순간이 더욱 빛날 수 있도록,<br>프리미엄 커뮤니티 공간 모노리가 함께합니다.</p>
+            <h1 class="fade-in-up"><span id="display-slogan">모임, 놀기, 리프레시가 함께하는 공간</span><br><span
+                    id="display-brand">Monory</span></h1>
+            <p class="fade-in-up delay-1" id="display-description">당신의 소중한 순간이 더욱 빛날 수 있도록,<br>프리미엄 커뮤니티 공간 모노리가 함께합니다.
+            </p>
             <a href="#reservation" class="cta-button fade-in-up delay-2">예약하기</a>
         </div>
     </header>
@@ -149,12 +151,13 @@
 
                     <div class="booking-card quick-action">
                         <h4>빠른 예약</h4>
-                        <select class="custom-select">
+                        <select class="custom-select" id="display-packages">
                             <option>공간 패키지 선택</option>
-                            <option>데이 패키지 (10-17시)</option>
-                            <option>나이트 패키지 (18-24시)</option>
+                            <option id="opt-day">데이 패키지 (10-17시)</option>
+                            <option id="opt-night">나이트 패키지 (18-24시)</option>
                             <option>올나잇 패키지 (18-익일10시)</option>
-                            <option style="color: var(--accent-gold); font-weight: bold;">🔑 키링크 수료자 특별 10% 할인 패키지
+                            <option id="opt-keylink" style="color: var(--accent-gold); font-weight: bold;">🔑 키링크 수료자 특별
+                                10% 할인 패키지
                             </option>
                         </select>
                         <button class="primary-btn">일정 선택하기</button>
@@ -168,18 +171,23 @@
         <div class="container footer-content">
             <div class="footer-logo">MONORY</div>
             <p>프리미엄 파티룸 & 커뮤니티 스페이스 모노리</p>
-            <p class="copyright">© 2026 Monory. All rights reserved.</p>
+            <p class="copyright" ondblclick="window.open('admin.html', '_blank');" style="user-select: none;"
+                title="Double click for Admin">© 2026 Monory. All rights reserved.</p>
         </div>
     </footer>
 
     <!-- Keylink Floating Banner -->
-    <a href="#about" class="keylink-floating-banner slide-in-right delay-2">
+    <a href="#about" class="keylink-floating-banner slide-in-right delay-2" id="display-banner">
         <div class="banner-icon">🎯</div>
         <div class="banner-text">
             <span>솔로들을 위한 프리미엄 네트워킹</span>
             <strong>이번 주말, 모노리 키링크 참여하기</strong>
         </div>
     </a>
+
+    <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
 
     <script>
         // Simple Intersection Observer for scroll animations
@@ -210,25 +218,52 @@
             document.querySelectorAll('.hero-content .fade-in-up').forEach(el => {
                 el.classList.add('visible');
             });
+
+            // Firebase DB Load Logic
+            if (typeof firebase !== 'undefined') {
+                const db = firebase.firestore();
+                db.collection("monory_config").doc("settings").onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+
+                        // Set Texts
+                        if (data.slogan) document.getElementById('display-slogan').innerText = data.slogan;
+                        if (data.brand) document.getElementById('display-brand').innerText = data.brand;
+                        if (data.description) document.getElementById('display-description').innerText = data.description.replace(/\n/g, '\n');
+
+                        // Set Pricing Info
+                        if (data.priceDay) document.getElementById('opt-day').innerText = `데이 패키지 (10-17시) - ${parseInt(data.priceDay).toLocaleString()}원`;
+                        if (data.priceNight) document.getElementById('opt-night').innerText = `나이트 패키지 (18-24시) - ${parseInt(data.priceNight).toLocaleString()}원`;
+                        if (data.discountInfo) document.getElementById('opt-keylink').innerText = `🔑 키링크 수료자 특별 ${data.discountInfo}% 할인 패키지`;
+
+                        // Set Banner Visibility
+                        if (data.bannerToggle === 'hide') {
+                            document.getElementById('display-banner').style.display = 'none';
+                        } else {
+                            document.getElementById('display-banner').style.display = 'flex';
+                        }
+                    }
+                });
+            }
         }, 100);
 
         // Toss Payments Integration
         document.querySelector('.primary-btn').addEventListener('click', function () {
             const selectBox = document.querySelector('.custom-select');
-            
-            if(selectBox.selectedIndex === 0) {
+
+            if (selectBox.selectedIndex === 0) {
                 alert('이용하실 공간 패키지를 먼저 선택해주세요.');
                 return;
             }
 
             const packageName = selectBox.options[selectBox.selectedIndex].text;
-            
+
             // 토스페이먼츠 연동 (테스트 클라이언트 키)
             const clientKey = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
             const tossPayments = TossPayments(clientKey);
 
             tossPayments.requestPayment('카드', {
-                amount: 120000, 
+                amount: 120000,
                 orderId: 'MNRY-' + new Date().getTime(),
                 orderName: '모노리: ' + packageName,
                 customerName: '태영훈 방문객님',

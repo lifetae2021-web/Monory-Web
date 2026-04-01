@@ -610,6 +610,10 @@ footer p {
 }
 
 @media (max-width: 600px) {
+    section {
+        padding: 60px 0;
+    }
+
     .hero-content h1 {
         font-size: 2.2rem;
     }
@@ -621,7 +625,17 @@ footer p {
     }
     
     .hero-content p {
-        font-size: 0.95rem;
+        font-size: 1.05rem;
+        line-height: 1.6;
+    }
+    
+    .section-description {
+        font-size: 1.05rem;
+        line-height: 1.7;
+    }
+    
+    .facility-list {
+        grid-template-columns: 1fr;
     }
     
     .cta-button {
@@ -664,11 +678,11 @@ footer p {
     }
 
     .day {
-        font-size: 0.85rem;
+        font-size: 0.9rem;
     }
 
     .day span {
-        font-size: 0.55rem;
+        font-size: 0.65rem;
     }
     
     .status-legend {

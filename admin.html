@@ -34,6 +34,9 @@
             <li class="nav-item">
                 <a href="#" class="nav-link"><i class="fa-solid fa-chart-line"></i> 매출 통계</a>
             </li>
+            <li class="nav-item">
+                <a href="admin-edit.html" class="nav-link"><i class="fa-solid fa-pen-to-square"></i> 콘텐츠 편집 (CMS)</a>
+            </li>
             <li class="nav-item" style="margin-top: auto; position: absolute; bottom: 20px; width: 100%;">
                 <a href="#" class="nav-link"><i class="fa-solid fa-gear"></i> 시스템 설정</a>
             </li>
@@ -44,7 +47,12 @@
     <main class="main-content">
         <!-- Topbar -->
         <header class="topbar">
-            <h1 class="page-title">대시보드 개요</h1>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <h1 class="page-title" style="margin: 0;">대시보드 개요</h1>
+                <a href="https://monory-web.web.app" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; background: rgba(212, 175, 55, 0.1); border: 1px solid var(--accent-gold); color: var(--accent-gold); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease;" onmouseover="this.style.background='var(--accent-gold)'; this.style.color='var(--bg-main)';" onmouseout="this.style.background='rgba(212, 175, 55, 0.1)'; this.style.color='var(--accent-gold)';">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> 실제 웹사이트(monory-web.web.app) 확인
+                </a>
+            </div>
             <div class="topbar-actions">
                 <div class="notification-bell">
                     <i class="fa-regular fa-bell"></i>
@@ -53,6 +61,10 @@
                     <div class="avatar">M</div>
                     <span style="font-size: 0.9rem; font-weight: 500;">관리자 님</span>
                     <i class="fa-solid fa-chevron-down" style="font-size: 0.8rem; color: var(--text-secondary);"></i>
+                </div>
+                <!-- 로그아웃 버튼 -->
+                <div class="admin-profile" id="btn-logout" style="cursor: pointer; margin-left: 10px; color: var(--text-secondary); padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; transition: 0.3s;" onmouseover="this.style.borderColor='var(--accent-gold)'; this.style.color='var(--accent-gold)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.color='var(--text-secondary)';">
+                    <i class="fa-solid fa-right-from-bracket" style="margin-right: 4px;"></i> 로그아웃
                 </div>
             </div>
         </header>
@@ -281,6 +293,47 @@
             </div>
         </div>
     </main>
+
+    <!-- Firebase Auth 설정 및 보안 검사 -->
+    <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 화면 보호 시작 (로그인 검사 전까지 숨김 처리)
+            document.body.style.opacity = '0';
+            
+            setTimeout(() => {
+                if(typeof firebase === 'undefined') {
+                    console.error('Firebase SDK 로드 실패 (로컬 파일 실행 중일 경우 발생. firebase serve 명령어로 실행 필요)');
+                    return;
+                }
+                
+                const auth = firebase.auth();
+                auth.onAuthStateChanged((user) => {
+                    if (!user) {
+                        // 로그인 안된 경우
+                        window.location.href = 'login.html';
+                    } else {
+                        // 로그인 성공 시 화면 표시
+                        document.body.style.transition = 'opacity 0.3s ease';
+                        document.body.style.opacity = '1';
+
+                        // 로그아웃 동작 연동
+                        const logoutBtn = document.getElementById('btn-logout');
+                        if(logoutBtn) {
+                            logoutBtn.addEventListener('click', () => {
+                                auth.signOut().then(() => {
+                                    window.location.href = 'login.html';
+                                });
+                            });
+                        }
+                    }
+                });
+            }, 500);
+        });
+    </script>
 
     <script>
         // Simple active class toggling for nav links
