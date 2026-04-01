@@ -156,7 +156,7 @@
                             <option id="opt-day">데이 패키지 (10-17시)</option>
                             <option id="opt-night">나이트 패키지 (18-24시)</option>
                             <option>올나잇 패키지 (18-익일10시)</option>
-                            <option id="opt-keylink" style="color: var(--accent-gold); font-weight: bold;">🔑 키링크 수료자 특별
+                            <option id="opt-keylink" style="color: var(--accent-gold); font-weight: bold;">🔑 소개팅 참여자 특별
                                 10% 할인 패키지
                             </option>
                         </select>
@@ -234,7 +234,7 @@
                         // Set Pricing Info
                         if (data.priceDay) document.getElementById('opt-day').innerText = `데이 패키지 (10-17시) - ${parseInt(data.priceDay).toLocaleString()}원`;
                         if (data.priceNight) document.getElementById('opt-night').innerText = `나이트 패키지 (18-24시) - ${parseInt(data.priceNight).toLocaleString()}원`;
-                        if (data.discountInfo) document.getElementById('opt-keylink').innerText = `🔑 키링크 수료자 특별 ${data.discountInfo}% 할인 패키지`;
+                        if (data.discountInfo) document.getElementById('opt-keylink').innerText = `🔑 소개팅 참여자 특별 ${data.discountInfo}% 할인 패키지`;
 
                         // Set Banner Visibility
                         if (data.bannerToggle === 'hide') {
