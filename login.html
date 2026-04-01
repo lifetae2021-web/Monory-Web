@@ -111,6 +111,11 @@
                 <input type="password" id="password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
             </div>
             
+            <div class="form-group" style="margin-bottom: 24px; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="remember-email" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--accent-gold);">
+                <label for="remember-email" style="font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;">이메일 기억하기</label>
+            </div>
+            
             <div id="error-msg" class="error-message">이메일 또는 비밀번호가 올바르지 않습니다.</div>
             
             <button type="submit" class="login-btn" id="submit-btn"><i class="fa-solid fa-right-to-bracket"></i> 로그인</button>
@@ -134,11 +139,26 @@
                     }
                 });
 
+                // 이메일 저장 기능 (localStorage)
+                const savedEmail = localStorage.getItem('monory_admin_email');
+                if (savedEmail) {
+                    document.getElementById('email').value = savedEmail;
+                    document.getElementById('remember-email').checked = true;
+                }
+
                 document.getElementById('login-form').addEventListener('submit', (e) => {
                     e.preventDefault();
                     
                     const email = document.getElementById('email').value;
                     const password = document.getElementById('password').value;
+                    const rememberEmail = document.getElementById('remember-email').checked;
+
+                    // 이메일 기억 체크 여부에 따라 저장/삭제
+                    if (rememberEmail) {
+                        localStorage.setItem('monory_admin_email', email);
+                    } else {
+                        localStorage.removeItem('monory_admin_email');
+                    }
                     const btn = document.getElementById('submit-btn');
                     const errorMsg = document.getElementById('error-msg');
                     
