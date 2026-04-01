@@ -8,9 +8,8 @@
     <title>Monory | 공간의 가치를 더하는 파티룸</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <!-- Toss Payments SDK -->
     <script src="https://js.tosspayments.com/v1"></script>
@@ -22,18 +21,23 @@
         <ul class="nav-links">
             <li><a href="#home">Home</a></li>
             <li><a href="#about">About</a></li>
-            <li><a href="#reservation">Reservation</a></li>
+            <li><a href="#reservation" style="background: var(--accent-gold); color: #000; padding: 10px 24px; border-radius: 30px; font-weight: bold; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);">예약하기</a></li>
         </ul>
     </nav>
 
     <header id="home" class="hero-section">
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <h1 class="fade-in-up"><span id="display-slogan">모임, 놀기, 리프레시가 함께하는 공간</span><br><span
-                    id="display-brand">Monory</span></h1>
-            <p class="fade-in-up delay-1" id="display-description">당신의 소중한 순간이 더욱 빛날 수 있도록,<br>프리미엄 커뮤니티 공간 모노리가 함께합니다.
+            <h1 class="fade-in-up" style="font-family: var(--font-heading); font-size: 5rem; letter-spacing: -2px; font-weight: 700; margin-bottom: 30px;">
+                <span id="display-slogan" style="display: block; font-size: 1.5rem; color: var(--accent-gold); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px;">모임, 놀기, 리프레시</span>
+                <span id="display-brand">MONORY</span>
+            </h1>
+            <p class="fade-in-up delay-1" id="display-description" style="font-size: 1.3rem; opacity: 0.8;">
+                완벽한 모임을 위한 프라이빗 프리미엄 라운지
             </p>
-            <a href="#reservation" class="cta-button fade-in-up delay-2">예약하기</a>
+            <a href="#reservation" class="cta-button fade-in-up delay-2" style="background: var(--accent-gold); color: var(--bg-main); border: none; font-weight: bold; padding: 18px 45px; border-radius: 50px; font-size: 1.2rem; margin-top: 50px; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);">
+                예약하기 <i class="fa-solid fa-arrow-right"></i>
+            </a>
         </div>
     </header>
 
@@ -47,12 +51,28 @@
                         모노리는 단순한 파티룸을 넘어 <strong>키링크(Keylink)</strong> 이벤트가 열리는 핵심 커뮤니티 허브입니다.<br><br>
                         감각적인 인테리어, 최신식 시설, 그리고 편안한 분위기가 어우러진 이 공간에서 새로운 사람들과의 영감 넘치는 네트워킹을 경험해보세요.
                     </p>
-                    <ul class="facility-list">
-                        <li><i class="icon">🥂</i> 프리미엄 라운지 바 테이블</li>
-                        <li><i class="icon">🎬</i> 120인치 스마트 빔 프로젝터</li>
-                        <li><i class="icon">🎵</i> 하이엔드 블루투스 스피커</li>
-                        <li><i class="icon">📸</i> 포토존 특화 감성 조명</li>
-                    </ul>
+                    <div class="facility-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 40px;">
+                        <div class="fac-card" style="background: rgba(255,255,255,0.03); padding: 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
+                            <i class="fa-solid fa-wine-glass" style="font-size: 2rem; color: var(--accent-gold); margin-bottom: 16px; display: block;"></i>
+                            <h4 style="margin-bottom: 8px;">프리미엄 라운지</h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">고급 바 테이블과 프라이빗 룸</p>
+                        </div>
+                        <div class="fac-card" style="background: rgba(255,255,255,0.03); padding: 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
+                            <i class="fa-solid fa-video" style="font-size: 2rem; color: var(--accent-gold); margin-bottom: 16px; display: block;"></i>
+                            <h4 style="margin-bottom: 8px;">시네마 스크린</h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">120인치 초대형 스마트 프로젝터</p>
+                        </div>
+                        <div class="fac-card" style="background: rgba(255,255,255,0.03); padding: 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
+                            <i class="fa-solid fa-music" style="font-size: 2rem; color: var(--accent-gold); margin-bottom: 16px; display: block;"></i>
+                            <h4 style="margin-bottom: 8px;">하이엔드 오디오</h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">마샬 블루투스 스피커 세팅</p>
+                        </div>
+                        <div class="fac-card" style="background: rgba(255,255,255,0.03); padding: 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
+                            <i class="fa-solid fa-camera-retro" style="font-size: 2rem; color: var(--accent-gold); margin-bottom: 16px; display: block;"></i>
+                            <h4 style="margin-bottom: 8px;">감성 무드 조명</h4>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">인생샷을 위한 특수 조명 존</p>
+                        </div>
+                    </div>
                 </div>
                 <div class="about-image slide-in-right">
                     <img src="assets/about.png" alt="Keylink Networking Event at Monory">
@@ -163,6 +183,19 @@
                         <button class="primary-btn">일정 선택하기</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="location" style="padding: 100px 0; background-color: var(--bg-main);">
+        <div class="container">
+            <div class="text-center" style="margin-bottom: 50px;">
+                <h2 class="section-badge">LOCATION</h2>
+                <h3 class="section-title">오시는 길</h3>
+                <p class="section-description centered">강남역 도보 5분 거리, 프라이빗하고 접근성 좋은 공간</p>
+            </div>
+            <div style="width: 100%; height: 450px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1m3!1d3164.843075276329!2d127.02528731558774!3d37.49964347981084!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x357ca15b5cd93ea3%3A0xc3c6b2ffad4618e7!2z6rCV64Ko!5e0!3m2!1sko!2skr!4v1711333333333!5m2!1sko!2skr" width="100%" height="100%" style="border:0; filter: invert(90%) hue-rotate(180deg);" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
             </div>
         </div>
     </section>
@@ -281,7 +314,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.0.2 (2026.04.02)
+        v1.0.3 (2026.04.02)
     </div>
 </body>
 
