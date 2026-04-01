@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monory Admin Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Load FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">MONORY<span>ADMIN</span></div>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="#" class="nav-link active"><i class="fa-solid fa-border-all"></i> 대시보드</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link"><i class="fa-regular fa-calendar-check"></i> 예약 관리</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link"><i class="fa-solid fa-users-viewfinder"></i> 키링크(Keylink) 이벤트</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link"><i class="fa-regular fa-user"></i> 고객 관리</a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link"><i class="fa-solid fa-chart-line"></i> 매출 통계</a>
+            </li>
+            <li class="nav-item" style="margin-top: auto; position: absolute; bottom: 20px; width: 100%;">
+                <a href="#" class="nav-link"><i class="fa-solid fa-gear"></i> 시스템 설정</a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Topbar -->
+        <header class="topbar">
+            <h1 class="page-title">대시보드 개요</h1>
+            <div class="topbar-actions">
+                <div class="notification-bell">
+                    <i class="fa-regular fa-bell"></i>
+                </div>
+                <div class="admin-profile">
+                    <div class="avatar">M</div>
+                    <span style="font-size: 0.9rem; font-weight: 500;">관리자 님</span>
+                    <i class="fa-solid fa-chevron-down" style="font-size: 0.8rem; color: var(--text-secondary);"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span>이번 달 매출</span>
+                        <div class="stat-icon"><i class="fa-solid fa-won-sign"></i></div>
+                    </div>
+                    <div class="stat-value">₩ 12,450,000</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fa-solid fa-arrow-trend-up"></i> +15.2% (전월 대비)
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span>신규 예약</span>
+                        <div class="stat-icon"><i class="fa-regular fa-calendar-plus"></i></div>
+                    </div>
+                    <div class="stat-value">48 건</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fa-solid fa-arrow-trend-up"></i> +4 건 (전주 대비)
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span>예정된 키링크 이벤트</span>
+                        <div class="stat-icon"><i class="fa-solid fa-network-wired"></i></div>
+                    </div>
+                    <div class="stat-value">12 건</div>
+                    <div class="stat-trend trend-down">
+                        <i class="fa-solid fa-arrow-trend-down"></i> -2 건 (전주 대비)
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span>공간 가동률</span>
+                        <div class="stat-icon"><i class="fa-solid fa-percent"></i></div>
+                    </div>
+                    <div class="stat-value">84%</div>
+                    <div class="stat-trend trend-up">
+                        <i class="fa-solid fa-arrow-trend-up"></i> +5.5% (전월 대비)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Keylink Special Monitoring Section -->
+            <div class="panel" style="margin-bottom: 40px; border-color: var(--accent-gold);">
+                <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px;">
+                    <h2 class="panel-title"><i class="fa-solid fa-gem" style="color: var(--accent-gold); margin-right: 8px;"></i>키링크(Keylink) 전환율 및 매칭 통계</h2>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+                    <!-- Gender Ratio -->
+                    <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center;">
+                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">이번 주말 참가자 성비</h4>
+                        <div style="display: flex; justify-content: center; align-items: flex-end; gap: 40px; height: 100px;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                                <div style="width: 40px; height: 80px; background: #3b82f6; border-radius: 4px 4px 0 0;"></div>
+                                <span style="font-size: 0.8rem;">남성 (48%)</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                                <div style="width: 40px; height: 85px; background: #ec4899; border-radius: 4px 4px 0 0;"></div>
+                                <span style="font-size: 0.8rem;">여성 (52%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Matching Rate -->
+                    <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">현장 매칭 성사율</h4>
+                        <div style="font-size: 2.5rem; font-family: var(--font-heading); color: var(--accent-gold); font-weight: 600;">
+                            34.2%
+                        </div>
+                        <span style="font-size: 0.8rem; color: var(--success);"><i class="fa-solid fa-arrow-up"></i> 지난주 대비 2.1% 증가</span>
+                    </div>
+
+                    <!-- Retention to Monory -->
+                    <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">참가자 -> 일반 예약 전환율</h4>
+                        <div style="font-size: 2.5rem; font-family: var(--font-heading); font-weight: 600;">
+                            12.8%
+                        </div>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary);">총 18팀 전용 패키지 이용</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Tables and Lists -->
+            <div class="tables-grid">
+                
+                <!-- Recent Reservations Table -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">최근 예약 내역</h2>
+                        <a href="#" class="view-all-btn">전체 보기 <i class="fa-solid fa-arrow-right"></i></a>
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>예약번호</th>
+                                    <th>예약자명</th>
+                                    <th>이용 목적</th>
+                                    <th>예약 일자</th>
+                                    <th>결제 금액</th>
+                                    <th>상태</th>
+                                    <th>관리</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>#MN-260401</td>
+                                    <td>김스타</td>
+                                    <td>스타트업 네트워킹</td>
+                                    <td>2026. 04. 12</td>
+                                    <td>₩ 1,200,000</td>
+                                    <td><span class="status-badge status-confirmed">결제완료</span></td>
+                                    <td>
+                                        <button class="action-btn"><i class="fa-regular fa-pen-to-square"></i></button>
+                                        <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>#MN-260402</td>
+                                    <td>이마케터</td>
+                                    <td>브랜드 런칭 파티</td>
+                                    <td>2026. 04. 15</td>
+                                    <td>₩ 850,000</td>
+                                    <td><span class="status-badge status-pending">입금대기</span></td>
+                                    <td>
+                                        <button class="action-btn"><i class="fa-regular fa-pen-to-square"></i></button>
+                                        <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>#MN-260403</td>
+                                    <td>박기획</td>
+                                    <td>키링크(Keylink) 세미나</td>
+                                    <td>2026. 04. 18</td>
+                                    <td>₩ 2,500,000</td>
+                                    <td><span class="status-badge status-confirmed">결제완료</span></td>
+                                    <td>
+                                        <button class="action-btn"><i class="fa-regular fa-pen-to-square"></i></button>
+                                        <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>#MN-260404</td>
+                                    <td>최디자인</td>
+                                    <td>개인 생일파티</td>
+                                    <td>2026. 04. 20</td>
+                                    <td>₩ 450,000</td>
+                                    <td><span class="status-badge status-cancelled">예약취소</span></td>
+                                    <td>
+                                        <button class="action-btn"><i class="fa-regular fa-pen-to-square"></i></button>
+                                        <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>#MN-260405</td>
+                                    <td>정개발</td>
+                                    <td>해커톤 뒷풀이</td>
+                                    <td>2026. 04. 23</td>
+                                    <td>₩ 600,000</td>
+                                    <td><span class="status-badge status-confirmed">결제완료</span></td>
+                                    <td>
+                                        <button class="action-btn"><i class="fa-regular fa-pen-to-square"></i></button>
+                                        <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Upcoming Schedule -->
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">오늘의 호스팅 일정</h2>
+                    </div>
+                    <div class="schedule-list">
+                        <div class="schedule-item">
+                            <div class="schedule-time">
+                                <span class="date">04/01</span>
+                                <span class="time">14:00</span>
+                            </div>
+                            <div class="schedule-info">
+                                <h5>Keylink 스타트업 네트워킹</h5>
+                                <p>김대표 (참석 40명) / 케이터링 O</p>
+                            </div>
+                        </div>
+
+                        <div class="schedule-item" style="border-left: 3px solid var(--accent-gold);">
+                            <div class="schedule-time">
+                                <span class="date">04/01</span>
+                                <span class="time">19:00</span>
+                            </div>
+                            <div class="schedule-info">
+                                <h5>IT 개발자 북클럽 밋업</h5>
+                                <p>정모임 (참석 15명) / 빔프로젝터 사용</p>
+                            </div>
+                        </div>
+
+                        <div class="schedule-item" style="opacity: 0.6; background: transparent;">
+                            <div class="schedule-time">
+                                <span class="date">04/01</span>
+                                <span class="time">23:00</span>
+                            </div>
+                            <div class="schedule-info">
+                                <h5><i class="fa-solid fa-broom"></i> 공간 정비 및 청소</h5>
+                                <p>청소 업체 방문 예정</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Simple active class toggling for nav links
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                if (this.getAttribute('href') === '#') e.preventDefault();
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

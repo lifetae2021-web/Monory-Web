@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="공간의 가치를 더하는 프리미엄 파티룸 모노리. 키링크 이벤트 커뮤니티 허브.">
+    <title>Monory | 공간의 가치를 더하는 파티룸</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Toss Payments SDK -->
+    <script src="https://js.tosspayments.com/v1"></script>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">MONORY</div>
+        <ul class="nav-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#reservation">Reservation</a></li>
+        </ul>
+    </nav>
+
+    <header id="home" class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1 class="fade-in-up">모임, 놀기, 리프레시가 함께하는 공간<br><span>Monory</span></h1>
+            <p class="fade-in-up delay-1">당신의 소중한 순간이 더욱 빛날 수 있도록,<br>프리미엄 커뮤니티 공간 모노리가 함께합니다.</p>
+            <a href="#reservation" class="cta-button fade-in-up delay-2">예약하기</a>
+        </div>
+    </header>
+
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="about-grid">
+                <div class="about-text slide-in-left">
+                    <h2 class="section-badge">ABOUT US</h2>
+                    <h3 class="section-title">새로운 연결의 시작<br>커뮤니티 허브</h3>
+                    <p class="section-description">
+                        모노리는 단순한 파티룸을 넘어 <strong>키링크(Keylink)</strong> 이벤트가 열리는 핵심 커뮤니티 허브입니다.<br><br>
+                        감각적인 인테리어, 최신식 시설, 그리고 편안한 분위기가 어우러진 이 공간에서 새로운 사람들과의 영감 넘치는 네트워킹을 경험해보세요.
+                    </p>
+                    <ul class="facility-list">
+                        <li><i class="icon">🥂</i> 프리미엄 라운지 바 테이블</li>
+                        <li><i class="icon">🎬</i> 120인치 스마트 빔 프로젝터</li>
+                        <li><i class="icon">🎵</i> 하이엔드 블루투스 스피커</li>
+                        <li><i class="icon">📸</i> 포토존 특화 감성 조명</li>
+                    </ul>
+                </div>
+                <div class="about-image slide-in-right">
+                    <img src="assets/about.png" alt="Keylink Networking Event at Monory">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="reservation" class="reservation-section">
+        <div class="container">
+            <div class="text-center">
+                <h2 class="section-badge">RESERVATION</h2>
+                <h3 class="section-title">스마트 예약 대시보드</h3>
+                <p class="section-description centered">원하시는 날짜의 모노리 예약 현황을 한눈에 확인하세요.</p>
+            </div>
+
+            <div class="dashboard-container">
+                <div class="dashboard-panel">
+                    <div class="dashboard-header">
+                        <h4>📅 2026년 4월 예약 현황</h4>
+                        <div class="status-legend">
+                            <span class="legend-item"><span class="dot available"></span>예약가능</span>
+                            <span class="legend-item"><span class="dot booked"></span>예약완료</span>
+                        </div>
+                    </div>
+
+                    <div class="calendar-grid">
+                        <!-- 요일 -->
+                        <div class="day-name">Sun</div>
+                        <div class="day-name">Mon</div>
+                        <div class="day-name">Tue</div>
+                        <div class="day-name">Wed</div>
+                        <div class="day-name">Thu</div>
+                        <div class="day-name">Fri</div>
+                        <div class="day-name">Sat</div>
+
+                        <!-- 빈 날짜 -->
+                        <div class="day empty"></div>
+                        <div class="day empty"></div>
+                        <div class="day empty"></div>
+
+                        <!-- 4월 날짜 (예시) -->
+                        <div class="day booked">1<span>마감</span></div>
+                        <div class="day available">2<span>가능</span></div>
+                        <div class="day available">3<span>가능</span></div>
+                        <div class="day booked">4<span>마감</span></div>
+                        <div class="day booked">5<span>마감</span></div>
+                        <div class="day available">6<span>가능</span></div>
+                        <div class="day available">7<span>가능</span></div>
+                        <div class="day available">8<span>가능</span></div>
+                        <div class="day booked">9<span>마감</span></div>
+                        <div class="day booked">10<span>마감</span></div>
+                        <div class="day booked">11<span>마감</span></div>
+
+                        <div class="day available">12<span>가능</span></div>
+                        <div class="day available">13<span>가능</span></div>
+                        <div class="day available">14<span>가능</span></div>
+                        <div class="day available">15<span>가능</span></div>
+                        <div class="day booked">16<span>마감</span></div>
+                        <div class="day booked">17<span>마감</span></div>
+                        <div class="day booked">18<span>마감</span></div>
+
+                        <div class="day available">19<span>가능</span></div>
+                        <div class="day available">20<span>가능</span></div>
+                        <div class="day available">21<span>가능</span></div>
+                        <div class="day available">22<span>가능</span></div>
+                        <div class="day available">23<span>가능</span></div>
+                        <div class="day booked">24<span>마감</span></div>
+                        <div class="day booked">25<span>마감</span></div>
+
+                        <div class="day available">26<span>가능</span></div>
+                        <div class="day available">27<span>가능</span></div>
+                        <div class="day available">28<span>가능</span></div>
+                        <div class="day available">29<span>가능</span></div>
+                        <div class="day available">30<span>가능</span></div>
+                    </div>
+                </div>
+
+                <div class="dashboard-sidebar">
+                    <div class="booking-card">
+                        <h4>오늘의 행사</h4>
+                        <div class="event-item">
+                            <div class="time">14:00 - 18:00</div>
+                            <div class="event-details">
+                                <span class="event-tag">Keylink</span>
+                                <p>스타트업 네트워킹 파티</p>
+                            </div>
+                        </div>
+                        <div class="event-item available-slot">
+                            <div class="time">19:00 - 23:00</div>
+                            <div class="event-details">
+                                <p>예약 가능</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="booking-card quick-action">
+                        <h4>빠른 예약</h4>
+                        <select class="custom-select">
+                            <option>공간 패키지 선택</option>
+                            <option>데이 패키지 (10-17시)</option>
+                            <option>나이트 패키지 (18-24시)</option>
+                            <option>올나잇 패키지 (18-익일10시)</option>
+                            <option style="color: var(--accent-gold); font-weight: bold;">🔑 키링크 수료자 특별 10% 할인 패키지
+                            </option>
+                        </select>
+                        <button class="primary-btn">일정 선택하기</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container footer-content">
+            <div class="footer-logo">MONORY</div>
+            <p>프리미엄 파티룸 & 커뮤니티 스페이스 모노리</p>
+            <p class="copyright">© 2026 Monory. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Keylink Floating Banner -->
+    <a href="#about" class="keylink-floating-banner slide-in-right delay-2">
+        <div class="banner-icon">🎯</div>
+        <div class="banner-text">
+            <span>솔로들을 위한 프리미엄 네트워킹</span>
+            <strong>이번 주말, 모노리 키링크 참여하기</strong>
+        </div>
+    </a>
+
+    <script>
+        // Simple Intersection Observer for scroll animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.slide-in-left, .slide-in-right, .fade-in-up').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Sticky Navbar
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('.navbar');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
+        // Trigger animations on load for hero section
+        setTimeout(() => {
+            document.querySelectorAll('.hero-content .fade-in-up').forEach(el => {
+                el.classList.add('visible');
+            });
+        }, 100);
+
+        // Toss Payments Integration
+        document.querySelector('.primary-btn').addEventListener('click', function () {
+            const selectBox = document.querySelector('.custom-select');
+            
+            if(selectBox.selectedIndex === 0) {
+                alert('이용하실 공간 패키지를 먼저 선택해주세요.');
+                return;
+            }
+
+            const packageName = selectBox.options[selectBox.selectedIndex].text;
+            
+            // 토스페이먼츠 연동 (테스트 클라이언트 키)
+            const clientKey = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
+            const tossPayments = TossPayments(clientKey);
+
+            tossPayments.requestPayment('카드', {
+                amount: 120000, 
+                orderId: 'MNRY-' + new Date().getTime(),
+                orderName: '모노리: ' + packageName,
+                customerName: '태영훈 방문객님',
+                successUrl: window.location.origin + '?status=success',
+                failUrl: window.location.origin + '?status=fail',
+            }).catch(function (error) {
+                if (error.code === 'USER_CANCEL') {
+                    console.log('사용자가 결제를 취소했습니다.');
+                } else {
+                    alert('결제 오류가 발생했습니다: ' + error.message);
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
