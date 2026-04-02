@@ -586,6 +586,11 @@ footer p {
 
 /* Responsive */
 @media (max-width: 900px) {
+    .navbar {
+        display: flex;
+        justify-content: space-between;
+    }
+
     .about-grid, .dashboard-container {
         grid-template-columns: 1fr;
     }
@@ -654,6 +659,14 @@ footer p {
 }
 
 @media (max-width: 600px) {
+    .auth-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+    .auth-links {
+        gap: 8px;
+    }
+
     section {
         padding: 60px 0;
     }
