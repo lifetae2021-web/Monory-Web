@@ -12,7 +12,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.0.10">
+    <link rel="stylesheet" href="style.css?v=1.0.11">
     <!-- Toss Payments SDK -->
     <script src="https://js.tosspayments.com/v1"></script>
 </head>
@@ -116,122 +116,86 @@
         </div>
     </section>
 
-    <section id="pricing" style="background-color: var(--bg-main); padding: 100px 0;">
+    <section id="reservation" class="reservation-section" style="padding: 100px 0;">
         <div class="container">
             <div class="text-center" style="margin-bottom: 50px;">
-                <h2 class="section-badge">PRICING</h2>
-                <h3 class="section-title">이용 요금</h3>
-                <p class="section-description centered">합리적인 가격으로 프리미엄 공간을 누려보세요.</p>
-            </div>
-            <div
-                style="height: 300px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border-color); border-radius: 12px; background: rgba(0,0,0,0.2);">
-                <p style="color: var(--text-secondary);"><i class="fa-solid fa-won-sign"></i> 상세 이용 요금표 업데이트 예정</p>
-            </div>
-        </div>
-    </section>
-
-    <section id="reservation" class="reservation-section">
-        <div class="container">
-            <div class="text-center">
                 <h2 class="section-badge">RESERVATION</h2>
-                <h3 class="section-title">스마트 예약 대시보드</h3>
-                <p class="section-description centered">원하시는 날짜의 모노리 예약 현황을 한눈에 확인하세요.</p>
+                <h3 class="section-title">스마트 요금표 및 예약 안내</h3>
+                <p class="section-description centered">서면역 15번 출구 도보 3분 · 25평 단독 대형룸 · 최대 20인 수용<br>(강의, 영화, 와인, 독서모임 최적화)</p>
+                <div style="margin-top: 20px; display: flex; justify-content: center;">
+                    <span style="display: inline-block; background: rgba(212, 175, 55, 0.1); color: var(--accent-gold); padding: 10px 20px; border-radius: 30px; font-size: 0.95rem; border: 1px solid rgba(212, 175, 55, 0.3);">
+                        🎁 엘리베이터 없는 4층 <strong>계단 이용 특별 할인</strong> & <strong>프리미엄 웰컴 드링크</strong> 제공!
+                    </span>
+                </div>
             </div>
 
-            <div class="dashboard-container">
-                <div class="dashboard-panel">
-                    <div class="dashboard-header">
-                        <h4>📅 2026년 4월 예약 현황</h4>
-                        <div class="status-legend">
-                            <span class="legend-item"><span class="dot available"></span>예약가능</span>
-                            <span class="legend-item"><span class="dot booked"></span>예약완료</span>
-                        </div>
+            <div class="pricing-grid">
+                <!-- Day Package -->
+                <div class="pricing-card">
+                    <div class="pkg-header">
+                        <h4 class="pkg-title">데이 패키지</h4>
+                        <p class="pkg-time">10:00 ~ 17:00</p>
                     </div>
-
-                    <div class="calendar-grid">
-                        <!-- 요일 -->
-                        <div class="day-name">Sun</div>
-                        <div class="day-name">Mon</div>
-                        <div class="day-name">Tue</div>
-                        <div class="day-name">Wed</div>
-                        <div class="day-name">Thu</div>
-                        <div class="day-name">Fri</div>
-                        <div class="day-name">Sat</div>
-
-                        <!-- 빈 날짜 -->
-                        <div class="day empty"></div>
-                        <div class="day empty"></div>
-                        <div class="day empty"></div>
-
-                        <!-- 4월 날짜 (예시) -->
-                        <div class="day booked">1<span>마감</span></div>
-                        <div class="day available">2<span>가능</span></div>
-                        <div class="day available">3<span>가능</span></div>
-                        <div class="day booked">4<span>마감</span></div>
-                        <div class="day booked">5<span>마감</span></div>
-                        <div class="day available">6<span>가능</span></div>
-                        <div class="day available">7<span>가능</span></div>
-                        <div class="day available">8<span>가능</span></div>
-                        <div class="day booked">9<span>마감</span></div>
-                        <div class="day booked">10<span>마감</span></div>
-                        <div class="day booked">11<span>마감</span></div>
-
-                        <div class="day available">12<span>가능</span></div>
-                        <div class="day available">13<span>가능</span></div>
-                        <div class="day available">14<span>가능</span></div>
-                        <div class="day available">15<span>가능</span></div>
-                        <div class="day booked">16<span>마감</span></div>
-                        <div class="day booked">17<span>마감</span></div>
-                        <div class="day booked">18<span>마감</span></div>
-
-                        <div class="day available">19<span>가능</span></div>
-                        <div class="day available">20<span>가능</span></div>
-                        <div class="day available">21<span>가능</span></div>
-                        <div class="day available">22<span>가능</span></div>
-                        <div class="day available">23<span>가능</span></div>
-                        <div class="day booked">24<span>마감</span></div>
-                        <div class="day booked">25<span>마감</span></div>
-
-                        <div class="day available">26<span>가능</span></div>
-                        <div class="day available">27<span>가능</span></div>
-                        <div class="day available">28<span>가능</span></div>
-                        <div class="day available">29<span>가능</span></div>
-                        <div class="day available">30<span>가능</span></div>
+                    <div class="pkg-body">
+                        <div class="price-row">
+                            <span>평일(월~목)</span>
+                            <strong>70,000원</strong>
+                        </div>
+                        <div class="price-row">
+                            <span>주말(금~일/공휴일)</span>
+                            <strong>100,000원</strong>
+                        </div>
                     </div>
                 </div>
 
-                <div class="dashboard-sidebar">
-                    <div class="booking-card">
-                        <h4>오늘의 행사</h4>
-                        <div class="event-item">
-                            <div class="time">14:00 - 18:00</div>
-                            <div class="event-details">
-                                <span class="event-tag">Keylink</span>
-                                <p>스타트업 네트워킹 파티</p>
-                            </div>
-                        </div>
-                        <div class="event-item available-slot">
-                            <div class="time">19:00 - 23:00</div>
-                            <div class="event-details">
-                                <p>예약 가능</p>
-                            </div>
-                        </div>
+                <!-- Night Package -->
+                <div class="pricing-card highlight">
+                    <div class="pkg-badge">Best 추천</div>
+                    <div class="pkg-header">
+                        <h4 class="pkg-title">나이트 패키지</h4>
+                        <p class="pkg-time">18:00 ~ 24:00</p>
                     </div>
-
-                    <div class="booking-card quick-action">
-                        <h4>빠른 예약</h4>
-                        <select class="custom-select" id="display-packages">
-                            <option>공간 패키지 선택</option>
-                            <option id="opt-day">데이 패키지 (10-17시)</option>
-                            <option id="opt-night">나이트 패키지 (18-24시)</option>
-                            <option>올나잇 패키지 (18-익일10시)</option>
-                            <option id="opt-keylink" style="color: var(--accent-gold); font-weight: bold;">🔑 소개팅 참여자 특별
-                                10% 할인 패키지
-                            </option>
-                        </select>
-                        <button class="primary-btn">일정 선택하기</button>
+                    <div class="pkg-body">
+                        <div class="price-row">
+                            <span>평일(월~목)</span>
+                            <strong>100,000원</strong>
+                        </div>
+                        <div class="price-row">
+                            <span>주말(금~일/공휴일)</span>
+                            <strong>150,000원</strong>
+                        </div>
                     </div>
                 </div>
+
+                <!-- All Night Package -->
+                <div class="pricing-card">
+                    <div class="pkg-header">
+                        <h4 class="pkg-title">올나잇 패키지</h4>
+                        <p class="pkg-time">18:00 ~ 익일 09:00</p>
+                    </div>
+                    <div class="pkg-body">
+                        <div class="price-row">
+                            <span>평일(월~목)</span>
+                            <strong>150,000원</strong>
+                        </div>
+                        <div class="price-row">
+                            <span>주말(금~일/공휴일)</span>
+                            <strong>220,000원</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: center;">
+                <div class="pricing-note">
+                    <i class="fa-solid fa-circle-info"></i> 최대 20인 기준 / 8인 초과 시 1인당 <strong>10,000원</strong> 추가
+                </div>
+            </div>
+
+            <div class="text-center" style="margin-top: 60px;">
+                <a href="#reservation-link" class="cta-pulse-btn">
+                    일정 선택 및 예약하기 <i class="fa-solid fa-calendar-check"></i>
+                </a>
             </div>
         </div>
     </section>
@@ -372,7 +336,7 @@
     <!-- Version Tag -->
     <div
         style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.0.10 (2026.04.02)
+        v1.0.11 (2026.04.02)
     </div>
 
     <!-- Login Modal (Image Match) -->
