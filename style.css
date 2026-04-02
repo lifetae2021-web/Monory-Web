@@ -1182,10 +1182,18 @@ footer p {
     justify-content: center;
     transition: 0.2s;
 }
-.counter-control button:hover {
+.counter-control button:hover,
+.counter-control button:active,
+.counter-control button:focus {
     background: var(--accent-gold);
-    color: #fff;
+    color: #fff !important;
     border-color: var(--accent-gold);
+    outline: none;
+}
+
+.counter-control button i {
+    pointer-events: none;
+    color: inherit;
 }
 
 .counter-control input {
