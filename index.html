@@ -12,7 +12,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.0.19">
+    <link rel="stylesheet" href="style.css?v=1.0.20">
     <!-- Toss Payments SDK -->
     <script src="https://js.tosspayments.com/v1"></script>
 </head>
@@ -29,6 +29,11 @@
         <div class="auth-links">
             <a href="#" onclick="openModal('loginModal'); return false;" class="auth-btn">로그인</a>
             <a href="#" onclick="openModal('registerModal'); return false;" class="auth-btn primary">회원가입</a>
+        </div>
+        <div class="menu-trigger" id="mobile-menu-trigger" onclick="toggleMobileMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
         </div>
     </nav>
 
@@ -336,7 +341,7 @@
     <!-- Version Tag -->
     <div
         style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.0.19 (2026.04.02)
+        v1.0.20 (2026.04.02)
     </div>
 
     <!-- Login Modal (Image Match) -->
@@ -426,7 +431,7 @@
 
     <!-- Booking Modal -->
     <div id="bookingModal" class="modal-overlay" onclick="closeModalOnOutside(event, 'bookingModal')">
-        <div class="booking-modal-container" style="max-width: 800px; padding: 40px;">
+        <div class="booking-modal-container">
             <button class="modal-close" onclick="closeModal('bookingModal')">&times;</button>
             <h2 class="modal-title" style="margin-bottom: 30px; text-align: left; font-size: 1.8rem;">일정 선택 및 예약</h2>
             
@@ -650,7 +655,43 @@
             document.getElementById('summary-extra-price').innerText = extraPrice.toLocaleString() + '원';
             document.getElementById('summary-total-price').innerText = total.toLocaleString() + '원';
         }
+
+        // Mobile Menu Logic
+        function toggleMobileMenu() {
+            const trigger = document.getElementById('mobile-menu-trigger');
+            const overlay = document.getElementById('mobile-nav-overlay');
+            const body = document.body;
+            
+            trigger.classList.toggle('active');
+            overlay.classList.toggle('active');
+            
+            if (overlay.classList.contains('active')) {
+                body.style.overflow = 'hidden';
+            } else {
+                body.style.overflow = 'auto';
+            }
+        }
+
+        function closeMobileMenu() {
+            const trigger = document.getElementById('mobile-menu-trigger');
+            const overlay = document.getElementById('mobile-nav-overlay');
+            const body = document.body;
+            
+            trigger.classList.remove('active');
+            overlay.classList.remove('active');
+            body.style.overflow = 'auto';
+        }
     </script>
+
+    <!-- Mobile Nav Overlay -->
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay">
+        <ul class="mobile-nav-links">
+            <li><a href="#home" onclick="closeMobileMenu()">HOME</a></li>
+            <li><a href="#gallery" onclick="closeMobileMenu()">공간사진</a></li>
+            <li><a href="#reservation" onclick="closeMobileMenu()">예약하기</a></li>
+            <li><a href="#location" onclick="closeMobileMenu()">오시는길</a></li>
+        </ul>
+    </div>
 </body>
 
 </html>
