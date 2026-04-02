@@ -1310,6 +1310,20 @@ footer p {
     outline: none;
 }
 
+.guest-info-text {
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 8px;
+}
+
+@media (max-width: 600px) {
+    .guest-info-text {
+        font-size: 0.72rem; /* 모바일에서 더 작게 조절하여 한 줄 유지 */
+        white-space: nowrap;
+        letter-spacing: -0.3px;
+    }
+}
+
 .price-summary-box {
     background: #fafafa;
     border: 1px solid #eaeaea;
