@@ -346,32 +346,56 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.0.6 (2026.04.02)
+        v1.0.7 (2026.04.02)
     </div>
 
-    <!-- Login Modal -->
+    <!-- Login Modal (Image Match) -->
     <div id="loginModal" class="modal-overlay" onclick="closeModalOnOutside(event, 'loginModal')">
-        <div class="modal-container">
-            <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
-            <h2 class="modal-title">로그인</h2>
-            <div class="modal-form-group">
-                <input type="email" class="modal-input" placeholder="이메일 주소">
+        <div class="monory-login-modal">
+            <button class="ml-close" onclick="closeModal('loginModal')">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <div class="ml-header">
+                <div class="ml-title">로그인</div>
             </div>
-            <div class="modal-form-group">
-                <input type="password" class="modal-input" placeholder="비밀번호">
-            </div>
-            <div class="modal-options">
-                <label><input type="checkbox"> 로그인 상태 유지</label>
-                <a href="#">이메일/비밀번호 찾기</a>
-            </div>
-            <button class="modal-submit">로그인</button>
-            <div class="modal-footer">
-                아직 계정이 없으신가요? <a onclick="switchModal('loginModal', 'registerModal')">회원가입</a>
-            </div>
-            <div class="sns-login">
-                <a href="#" class="sns-btn sns-kakaotalk"><i class="fa-solid fa-comment"></i></a>
-                <a href="#" class="sns-btn sns-naver"><i class="fa-solid fa-n" style="font-size:1rem; font-weight:bold; font-family:var(--font-body);">N</i></a>
-                <a href="#" class="sns-btn sns-google"><i class="fa-brands fa-google"></i></a>
+            
+            <div class="ml-body">
+                <div class="ml-input-group">
+                    <input type="text" placeholder="아이디">
+                    <input type="password" placeholder="비밀번호">
+                </div>
+                
+                <label class="ml-check-row">
+                    <input type="checkbox" checked>
+                    <div class="ml-checkmark"><i class="fa-solid fa-check"></i></div>
+                    로그인상태유지
+                </label>
+                
+                <button class="ml-submit">로그인</button>
+                
+                <div class="ml-links">
+                    <a href="#" onclick="switchModal('loginModal', 'registerModal'); return false;">회원가입</a>
+                    <a href="#">아이디 · 비밀번호 찾기</a>
+                </div>
+                
+                <div class="ml-divider"><span>또는</span></div>
+                
+                <button class="ml-sns-btn naver">
+                    <span class="icon" style="font-weight:900; font-family:Arial;">N</span>
+                    네이버로 시작하기
+                </button>
+                
+                <button class="ml-sns-btn kakao">
+                    <i class="fa-solid fa-comment icon"></i>
+                    카카오로 시작하기
+                </button>
+                
+                <div class="ml-divider" style="margin-top: 25px;"><span>또는</span></div>
+                
+                <button class="ml-sns-btn guest">
+                    비회원 예약 조회
+                </button>
             </div>
         </div>
     </div>

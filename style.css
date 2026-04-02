@@ -895,3 +895,162 @@ footer p {
     cursor: pointer;
     white-space: nowrap;
 }
+
+/* Custom Login Modal Image Clone */
+.monory-login-modal {
+    background: #fff;
+    color: #333;
+    width: 90%;
+    max-width: 380px;
+    border-radius: 4px;
+    padding: 0;
+    position: relative;
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+}
+.modal-overlay.active .monory-login-modal {
+    transform: translateY(0);
+}
+.ml-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 1.5rem;
+    color: #ccc;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 300;
+}
+.ml-close:hover { color: #333; }
+
+.ml-header {
+    text-align: center;
+    padding: 40px 0 30px;
+}
+.ml-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    font-family: var(--font-body);
+}
+
+.ml-body {
+    padding: 0 30px 40px;
+}
+
+.ml-input-group {
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+.ml-input-group input {
+    width: 100%;
+    padding: 15px 15px;
+    border: none;
+    font-size: 1rem;
+    outline: none;
+    font-family: var(--font-body);
+}
+.ml-input-group input[type="text"] {
+    border-bottom: 1px solid #e0e0e0;
+}
+.ml-input-group input::placeholder {
+    color: #aaa;
+}
+
+.ml-check-row {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem;
+    color: #333;
+    cursor: pointer;
+    user-select: none;
+}
+.ml-check-row input { display: none; }
+.ml-checkmark {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    background: #fff;
+    border: 1px solid #ccc;
+    margin-right: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 0.8rem;
+}
+.ml-check-row input:checked + .ml-checkmark {
+    background: #ff5c5c;
+    border-color: #ff5c5c;
+}
+.ml-check-row input:not(:checked) + .ml-checkmark i {
+    display: none;
+}
+
+.ml-submit {
+    width: 100%;
+    background: #ff5c5c;
+    color: white;
+    border: none;
+    padding: 16px;
+    font-size: 1.1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 25px;
+    font-family: var(--font-body);
+}
+
+.ml-links {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+    color: #333;
+    margin-bottom: 30px;
+}
+.ml-links a { color: #333; text-decoration: none; }
+.ml-links a:hover { text-decoration: underline; }
+
+.ml-divider {
+    display: flex;
+    align-items: center;
+    color: #ccc;
+    font-size: 0.9rem;
+    margin-bottom: 25px;
+}
+.ml-divider::before, .ml-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #f0f0f0;
+}
+.ml-divider span {
+    padding: 0 15px;
+    color: #1a1a1a;
+}
+
+.ml-sns-btn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-bottom: 15px;
+    position: relative;
+    font-family: var(--font-body);
+    font-weight: 500;
+}
+.ml-sns-btn .icon {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+}
+.ml-sns-btn.naver {
+    background: #03c75a; color: white;
+}
+.ml-sns-btn.kakao {
+    background: #fee500; color: #3c1e1e;
+}
+.ml-sns-btn.guest {
+    background: #8e9cac; color: white; margin-top: 5px; margin-bottom: 0px;
+}
