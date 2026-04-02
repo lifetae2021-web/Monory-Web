@@ -1172,9 +1172,9 @@ footer p {
     transition: 0.2s;
 }
 .counter-control button:hover {
-    background: var(--text-primary);
+    background: var(--accent-gold);
     color: #fff;
-    border-color: var(--text-primary);
+    border-color: var(--accent-gold);
 }
 
 .counter-control input {
