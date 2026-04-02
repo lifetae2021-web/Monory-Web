@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.0.9">
     <!-- Toss Payments SDK -->
     <script src="https://js.tosspayments.com/v1"></script>
 </head>
@@ -313,8 +313,10 @@
         }, 100);
 
         // Toss Payments Integration
-        document.querySelector('.primary-btn').addEventListener('click', function () {
-            const selectBox = document.querySelector('.custom-select');
+        const primaryBtn = document.querySelector('.primary-btn');
+        if (primaryBtn) {
+            primaryBtn.addEventListener('click', function () {
+                const selectBox = document.querySelector('.custom-select');
 
             if (selectBox.selectedIndex === 0) {
                 alert('이용하실 공간 패키지를 먼저 선택해주세요.');
@@ -341,12 +343,13 @@
                     alert('결제 오류가 발생했습니다: ' + error.message);
                 }
             });
-        });
+            });
+        }
     </script>
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.0.8 (2026.04.02)
+        v1.0.9 (2026.04.02)
     </div>
 
     <!-- Login Modal (Image Match) -->
