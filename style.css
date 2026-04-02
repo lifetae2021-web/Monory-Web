@@ -619,37 +619,52 @@ footer p {
     }
 
     .hero-content h1 {
-        font-size: 2.2rem;
+        font-size: 2rem;
+        line-height: 1.1;
     }
     
     .hero-content h1 span {
-        font-size: 2.5rem;
+        font-size: 2.3rem;
         display: block;
-        margin-top: 8px;
+        margin-top: 10px;
     }
     
     .hero-content p {
         font-size: 1.05rem;
-        line-height: 1.6;
+        line-height: 1.8;
+        padding: 0 10px;
     }
     
     .section-description {
-        font-size: 1.05rem;
-        line-height: 1.7;
-    }
-    
-    .facility-list {
-        grid-template-columns: 1fr;
-    }
-    
-    .cta-button {
-        padding: 14px 30px;
-        font-size: 1rem;
-        margin-top: 30px;
+        font-size: 1.1rem;
+        line-height: 1.8;
+        padding: 0 5%;
+        word-break: keep-all;
     }
     
     .section-title {
-        font-size: 2rem;
+        font-size: 1.8rem;
+        margin-bottom: 20px;
+    }
+
+    .pricing-card {
+        padding: 40px 20px;
+    }
+
+    .pkg-title {
+        font-size: 1.4rem;
+    }
+
+    .price-row strong {
+        font-size: 1.3rem;
+    }
+
+    .pricing-note {
+        font-size: 1rem;
+        line-height: 1.6;
+        padding: 20px;
+        flex-direction: column;
+        gap: 10px;
     }
     
     .keylink-floating-banner {
