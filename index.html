@@ -26,8 +26,8 @@
             <li><a href="#location">오시는길</a></li>
         </ul>
         <div class="auth-links">
-            <a href="login.html" class="auth-btn">로그인</a>
-            <a href="#" class="auth-btn primary">회원가입</a>
+            <a href="#" onclick="openModal('loginModal'); return false;" class="auth-btn">로그인</a>
+            <a href="#" onclick="openModal('registerModal'); return false;" class="auth-btn primary">회원가입</a>
         </div>
     </nav>
 
@@ -346,8 +346,88 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.0.5 (2026.04.02)
+        v1.0.6 (2026.04.02)
     </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal-overlay" onclick="closeModalOnOutside(event, 'loginModal')">
+        <div class="modal-container">
+            <button class="modal-close" onclick="closeModal('loginModal')">&times;</button>
+            <h2 class="modal-title">로그인</h2>
+            <div class="modal-form-group">
+                <input type="email" class="modal-input" placeholder="이메일 주소">
+            </div>
+            <div class="modal-form-group">
+                <input type="password" class="modal-input" placeholder="비밀번호">
+            </div>
+            <div class="modal-options">
+                <label><input type="checkbox"> 로그인 상태 유지</label>
+                <a href="#">이메일/비밀번호 찾기</a>
+            </div>
+            <button class="modal-submit">로그인</button>
+            <div class="modal-footer">
+                아직 계정이 없으신가요? <a onclick="switchModal('loginModal', 'registerModal')">회원가입</a>
+            </div>
+            <div class="sns-login">
+                <a href="#" class="sns-btn sns-kakaotalk"><i class="fa-solid fa-comment"></i></a>
+                <a href="#" class="sns-btn sns-naver"><i class="fa-solid fa-n" style="font-size:1rem; font-weight:bold; font-family:var(--font-body);">N</i></a>
+                <a href="#" class="sns-btn sns-google"><i class="fa-brands fa-google"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Register Modal -->
+    <div id="registerModal" class="modal-overlay" onclick="closeModalOnOutside(event, 'registerModal')">
+        <div class="modal-container">
+            <button class="modal-close" onclick="closeModal('registerModal')">&times;</button>
+            <h2 class="modal-title">회원가입</h2>
+            <div class="modal-form-group auth-btn-row">
+                <input type="email" class="modal-input" placeholder="이메일 주소">
+                <button>인증요청</button>
+            </div>
+            <div class="modal-form-group">
+                <input type="password" class="modal-input" placeholder="비밀번호 (8자리 이상)">
+            </div>
+            <div class="modal-form-group">
+                <input type="password" class="modal-input" placeholder="비밀번호 확인">
+            </div>
+            <div class="modal-form-group">
+                <input type="text" class="modal-input" placeholder="이름">
+            </div>
+            <div class="modal-form-group">
+                <input type="tel" class="modal-input" placeholder="휴대폰 번호 (- 없이 입력)">
+            </div>
+            <button class="modal-submit">회원가입</button>
+            <div class="modal-footer">
+                이미 계정이 있으신가요? <a onclick="switchModal('registerModal', 'loginModal')">로그인</a>
+            </div>
+            <div class="sns-login">
+                <a href="#" class="sns-btn sns-kakaotalk"><i class="fa-solid fa-comment"></i></a>
+                <a href="#" class="sns-btn sns-naver"><i class="fa-solid fa-n" style="font-size:1rem; font-weight:bold; font-family:var(--font-body);">N</i></a>
+                <a href="#" class="sns-btn sns-google"><i class="fa-brands fa-google"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+        function switchModal(closeId, openId) {
+            closeModal(closeId);
+            setTimeout(() => {
+                openModal(openId);
+            }, 300);
+        }
+        function closeModalOnOutside(event, id) {
+            if (event.target.id === id) {
+                closeModal(id);
+            }
+        }
+    </script>
 </body>
 
 </html>
