@@ -345,7 +345,7 @@
     </div>
 
     <!-- Login Modal (Image Match) -->
-    <div id="loginModal" class="modal-overlay" style="display:none;" onclick="closeModalOnOutside(event, 'loginModal')">
+    <div id="loginModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; backdrop-filter:blur(5px);" onclick="closeModalOnOutside(event, 'loginModal')">
         <div class="monory-login-modal">
             <button class="ml-close" onclick="closeModal('loginModal')">
                 <i class="fa-solid fa-xmark"></i>
@@ -396,7 +396,7 @@
     </div>
 
     <!-- Register Modal -->
-    <div id="registerModal" class="modal-overlay" style="display:none;" onclick="closeModalOnOutside(event, 'registerModal')">
+    <div id="registerModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; backdrop-filter:blur(5px);" onclick="closeModalOnOutside(event, 'registerModal')">
         <div class="modal-container">
             <button class="modal-close" onclick="closeModal('registerModal')">&times;</button>
             <h2 class="modal-title">회원가입</h2>
@@ -430,7 +430,7 @@
     </div>
 
     <!-- Booking Modal -->
-    <div id="bookingModal" class="modal-overlay" style="display:none;" onclick="closeModalOnOutside(event, 'bookingModal')">
+    <div id="bookingModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; backdrop-filter:blur(5px);" onclick="closeModalOnOutside(event, 'bookingModal')">
         <div class="booking-modal-container">
             <button class="modal-close" onclick="closeModal('bookingModal')">&times;</button>
             <h2 class="modal-title" style="margin-bottom: 30px; text-align: left; font-size: 1.8rem;">일정 선택 및 예약</h2>
