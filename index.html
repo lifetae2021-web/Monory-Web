@@ -12,7 +12,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.0.22">
+    <link rel="stylesheet" href="style.css?t=20260404181500">
     <!-- Toss Payments SDK -->
     <script src="https://js.tosspayments.com/v1"></script>
 </head>
@@ -345,7 +345,7 @@
     </div>
 
     <!-- Login Modal (Image Match) -->
-    <div id="loginModal" class="modal-overlay" onclick="closeModalOnOutside(event, 'loginModal')">
+    <div id="loginModal" class="modal-overlay" style="display:none;" onclick="closeModalOnOutside(event, 'loginModal')">
         <div class="monory-login-modal">
             <button class="ml-close" onclick="closeModal('loginModal')">
                 <i class="fa-solid fa-xmark"></i>
@@ -396,7 +396,7 @@
     </div>
 
     <!-- Register Modal -->
-    <div id="registerModal" class="modal-overlay" onclick="closeModalOnOutside(event, 'registerModal')">
+    <div id="registerModal" class="modal-overlay" style="display:none;" onclick="closeModalOnOutside(event, 'registerModal')">
         <div class="modal-container">
             <button class="modal-close" onclick="closeModal('registerModal')">&times;</button>
             <h2 class="modal-title">회원가입</h2>
@@ -430,7 +430,7 @@
     </div>
 
     <!-- Booking Modal -->
-    <div id="bookingModal" class="modal-overlay" onclick="closeModalOnOutside(event, 'bookingModal')">
+    <div id="bookingModal" class="modal-overlay" style="display:none;" onclick="closeModalOnOutside(event, 'bookingModal')">
         <div class="booking-modal-container">
             <button class="modal-close" onclick="closeModal('bookingModal')">&times;</button>
             <h2 class="modal-title" style="margin-bottom: 30px; text-align: left; font-size: 1.8rem;">일정 선택 및 예약</h2>
@@ -506,22 +506,24 @@
 
     <script>
         function openModal(id) {
-            document.getElementById(id).classList.add('active');
+            const el = document.getElementById(id);
+            el.style.display = 'flex';
+            el.classList.add('active');
             document.body.style.overflow = 'hidden';
         }
         function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-            // If no other modals or mobile nav are active, restore overflow
-            if (!document.querySelector('.modal-overlay.active') && 
+            const el = document.getElementById(id);
+            el.classList.remove('active');
+            el.style.display = 'none';
+            // restore scroll if no other modal or mobile nav is active
+            if (!document.querySelector('.modal-overlay.active') &&
                 !document.querySelector('.mobile-nav-overlay.active')) {
                 document.body.style.overflow = 'auto';
             }
         }
         function switchModal(closeId, openId) {
             closeModal(closeId);
-            setTimeout(() => {
-                openModal(openId);
-            }, 300);
+            setTimeout(() => { openModal(openId); }, 300);
         }
         function closeModalOnOutside(event, id) {
             if (event.target.id === id) {
