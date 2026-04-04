@@ -614,6 +614,7 @@ footer p {
     font-weight: 500;
     font-family: var(--font-heading);
     color: var(--accent-gold);
+}
 /* Mobile Menu Trigger */
 .menu-trigger {
     display: none;
@@ -1353,5 +1354,4 @@ footer p {
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.5px;
-}
 }
