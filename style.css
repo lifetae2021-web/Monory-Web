@@ -19,10 +19,21 @@
     --font-body: 'Noto Sans KR', sans-serif;
 }
 
+html {
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    max-width: 100%;
+}
+
+/* 이미지/영상 등은 max-width 초기화 */
+img, video, canvas, iframe, svg {
+    max-width: 100%;
 }
 
 body {
@@ -31,7 +42,15 @@ body {
     font-family: var(--font-body);
     line-height: 1.6;
     overflow-x: hidden;
-    touch-action: manipulation;
+    /* 세로 스크롤만 허용 - 좌우 스와이프 흔들림 방지 */
+    touch-action: pan-y;
+    /* 모바일 스크롤 관성 개선 */
+    -webkit-overflow-scrolling: touch;
+    /* 가로 폭이 뷰포트를 벗어나지 않도록 */
+    position: relative;
+    width: 100%;
+    /* 당겨서 새로고침 / 바운스 방지 */
+    overscroll-behavior: none;
 }
 
 a {
@@ -60,7 +79,9 @@ h1, h2, h3, h4, h5 {
 /* Animations */
 .fade-in-up, .slide-in-left, .slide-in-right {
     opacity: 0;
-    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    /* GPU 가속으로 애니메이션 버벅임 방지 */
+    will-change: opacity, transform;
 }
 
 .fade-in-up {
@@ -69,15 +90,31 @@ h1, h2, h3, h4, h5 {
 .fade-in-up.visible {
     opacity: 1;
     transform: translateY(0);
+    will-change: auto;
 }
 .delay-1 { transition-delay: 0.2s; }
 .delay-2 { transition-delay: 0.4s; }
 
-.slide-in-left { transform: translateX(-40px); }
-.slide-in-left.visible { opacity: 1; transform: translateX(0); }
+/* translateX 대신 translateY 사용 - 가로 오버플로우 방지 */
+.slide-in-left {
+    transform: translateY(20px);
+    opacity: 0;
+}
+.slide-in-left.visible {
+    opacity: 1;
+    transform: translateY(0);
+    will-change: auto;
+}
 
-.slide-in-right { transform: translateX(40px); }
-.slide-in-right.visible { opacity: 1; transform: translateX(0); }
+.slide-in-right {
+    transform: translateY(20px);
+    opacity: 0;
+}
+.slide-in-right.visible {
+    opacity: 1;
+    transform: translateY(0);
+    will-change: auto;
+}
 
 /* Buttons */
 .cta-button {
@@ -145,8 +182,15 @@ h1, h2, h3, h4, h5 {
     z-index: 1000;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    transition: 0.4s ease;
+    -webkit-backdrop-filter: blur(10px);
+    transition: padding 0.4s ease, background 0.4s ease, box-shadow 0.4s ease;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    /* 스크롤 시 GPU 레이어로 처리하여 버벅임 방지 */
+    will-change: transform;
+    transform: translateZ(0);
+    /* 화면 밖 오버플로우 차단 */
+    max-width: 100vw;
+    overflow: hidden;
 }
 
 .navbar.scrolled {
@@ -711,6 +755,12 @@ footer p {
 }
 
 @media (max-width: 600px) {
+    /* 모바일에서 backdrop-filter 제거 - 스크롤 성능 핵심 개선 */
+    .navbar {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(255, 255, 255, 0.98);
+    }
     .auth-btn {
         padding: 8px 16px;
         font-size: 0.85rem;
