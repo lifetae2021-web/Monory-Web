@@ -42,15 +42,11 @@ body {
     font-family: var(--font-body);
     line-height: 1.6;
     overflow-x: hidden;
-    /* 세로 스크롤만 허용 - 좌우 스와이프 흔들림 방지 */
+    /* 모바일: 세로 스크롤만 허용 - 좌우 스와이프 흔들림 방지 */
     touch-action: pan-y;
-    /* 모바일 스크롤 관성 개선 */
     -webkit-overflow-scrolling: touch;
-    /* 가로 폭이 뷰포트를 벗어나지 않도록 */
-    position: relative;
-    width: 100%;
-    /* 당겨서 새로고침 / 바운스 방지 */
-    overscroll-behavior: none;
+    /* 바운스 방지 (모바일) */
+    overscroll-behavior-x: none;
 }
 
 a {
@@ -304,6 +300,8 @@ h1, h2, h3, h4, h5 {
     top: 0; left: 0; right: 0; bottom: 0;
     background: linear-gradient(to bottom, rgba(10,10,12,0.6) 0%, rgba(10,10,12,0.9) 100%);
     z-index: 1;
+    /* 마우스/터치 이벤트를 아래부터 통과 - PC 스크롤 차단 방지 */
+    pointer-events: none;
 }
 
 .hero-content {
