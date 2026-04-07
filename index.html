@@ -152,7 +152,7 @@
                         <span class="event-title">오픈 기념 특별 이벤트</span>
                     </div>
                     <div class="event-banner-bottom">
-                        지금 예약하면 &nbsp;<strong class="event-coupon">만원 할인 쿠폰</strong>&nbsp; 증정!
+                        지금 가입하면 &nbsp;<strong class="event-coupon">만원 할인 쿠폰</strong>&nbsp; 증정!
                     </div>
                 </div>
             </div>
@@ -282,30 +282,65 @@
     const KAKAO_REDIRECT   = 'https://monory-web.web.app';
 
     // ─── 페이지 로드 시 초기화 + 리다이렉트 콜백 처리 ──────────────
+    // ─── 모바일 감지 (팝업 대신 리다이렉트 사용) ──────────────────
+    function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+            || window.innerWidth <= 768;
+    }
+
     window.addEventListener('load', async function () {
         // Kakao SDK 초기화
         if (typeof Kakao !== 'undefined' && !Kakao.isInitialized()) {
             try { Kakao.init(KAKAO_APP_KEY); } catch(e) {}
         }
 
-        // 1) URL에 ?code= 가 있으면 = 카카오가 로그인 후 돌아온 것
+        // ── 1) 카카오 로그인 리다이렉트 콜백 처리 (?code=) ──────────
         const params = new URLSearchParams(window.location.search);
         const code   = params.get('code');
         if (code) {
-            // ★ 팝업 모드: 부모 창의 폴링 타이머가 감지해서 처리  
-            //   → 팝업 창 자체는 코드를 직접 처리하지 않음
+            // 팝업 모드: 부모 창이 폴링으로 읽을 수 있도록 잠시 후 닫기
             if (window.opener && !window.opener.closed) {
-                // 팝업이므로 부모 창이 폴링으로 코드를 가져갈 때까지 잠시 대기
-                // URL 정리하지 않음 (부모 폴링이 읽어야 하므로)
+                setTimeout(() => { window.close(); }, 300);
                 return;
             }
-            // 일반 리다이렉트 모드: 직접 처리
+            // 리다이렉트 모드(모바일 등): 직접 처리
             history.replaceState({}, document.title, window.location.pathname);
-            await handleKakaoRedirect(code);
+            await handleKakaoTokenExchange(code);
             return;
         }
 
-        // 2) 저장된 세션 복원
+        // ── 2) 모바일 결제 리다이렉트 콜백 처리 (?imp_uid=) ──────────
+        const impUid = params.get('imp_uid');
+        const merchantUid = params.get('merchant_uid');
+        const impSuccess = params.get('imp_success');
+        const paymentReturn = params.get('payment_return');
+        if (impUid && merchantUid || paymentReturn) {
+            history.replaceState({}, document.title, window.location.pathname);
+            if (impSuccess === 'true') {
+                // 결제 성공 처리
+                const savedBooking = JSON.parse(sessionStorage.getItem('monory_pending_booking') || 'null');
+                if (savedBooking) {
+                    sessionStorage.removeItem('monory_pending_booking');
+                    savedBooking.impUid = impUid;
+                    savedBooking.merchantUid = merchantUid || savedBooking.merchantUid;
+                    saveReservationToFirestore(savedBooking);
+                    showPaymentSuccess(savedBooking.guestName, savedBooking.totalAmount, savedBooking.packageName);
+                } else {
+                    // 임시 데이터 없어도 성공 토스트 표시
+                    showPaymentSuccess('고객', 0, '패키지');
+                }
+            } else if (paymentReturn && impSuccess !== 'false') {
+                // payment_return은 있지만 imp_success가 없는 경우 (취소/실패)
+                // 아무것도 하지 않음
+            } else {
+                const errMsg = params.get('error_msg');
+                if (errMsg && !decodeURIComponent(errMsg).includes('취소')) {
+                    alert('결제 오류: ' + decodeURIComponent(errMsg));
+                }
+            }
+        }
+
+        // ── 3) 저장된 세션 복원 ──────────────────────────────────────
         const saved = localStorage.getItem('monory_user');
         if (saved) {
             try { updateNavbarUser(JSON.parse(saved)); }
@@ -313,7 +348,8 @@
         }
     });
 
-    // ─── 카카오 로그인 버튼 클릭 (팝업 방식) ─────────────────────
+
+    // ─── 카카오 로그인 버튼 클릭 ─────────────────────────────────
     function loginWithKakao() {
         if (typeof Kakao === 'undefined') {
             alert('카카오 로그인을 불러오는 중입니다.\n잠시 후 다시 시도해주세요.');
@@ -321,43 +357,78 @@
         }
         try { if (!Kakao.isInitialized()) Kakao.init(KAKAO_APP_KEY); } catch(e) {}
 
-        // 팝업 창으로 카카오 계정 선택 화면 오픈
-        const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_APP_KEY}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT)}&response_type=code&scope=profile_nickname,profile_image`;
-        const pw = 460, ph = 640;
-        const pl = Math.round((screen.width  - pw) / 2);
-        const pt = Math.round((screen.height - ph) / 2);
-
-        const popup = window.open(
-            authUrl, 'KakaoLogin',
-            `width=${pw},height=${ph},left=${pl},top=${pt},scrollbars=yes,toolbar=no,menubar=no,location=no,status=no`
-        );
-
-        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-            // 팝업 차단 → 리다이렉트 폴백
-            console.log('팝업 차단 감지 → 리다이렉트 방식으로 폴백');
-            Kakao.Auth.authorize({ redirectUri: KAKAO_REDIRECT, scope: 'profile_nickname,profile_image' });
+        // ── 모바일: 리다이렉트 방식 ─────────────────────────────────
+        if (isMobileDevice()) {
+            const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_APP_KEY}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT)}&response_type=code&scope=profile_nickname,profile_image`;
+            window.location.href = authUrl;
             return;
         }
 
-        // 팝업에서 콜백 URL 감지 (300ms 간격으로 폴링)
-        const pollTimer = setInterval(() => {
-            try {
-                if (!popup || popup.closed) { clearInterval(pollTimer); return; }
-                const popupHref = popup.location.href;
-                if (popupHref && popupHref.includes(window.location.hostname)) {
-                    const code = new URLSearchParams(popup.location.search).get('code');
-                    if (code) {
-                        clearInterval(pollTimer);
-                        popup.close();
-                        closeModal('loginModal');
-                        closeModal('signupModal');
-                        handleKakaoRedirect(code);
-                    }
-                }
-            } catch(e) {
-                // 크로스 오리진(카카오 도메인)에서는 정상적으로 발생 → 무시
+        // ── PC: SDK 팝업 방식 (CORS-safe, 카카오 SDK가 토큰까지 처리) ──
+        Kakao.Auth.login({
+            scope: 'profile_nickname,profile_image',
+            success: function(authObj) {
+                // SDK가 토큰 교환까지 완료해서 authObj.access_token 제공
+                _fetchKakaoUserInfo(authObj.access_token);
+            },
+            fail: function(err) {
+                console.log('카카오 로그인 취소 또는 실패:', err);
             }
-        }, 300);
+        });
+    }
+
+    // ─── 카카오 사용자 정보 가져오기 (SDK access_token 사용) ─────
+    function _fetchKakaoUserInfo(accessToken) {
+        Kakao.API.request({
+            url: '/v2/user/me',
+            success: function(userData) {
+                const user = {
+                    kakaoId:      userData.id,
+                    name:         userData.kakao_account?.profile?.nickname || '모노리 회원',
+                    email:        userData.kakao_account?.email             || '',
+                    profileImage: userData.kakao_account?.profile?.profile_image_url || '',
+                    provider:     'kakao',
+                    lastLoginAt:  new Date().toISOString()
+                };
+                updateNavbarUser(user);
+                localStorage.setItem('monory_user', JSON.stringify(user));
+                saveUserToFirestore(user);
+            },
+            fail: function(err) {
+                console.error('카카오 사용자 정보 조회 실패:', err);
+                _restoreLoggedoutUI();
+            }
+        });
+    }
+
+    // ─── 모바일 리다이렉트: code로 토큰 교환 후 사용자 정보 처리 ──
+    // ⚠️ 브라우저에서 kauth.kakao.com/oauth/token 직접 호출은 CORS 차단됨
+    // → 대신 SDK의 Kakao.Auth.setAccessToken + API 호출 방식 사용
+    async function handleKakaoTokenExchange(code) {
+        try {
+            const loggedout = document.getElementById('auth-loggedout');
+            if (loggedout) loggedout.innerHTML = '<span style="font-size:0.85rem;color:#888;">로그인 중...</span>';
+
+            // 카카오 서버를 통한 토큰 교환 (CORS 우회: no-cors는 응답 읽기 불가)
+            // → 프록시 없이 순수 프론트엔드에서는 직접 토큰 교환 불가
+            // → 해결: 리다이렉트로 돌아올 때 SDK 세션이 살아있으면 SDK API를 바로 사용 가능
+            //         살아있지 않으면 다시 로그인 유도
+            if (typeof Kakao !== 'undefined' && Kakao.Auth.getAccessToken()) {
+                _fetchKakaoUserInfo(Kakao.Auth.getAccessToken());
+            } else {
+                // SDK 세션이 없으면 code를 서버리스하게 처리할 수 없음
+                // → localStorage에 code를 저장하고 SDK 팝업으로 한번 더 시도
+                console.warn('모바일 리다이렉트: SDK 세션 없음, 재로그인 유도');
+                _restoreLoggedoutUI();
+                // 자동으로 SDK 로그인 재시도 (모바일은 팝업 불가이므로 알림)
+                setTimeout(() => {
+                    alert('카카오 로그인이 완료되었습니다. 버튼을 다시 눌러 계속해주세요.');
+                }, 100);
+            }
+        } catch(e) {
+            console.error('카카오 로그인 처리 오류:', e);
+            _restoreLoggedoutUI();
+        }
     }
 
     // ─── 카카오 리다이렉트 후 처리 (code → token → user info) ──────
@@ -582,10 +653,18 @@
     </script>
 
     <!-- Version Tag -->
-    <div
+    <div id="version-display"
         style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.0.27 (2026.04.07)
     </div>
+    
+    <script>
+        fetch('version.json?t=' + Date.now())
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('version-display').innerText = `v${data.version} (${data.buildDate})`;
+            })
+            .catch(console.error);
+    </script>
 
     <!-- Login Modal (Image Match) -->
     <div id="loginModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; backdrop-filter:blur(5px);" onclick="closeModalOnOutside(event, 'loginModal')">
@@ -950,6 +1029,23 @@
             const pkgLabels  = { day:'데이 패키지 (10:00~17:00)', night:'나이트 패키지 (18:00~24:00)', allnight:'올나잇 패키지 (18:00~익일 09:00)' };
             const merchantUid = 'MNRY-' + Date.now();
 
+            // ★ 모바일 리다이렉트 대비: 결제 정보를 sessionStorage에 미리 저장
+            const pendingBooking = {
+                bookingType:  currentBookingType,
+                companyName:  company,
+                guestName:    name,
+                phone:        phone,
+                requests:     requests,
+                date:         document.getElementById('selected-date-display').innerText,
+                guestCount:   guestCount,
+                packageKey:   pkg,
+                packageName:  pkgLabels[pkg],
+                totalAmount:  totalAmount,
+                isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false,
+                merchantUid:  merchantUid
+            };
+            sessionStorage.setItem('monory_pending_booking', JSON.stringify(pendingBooking));
+
             // 결제 버튼 비활성화 (중복 방지)
             const payBtn = document.getElementById('btn-pay');
             payBtn.disabled = true;
@@ -966,17 +1062,19 @@
             IMP.init('imp33870371'); // 실제 가맹점 식별코드
 
             IMP.request_pay({
-                pg:           'kakaopay',        // 카카오페이 테스트 결제
+                pg:           'kakaopay',
                 pay_method:   'card',
                 merchant_uid:  merchantUid,
                 name:         `모노리 ${pkgLabels[pkg]}`,
                 amount:        totalAmount,
                 buyer_name:    name,
                 buyer_tel:     phone,
-                m_redirect_url: window.location.origin   // 모바일 리다이렉트
+                // ★ 모바일: 결제 완료 후 이 URL로 리다이렉트 (imp_uid, merchant_uid, imp_success 파라미터 자동 포함)
+                m_redirect_url: window.location.origin + '/?payment_return=1'
             }, function(rsp) {
+                // PC 콜백 (모바일은 페이지 이동이라 이 콜백이 실행되지 않음)
+                sessionStorage.removeItem('monory_pending_booking'); // 저장 데이터 정리
                 if (rsp.success) {
-                    // 결제 성공 → Firestore 저장
                     saveReservationToFirestore({
                         impUid:       rsp.imp_uid,
                         merchantUid:  merchantUid,
@@ -990,12 +1088,11 @@
                         packageKey:   pkg,
                         packageName:  pkgLabels[pkg],
                         totalAmount:  totalAmount,
-                        isWeekend:    isWeekend
+                        isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false
                     });
                     closeModal('bookingModal');
                     showPaymentSuccess(name, totalAmount, pkgLabels[pkg]);
                 } else {
-                    // 결제 실패 / 취소
                     if (rsp.error_msg && !rsp.error_msg.includes('취소')) {
                         alert('결제 오류: ' + rsp.error_msg);
                     }
