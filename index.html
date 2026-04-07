@@ -12,14 +12,18 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.0.23">
+    <link rel="stylesheet" href="style.css?v=1.0.24">
     <!-- Toss Payments SDK -->
     <script src="https://js.tosspayments.com/v1"></script>
 </head>
 
 <body>
     <nav class="navbar">
-        <div class="logo"><a href="#home">MONORY</a></div>
+        <div class="logo">
+            <a href="#home">
+                <img src="assets/monory_logo.png" alt="MONORY" class="logo-img">
+            </a>
+        </div>
         <ul class="nav-links">
             <li><a href="#home">HOME</a></li>
             <li><a href="#gallery">공간사진</a></li>
@@ -126,10 +130,15 @@
                 <h2 class="section-badge">RESERVATION</h2>
                 <h3 class="section-title">예약 안내</h3>
                 <p class="section-description centered">서면역 15번 출구 도보 3분 · 25평 단독 대형룸 · 최대 20인 수용<br>(강의, 영화, 와인, 독서모임 최적화)</p>
-                <div style="margin-top: 20px; display: flex; justify-content: center;">
-                    <span style="display: inline-block; background: rgba(212, 175, 55, 0.1); color: var(--accent-gold); padding: 10px 20px; border-radius: 30px; font-size: 0.95rem; border: 1px solid rgba(212, 175, 55, 0.3);">
-                        🎁 <strong>오픈 기념 특별 이벤트</strong> : 지금 예약하면 <strong>만원 할인 쿠폰</strong> 증정!
-                    </span>
+                <div class="event-banner-box">
+                    <div class="event-banner-top">
+                        <span class="event-emoji">🎁</span>
+                        <span class="event-title">오픈 기념 특별 이벤트</span>
+                    </div>
+                    <div class="event-banner-bottom">
+                        지금 예약하면 &nbsp;<strong class="event-coupon">만원 할인 쿠폰</strong>&nbsp; 증정!
+                        <span class="event-amount">(-10,000원)</span>
+                    </div>
                 </div>
             </div>
 
@@ -224,7 +233,9 @@
 
     <footer>
         <div class="container footer-content">
-            <div class="footer-logo">MONORY</div>
+            <div class="footer-logo">
+                <img src="assets/monory_logo.png" alt="MONORY" class="footer-logo-img">
+            </div>
             <p>프리미엄 파티룸 & 커뮤니티 스페이스 모노리</p>
             <p class="copyright" ondblclick="window.open('admin.html', '_blank');" style="user-select: none;"
                 title="Double click for Admin">© 2026 Monory. All rights reserved.</p>
@@ -341,7 +352,7 @@
     <!-- Version Tag -->
     <div
         style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.0.23 (2026.04.05)
+        v1.0.24 (2026.04.07)
     </div>
 
     <!-- Login Modal (Image Match) -->

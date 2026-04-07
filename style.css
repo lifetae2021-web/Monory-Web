@@ -202,16 +202,22 @@ h1, h2, h3, h4, h5 {
 .logo {
     display: flex;
     justify-content: flex-start;
-    font-family: var(--font-heading);
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: 3px;
-    color: #1a1a1a;
+    align-items: center;
 }
 
 .logo a {
-    color: inherit;
+    display: flex;
+    align-items: center;
     text-decoration: none;
+}
+
+/* 내비게이션 로고 이미지 */
+.logo-img {
+    height: 36px;
+    width: auto;
+    max-width: none;
+    display: block;
+    object-fit: contain;
 }
 
 .auth-links {
@@ -558,11 +564,20 @@ footer {
 }
 
 .footer-logo {
-    font-family: var(--font-heading);
-    color: var(--accent-gold);
-    font-size: 1.5rem;
-    letter-spacing: 3px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+/* 푸터 로고 이미지 */
+.footer-logo-img {
+    height: 50px;
+    width: auto;
+    max-width: none;
+    display: block;
+    object-fit: contain;
+    /* 화이트 배경에 어울리도록 반전 (footer가 다크) 가능하면 사용 */
+    filter: brightness(0) invert(1);
 }
 
 footer p {
@@ -574,6 +589,98 @@ footer p {
     margin-top: 30px;
     font-size: 0.8rem;
     opacity: 0.5;
+}
+
+/* ============================
+   이벤트 배너 박스 (PC + 모바일)
+   ============================ */
+.event-banner-box {
+    margin-top: 24px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: rgba(212, 175, 55, 0.08);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    border-radius: 16px;
+    padding: 16px 28px;
+    text-align: center;
+}
+
+.event-banner-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.event-emoji {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.event-title {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--accent-gold);
+    letter-spacing: 0.5px;
+}
+
+.event-banner-bottom {
+    font-size: 0.95rem;
+    color: rgba(212, 175, 55, 0.85);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    line-height: 1.6;
+}
+
+.event-coupon {
+    color: var(--accent-gold);
+    font-size: 1rem;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.event-amount {
+    display: inline-block;
+    background: var(--accent-gold);
+    color: #1a1a1a;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 2px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    margin-left: 4px;
+    white-space: nowrap;
+}
+
+/* 모바일 전용 배너 조정 */
+@media (max-width: 600px) {
+    .event-banner-box {
+        padding: 14px 18px;
+        border-radius: 14px;
+        gap: 8px;
+        width: 100%;
+        max-width: 340px;
+    }
+
+    .event-title {
+        font-size: 0.95rem;
+    }
+
+    .event-banner-bottom {
+        font-size: 0.88rem;
+    }
+
+    .event-amount {
+        font-size: 0.85rem;
+        padding: 2px 9px;
+    }
 }
 
 /* Responsive */
