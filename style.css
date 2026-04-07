@@ -247,6 +247,37 @@ h1, h2, h3, h4, h5 {
     box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 }
 
+/* ── \uce74\uce74\uc624 \ub0b4\ube44\uac8c\uc774\uc158 \ubc84\ud2bc ──────────────────────────── */
+.kakao-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    background: #FEE500;
+    color: #3C1E1E;
+    border: none;
+    border-radius: 30px;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+}
+.kakao-nav-btn:hover {
+    background: #f0d800;
+    box-shadow: 0 4px 12px rgba(254,229,0,0.4);
+}
+
+/* \ubaa8\ubc14\uc77c: \uce74\uce74\uc624 \ubc84\ud2bc \ud06c\uae30 \ucd95\uc18c */
+@media (max-width: 900px) {
+    .kakao-nav-btn {
+        padding: 7px 12px;
+        font-size: 0.8rem;
+        gap: 5px;
+    }
+}
+
 .nav-links {
     list-style: none;
     display: flex;

@@ -20,16 +20,22 @@
         </div>
         <ul class="nav-menu">
             <li class="nav-item">
-                <a href="#" class="nav-link active"><i class="fa-solid fa-border-all"></i> 대시보드</a>
+                <a href="#" class="nav-link" onclick="showSection('dashboard')">
+                    <i class="fa-solid fa-border-all"></i> 대시보드
+                </a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link"><i class="fa-regular fa-calendar-check"></i> 예약 관리</a>
+                <a href="#" class="nav-link" onclick="showSection('reservations')">
+                    <i class="fa-regular fa-calendar-check"></i> 예약 관리
+                </a>
             </li>
             <li class="nav-item">
                 <a href="#" class="nav-link"><i class="fa-solid fa-users-viewfinder"></i> 키링크 이벤트</a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link"><i class="fa-regular fa-user"></i> 고객 관리</a>
+                <a href="#" class="nav-link" onclick="showSection('members')" id="nav-members">
+                    <i class="fa-regular fa-user"></i> 고객 관리 (회원 명단)
+                </a>
             </li>
             <li class="nav-item">
                 <a href="#" class="nav-link"><i class="fa-solid fa-chart-line"></i> 매출 통계</a>
@@ -292,11 +298,63 @@
 
             </div>
         </div>
+
+        <!-- ============================
+             회원 명단 섹션 (Firestore 연동)
+             ============================ -->
+        <div class="content-area" id="section-members" style="display:none;">
+            <div class="panel" style="margin-bottom:0;">
+                <div class="panel-header" style="border-bottom:1px solid var(--border-color); padding-bottom:16px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center;">
+                    <h2 class="panel-title">
+                        <i class="fa-regular fa-user" style="color:var(--accent-gold); margin-right:8px;"></i>
+                        커카오 회원 명단
+                    </h2>
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <span style="font-size:0.9rem; color:var(--text-secondary);">전체 회원: <strong id="member-total-count" style="color:var(--accent-gold); font-size:1.1rem;">-</strong> 명</span>
+                        <button onclick="loadMembers()" style="padding:8px 16px; border:1px solid var(--accent-gold); background:transparent; color:var(--accent-gold); border-radius:6px; cursor:pointer; font-size:0.85rem;">
+                            <i class="fa-solid fa-rotate-right"></i> 새로고침
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Firestore 미활성화 안내 -->
+                <div id="member-firestore-notice" style="display:none; margin-bottom:20px; padding:16px; background:rgba(234,179,8,0.08); border:1px solid rgba(234,179,8,0.3); border-radius:8px; color:#d4af37; font-size:0.9rem;">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:8px;"></i>
+                    <strong>Firestore가 활성화되지 않았습니다.</strong><br>
+                    Firebase Console → Firestore Database → 데이터베이스 만들기 → 테스트 모드를 선택하세요.
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table id="members-table">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;">#</th>
+                                <th>프로필</th>
+                                <th>이름 (카카오 닉네임)</th>
+                                <th>이메일</th>
+                                <th>제공자</th>
+                                <th>가입일</th>
+                                <th>마지막 로그인</th>
+                            </tr>
+                        </thead>
+                        <tbody id="members-tbody">
+                            <tr>
+                                <td colspan="7" style="text-align:center; padding:40px; color:var(--text-secondary);">
+                                    <i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>로딩 중...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Firebase Auth 설정 및 보안 검사 -->
     <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
 
     <script>
@@ -336,10 +394,90 @@
     </script>
 
     <script>
+        // 섹션 전환
+        function showSection(name) {
+            // 색션 토글
+            document.getElementById('section-members') && (document.getElementById('section-members').style.display = 'none');
+            const mainContent = document.querySelector('.content-area:not([id])');
+            if (mainContent) mainContent.style.display = 'none';
+
+            if (name === 'members') {
+                document.getElementById('section-members').style.display = 'block';
+                loadMembers();
+            } else {
+                if (mainContent) mainContent.style.display = 'block';
+            }
+
+            // Active 클래스
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            event.target.closest('.nav-link').classList.add('active');
+        }
+
+        // 회원 명단 로드 (Firestore)
+        function loadMembers() {
+            const tbody = document.getElementById('members-tbody');
+            const countEl = document.getElementById('member-total-count');
+            if (!tbody) return;
+
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>로딩 중...</td></tr>';
+
+            if (typeof firebase === 'undefined') {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Firebase SDK를 로드하지 못했습니다.</td></tr>';
+                return;
+            }
+
+            const db = firebase.firestore();
+            db.collection('members').orderBy('joinedAt', 'desc').get()
+            .then(function(snapshot) {
+                if (countEl) countEl.textContent = snapshot.size;
+                if (snapshot.empty) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-users" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:12px;"></i>아직 가입한 회원이 없습니다.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = '';
+                let idx = 1;
+                snapshot.forEach(function(doc) {
+                    const m = doc.data();
+                    const joinedAt = m.joinedAt ? (m.joinedAt.toDate ? m.joinedAt.toDate() : new Date(m.joinedAt)) : null;
+                    const lastAt   = m.lastLoginAt ? (m.lastLoginAt.toDate ? m.lastLoginAt.toDate() : new Date(m.lastLoginAt)) : null;
+                    const fmtDate  = d => d ? d.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'}) + ' ' + d.toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'}) : '-';
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td style="color:var(--text-secondary);">${idx++}</td>
+                        <td>
+                            ${m.profileImage
+                                ? `<img src="${m.profileImage}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #FEE500;">`
+                                : `<div style="width:32px;height:32px;border-radius:50%;background:rgba(212,175,55,0.2);display:inline-flex;align-items:center;justify-content:center;color:var(--accent-gold);font-weight:700;">${(m.name||'?')[0]}</div>`
+                            }
+                        </td>
+                        <td style="font-weight:500;">${m.name || '-'}</td>
+                        <td style="color:var(--text-secondary);font-size:0.88rem;">${m.email || '비공개'}</td>
+                        <td>
+                            <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:#FEE500;color:#3C1E1E;font-size:0.8rem;font-weight:700;">
+                                <svg width="12" height="12" viewBox="0 0 18 18" fill="none"><path d="M9 1C4.582 1 1 3.896 1 7.47c0 2.28 1.513 4.278 3.808 5.424l-.97 3.605 4.2-2.774c.637.09 1.29.135 1.962.135 4.418 0 8-2.896 8-6.47C18 3.896 13.418 1 9 1z" fill="#3C1E1E"/></svg>
+                                커카오
+                            </span>
+                        </td>
+                        <td style="font-size:0.85rem;color:var(--text-secondary);">${fmtDate(joinedAt)}</td>
+                        <td style="font-size:0.85rem;color:var(--text-secondary);">${fmtDate(lastAt)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(function(e) {
+                console.error('Firestore 조회 실패:', e);
+                document.getElementById('member-firestore-notice').style.display = 'block';
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Firestore에서 데이터를 불러오지 못했습니다.<br><small>' + e.message + '</small></td></tr>';
+            });
+        }
+    </script>
+
+    <script>
         // Simple active class toggling for nav links
         document.querySelectorAll('.nav-link').forEach(link => {
             link.addEventListener('click', function(e) {
-                if (this.getAttribute('href') === '#') e.preventDefault();
+                if (this.getAttribute('href') === '#' && !this.getAttribute('onclick')) e.preventDefault();
                 document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
                 this.classList.add('active');
             });
@@ -348,7 +486,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.0.27 (2026.04.07)
+        v1.1.0 (2026.04.07)
     </div>
 </body>
 </html>
