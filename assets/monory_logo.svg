@@ -1,31 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 195" width="520" height="195">
-  <!-- Arc above O (positioned relative to MONORY text) -->
-  <!-- O is centered around x=300 in the word, arc spans from ~248 to ~352 -->
-  <path d="M 252 75 A 50 50 0 0 1 348 75" stroke="#111111" stroke-width="14" fill="none" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 200" width="600" height="200">
+  <!--
+    MONORY SVG Logo - Transparent background
+    Font: Arial Black 900 weight, size 105
+    Text centered at x=300, y=145
+    Estimated text width ~490px → spans 300-245=55 to 300+245=545 (safe in 600px)
+
+    In MONORY (6 chars), the 2nd "O" is the 4th character (index 3).
+    Estimated char widths at Arial Black 105px (approx):
+      M≈82, O≈74, N≈78, O≈74, R≈72, Y≈68 → cumulative:
+      M: 55..137  O: 137..211  N: 211..289  O: 289..363  R: 363..435  Y: 435..503
+    Center of 2nd O: (289+363)/2 = 326
+    Arc center x=326, arc radius=55 → x1=271, x2=381
+    Arc top y: text y=145, ascender ~100px, cap height ~75px → top of MONORY ≈ y=70
+    Arc should sit just above the O letter top, so arc bottom ≈ y=72, center y ≈ 72-55=17 → too high
+    Use arc that starts/ends at y=72 with radius=55: center=(326, 72-55)=(326,17) seems fine
+    Actually just use: M 271 72 A 55 55 0 0 1 381 72
+  -->
+
+  <!-- Black arc above the 2nd "O" in MONORY -->
+  <path d="M 271 70 A 56 56 0 0 1 381 70"
+        stroke="#111111"
+        stroke-width="13"
+        fill="none"
+        stroke-linecap="round"/>
 
   <!-- MONORY bold yellow text -->
   <text
-    x="260"
-    y="142"
-    font-family="'Arial Black', 'Impact', 'Arial Bold', Arial, sans-serif"
+    x="300"
+    y="148"
+    font-family="'Arial Black', 'Arial', sans-serif"
     font-weight="900"
-    font-size="112"
+    font-size="105"
     fill="#F5C800"
     text-anchor="middle"
-    letter-spacing="3"
+    letter-spacing="4"
   >MONORY</text>
 
-  <!-- Subtitle row: line - text - line -->
-  <line x1="28"  y1="170" x2="108" y2="170" stroke="#555" stroke-width="1.8"/>
+  <!-- Subtitle: line – text – line -->
+  <line x1="40"  y1="174" x2="118" y2="174" stroke="#555" stroke-width="1.5"/>
   <text
-    x="260"
-    y="176"
+    x="300"
+    y="180"
     font-family="'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif"
     font-weight="400"
-    font-size="17"
+    font-size="16"
     fill="#555555"
     text-anchor="middle"
     letter-spacing="0.5"
   >모이고, 놀고, 리프레시하다. 모노리</text>
-  <line x1="412" y1="170" x2="492" y2="170" stroke="#555" stroke-width="1.8"/>
+  <line x1="482" y1="174" x2="560" y2="174" stroke="#555" stroke-width="1.5"/>
 </svg>
