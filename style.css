@@ -1547,3 +1547,236 @@ footer p {
 }
 
 /* cache-bust: 20260404192005 */
+
+/* ══════════════════════════════════════════
+   예약 모달 2단계 슬라이드 시스템
+   ══════════════════════════════════════════ */
+
+/* 슬라이드 컨테이너 */
+.booking-steps-wrap {
+    overflow: hidden;
+    position: relative;
+}
+
+.booking-steps-inner {
+    display: flex;
+    transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+.booking-step {
+    min-width: 100%;
+    flex-shrink: 0;
+}
+
+/* 2단계 활성화 */
+.booking-steps-inner.step-2 {
+    transform: translateX(-100%);
+}
+
+/* 2단계 헤더 */
+.booking-step2-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.booking-step2-header button {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #555;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.booking-step2-header button:hover { background: #f5f5f5; }
+
+.booking-step2-header h3 {
+    font-family: var(--font-heading);
+    font-size: 1.5rem;
+    color: #1a1a1a;
+    margin: 0;
+}
+
+/* 예약 유형 토글 */
+.booking-type-toggle {
+    display: flex;
+    gap: 0;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.booking-type-toggle button {
+    flex: 1;
+    padding: 11px 0;
+    border: none;
+    background: #fff;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #888;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.booking-type-toggle button.active {
+    background: #1a1a1a;
+    color: #fff;
+    font-weight: 600;
+}
+
+/* 2단계 입력 그룹 */
+.s2-group {
+    margin-bottom: 18px;
+}
+
+.s2-group label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 7px;
+}
+
+.s2-group label span.required {
+    color: var(--accent-gold);
+    margin-left: 2px;
+}
+
+.s2-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #e8e8e8;
+    border-radius: 9px;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: #1a1a1a;
+    background: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.s2-input:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12);
+}
+
+.s2-input::placeholder { color: #bbb; }
+
+textarea.s2-input {
+    resize: vertical;
+    min-height: 90px;
+    line-height: 1.6;
+}
+
+/* 2단계 요약 박스 */
+.s2-summary-bar {
+    display: flex;
+    gap: 8px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.s2-summary-bar .s2-sum-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 80px;
+}
+
+.s2-summary-bar .s2-sum-item span:first-child {
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.s2-summary-bar .s2-sum-item span:last-child {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.s2-summary-bar .s2-sum-price {
+    color: var(--accent-gold) !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+}
+
+/* 결제 버튼 */
+.btn-pay {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #d4af37 0%, #f5d46a 50%, #d4af37 100%);
+    background-size: 200% 100%;
+    border: none;
+    border-radius: 12px;
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: background-position 0.4s, box-shadow 0.2s, transform 0.1s;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.btn-pay:hover {
+    background-position: 100% 0;
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-pay:active { transform: translateY(0); }
+
+/* 스텝 인디케이터 */
+.step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.step-indicator .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ddd;
+    transition: background 0.3s, width 0.3s;
+}
+
+.step-indicator .dot.active {
+    background: var(--accent-gold);
+    width: 24px;
+    border-radius: 4px;
+}
+
+/* 모바일 대응 */
+@media (max-width: 768px) {
+    .booking-step2-header h3 { font-size: 1.2rem; }
+    .s2-summary-bar { padding: 12px 15px; }
+    .s2-summary-bar .s2-sum-item { min-width: 60px; }
+    .btn-pay { font-size: 1rem; padding: 14px; }
+    .booking-type-toggle button { padding: 10px 0; font-size: 0.9rem; }
+}
