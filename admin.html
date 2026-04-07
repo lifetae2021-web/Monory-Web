@@ -170,11 +170,11 @@
             <!-- Data Tables and Lists -->
             <div class="tables-grid">
                 
-                <!-- Recent Reservations Table -->
+            <!-- Recent Reservations Table (대시보드용 최근 5건) -->
                 <div class="panel">
                     <div class="panel-header">
-                        <h2 class="panel-title">최근 예약 내역</h2>
-                        <a href="#" class="view-all-btn">전체 보기 <i class="fa-solid fa-arrow-right"></i></a>
+                        <h2 class="panel-title">최근 예약 내역 <span id="dash-res-total" style="font-size:0.8rem;color:var(--text-secondary);font-weight:400;"></span></h2>
+                        <a href="#" class="view-all-btn" onclick="showSection('reservations'); return false;">전체 보기 <i class="fa-solid fa-arrow-right"></i></a>
                     </div>
                     <div style="overflow-x: auto;">
                         <table>
@@ -182,74 +182,14 @@
                                 <tr>
                                     <th>예약번호</th>
                                     <th>예약자명</th>
-                                    <th>이용 목적</th>
+                                    <th>패키지</th>
                                     <th>예약 일자</th>
                                     <th>결제 금액</th>
                                     <th>상태</th>
-                                    <th>관리</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td>#MN-260401</td>
-                                    <td>김스타</td>
-                                    <td>스타트업 네트워킹</td>
-                                    <td>2026. 04. 12</td>
-                                    <td>₩ 1,200,000</td>
-                                    <td><span class="status-badge status-confirmed">결제완료</span></td>
-                                    <td>
-                                        <button class="action-btn"><i class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#MN-260402</td>
-                                    <td>이마케터</td>
-                                    <td>브랜드 런칭 파티</td>
-                                    <td>2026. 04. 15</td>
-                                    <td>₩ 850,000</td>
-                                    <td><span class="status-badge status-pending">입금대기</span></td>
-                                    <td>
-                                        <button class="action-btn"><i class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#MN-260403</td>
-                                    <td>박기획</td>
-                                    <td>키링크 세미나</td>
-                                    <td>2026. 04. 18</td>
-                                    <td>₩ 2,500,000</td>
-                                    <td><span class="status-badge status-confirmed">결제완료</span></td>
-                                    <td>
-                                        <button class="action-btn"><i class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#MN-260404</td>
-                                    <td>최디자인</td>
-                                    <td>개인 생일파티</td>
-                                    <td>2026. 04. 20</td>
-                                    <td>₩ 450,000</td>
-                                    <td><span class="status-badge status-cancelled">예약취소</span></td>
-                                    <td>
-                                        <button class="action-btn"><i class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>#MN-260405</td>
-                                    <td>정개발</td>
-                                    <td>해커톤 뒷풀이</td>
-                                    <td>2026. 04. 23</td>
-                                    <td>₩ 600,000</td>
-                                    <td><span class="status-badge status-confirmed">결제완료</span></td>
-                                    <td>
-                                        <button class="action-btn"><i class="fa-regular fa-pen-to-square"></i></button>
-                                        <button class="action-btn"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-                                    </td>
-                                </tr>
+                            <tbody id="dash-reservations-tbody">
+                                <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>불러오는 중...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -296,6 +236,53 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- ============================
+             예약 관리 섹션 (Firestore 실시간 연동)
+             ============================ -->
+        <div class="content-area" id="section-reservations" style="display:none;">
+            <div class="panel" style="margin-bottom:0;">
+                <div class="panel-header" style="border-bottom:1px solid var(--border-color); padding-bottom:16px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center;">
+                    <h2 class="panel-title">
+                        <i class="fa-regular fa-calendar-check" style="color:var(--accent-gold); margin-right:8px;"></i>
+                        예약 관리
+                        <span id="res-total-count" style="margin-left:10px; font-size:0.9rem; color:var(--text-secondary); font-weight:400;"></span>
+                    </h2>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="display:inline-flex;align-items:center;gap:6px;font-size:0.82rem;padding:5px 12px;border-radius:20px;background:rgba(34,197,94,0.1);color:#22c55e;border:1px solid rgba(34,197,94,0.2);">
+                            <i class="fa-solid fa-circle" style="font-size:0.5rem;"></i> 실시간 연동
+                        </span>
+                    </div>
+                </div>
+
+                <div id="res-firestore-notice" style="display:none; padding:12px 16px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; margin-bottom:20px; color:#ef4444; font-size:0.88rem;">
+                    <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>
+                    Firestore 연결 실패 — 보안 규칙 또는 네트워크를 확인해주세요.
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table id="reservations-table">
+                        <thead>
+                            <tr>
+                                <th style="width:40px;">#</th>
+                                <th>예약번호</th>
+                                <th>예약자명</th>
+                                <th>패키지</th>
+                                <th>예약 일자</th>
+                                <th>인원</th>
+                                <th>결제 금액</th>
+                                <th>유형</th>
+                                <th>상태</th>
+                                <th>결제일시</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservations-tbody">
+                            <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>실시간 연결 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -399,21 +386,25 @@
     <script>
         // 섹션 전환
         function showSection(name) {
-            // 색션 토글
-            document.getElementById('section-members') && (document.getElementById('section-members').style.display = 'none');
+            // 모든 섹션 숨기기
+            document.getElementById('section-members')     && (document.getElementById('section-members').style.display     = 'none');
+            document.getElementById('section-reservations') && (document.getElementById('section-reservations').style.display = 'none');
             const mainContent = document.querySelector('.content-area:not([id])');
             if (mainContent) mainContent.style.display = 'none';
 
             if (name === 'members') {
                 document.getElementById('section-members').style.display = 'block';
                 loadMembers();
+            } else if (name === 'reservations') {
+                document.getElementById('section-reservations').style.display = 'block';
+                loadReservations();
             } else {
                 if (mainContent) mainContent.style.display = 'block';
             }
 
             // Active 클래스
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            event.target.closest('.nav-link').classList.add('active');
+            event.target.closest('.nav-link')?.classList.add('active');
         }
 
         // 실시간 회원 명단 (Firestore onSnapshot)
@@ -489,6 +480,112 @@
                     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Firestore에서 데이터를 불러오지 못했습니다.<br><small style="opacity:0.7;">' + e.message + '</small></td></tr>';
                 });
         }
+
+        // ────────────────────────────────────────────────────────────
+        // 실시간 예약 명단 (Firestore reservations onSnapshot)
+        // ────────────────────────────────────────────────────────────
+        let reservationsUnsubscribe = null;
+
+        function loadReservations() {
+            const tbody   = document.getElementById('reservations-tbody');
+            const countEl = document.getElementById('res-total-count');
+            if (!tbody) return;
+
+            if (reservationsUnsubscribe) { reservationsUnsubscribe(); reservationsUnsubscribe = null; }
+
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>실시간 연결 중...</td></tr>';
+
+            if (typeof firebase === 'undefined') {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#ef4444;">Firebase SDK를 로드하지 못했습니다.</td></tr>';
+                return;
+            }
+
+            const db = firebase.firestore();
+
+            reservationsUnsubscribe = db.collection('reservations')
+                .orderBy('createdAt', 'desc')
+                .onSnapshot(function(snapshot) {
+                    if (countEl) countEl.textContent = '(총 ' + snapshot.size + '건)';
+                    document.getElementById('res-firestore-notice').style.display = 'none';
+
+                    // 대시보드 최근 5건도 동시 업데이트
+                    const dashTbody = document.getElementById('dash-reservations-tbody');
+                    const dashCount = document.getElementById('dash-res-total');
+                    if (dashTbody) {
+                        const recentDocs = snapshot.docs.slice(0, 5);
+                        dashTbody.innerHTML = '';
+                        if (snapshot.empty) {
+                            dashTbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-secondary);">아직 예약이 없습니다.</td></tr>';
+                        } else {
+                            recentDocs.forEach(doc => {
+                                const r = doc.data();
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td style="font-size:0.82rem;color:var(--text-secondary);">${(r.merchantUid||'-').slice(-8)}</td>
+                                    <td style="font-weight:600;">${r.guestName||'-'}</td>
+                                    <td style="font-size:0.88rem;">${r.packageName||'-'}</td>
+                                    <td style="font-size:0.85rem;">${r.date||'-'}</td>
+                                    <td style="color:var(--accent-gold);font-weight:600;">${r.totalAmount ? r.totalAmount.toLocaleString()+'원' : '-'}</td>
+                                    <td><span class="status-badge ${r.status==='paid'?'status-confirmed':'status-pending'}">${r.status==='paid'?'결제완료':'미완료'}</span></td>
+                                `;
+                                dashTbody.appendChild(row);
+                            });
+                        }
+                        if (dashCount) dashCount.textContent = '(최근 5건 / 전체 '+snapshot.size+'건)';
+                    }
+
+                    if (snapshot.empty) {
+                        tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:60px;color:var(--text-secondary);"><i class="fa-regular fa-calendar-xmark" style="font-size:2.5rem;opacity:0.2;display:block;margin-bottom:16px;"></i>아직 예약이 없습니다.<br><small style="font-size:0.85rem;margin-top:8px;display:block;opacity:0.6;">첫 번째 예약을 기다리고 있어요!</small></td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = '';
+                    let idx = 1;
+                    snapshot.forEach(function(doc) {
+                        const r         = doc.data();
+                        const createdAt = r.createdAt ? (r.createdAt.toDate ? r.createdAt.toDate() : new Date(r.createdAt)) : null;
+                        const fmtDt     = d => d ? d.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'}) + ' ' + d.toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'}) : '-';
+                        const isPaid    = r.status === 'paid';
+                        const typeLabel = r.bookingType === 'corporate' ? '🏢 기업' : '🙋 개인';
+                        const isNew     = createdAt && (Date.now() - createdAt.getTime() < 24 * 60 * 60 * 1000);
+
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td style="color:var(--text-secondary);">${idx++}</td>
+                            <td style="font-size:0.8rem;color:var(--text-secondary);font-family:monospace;">
+                                ${(r.merchantUid||'-')}
+                                ${isNew ? '<span style="margin-left:4px;font-size:0.65rem;background:rgba(212,175,55,0.15);color:var(--accent-gold);padding:1px 6px;border-radius:8px;font-weight:600;font-family:inherit;">NEW</span>' : ''}
+                            </td>
+                            <td style="font-weight:600;">
+                                ${r.guestName||'-'}<br>
+                                <span style="font-size:0.78rem;color:var(--text-secondary);font-weight:400;">${r.phone||''}</span>
+                            </td>
+                            <td style="font-size:0.88rem;">${r.packageName||'-'}</td>
+                            <td style="font-size:0.88rem;">${r.date||'-'}</td>
+                            <td style="text-align:center;">${r.guestCount||'-'}명</td>
+                            <td style="color:var(--accent-gold);font-weight:700;">${r.totalAmount ? r.totalAmount.toLocaleString()+'원' : '-'}</td>
+                            <td><span style="font-size:0.8rem;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,0.06);">${typeLabel}</span></td>
+                            <td>
+                                <span class="status-badge ${isPaid ? 'status-confirmed' : 'status-pending'}">
+                                    ${isPaid ? '✅ 결제완료' : '⏳ 미확인'}
+                                </span>
+                            </td>
+                            <td style="font-size:0.82rem;color:var(--text-secondary);">${fmtDt(createdAt)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                },
+                function(e) {
+                    console.error('Firestore 예약 실시간 연결 실패:', e);
+                    document.getElementById('res-firestore-notice').style.display = 'block';
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#ef4444;">Firestore에서 데이터를 불러오지 못했습니다.<br><small style="opacity:0.7;">' + e.message + '</small></td></tr>';
+                });
+        }
+
+        // 대시보드 진입 시 예약 목록도 미리 로드
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof firebase !== 'undefined') loadReservations();
+        });
     </script>
 
     <script>
@@ -504,7 +601,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.2.1 (2026.04.07)
+        v1.3.0 (2026.04.07)
     </div>
 </body>
 </html>

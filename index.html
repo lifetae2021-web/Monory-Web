@@ -12,7 +12,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.2.1">
+    <link rel="stylesheet" href="style.css?v=1.3.0">
     <!-- Toss Payments SDK -->
     <script src="https://js.tosspayments.com/v1"></script>
     <!-- Kakao SDK (integrity 없이 로드 - 해시 불일치 시 로드 차단됨) -->
@@ -1020,7 +1020,54 @@
             setTimeout(() => toast.remove(), 5000);
         }
 
-        // ── 기존 달력/가격 계산 로직 ───────────────────────────────
+        // ── 예약 현황 / 중복 방지 데이터 ─────────────────────────────
+        // bookedMap: { 'YYYY-M-D': ['day','night','allnight', ...] }
+        let bookedMap = {};
+
+        function loadBookedDates() {
+            if (typeof firebase === 'undefined') return;
+            const db = firebase.firestore();
+            db.collection('reservations')
+              .where('status', '==', 'paid')
+              .onSnapshot(function(snapshot) {
+                  bookedMap = {};
+                  snapshot.forEach(doc => {
+                      const r = doc.data();
+                      if (!r.date || !r.packageKey) return;
+                      const match = r.date.match(/(\d+)년 (\d+)월 (\d+)일/);
+                      if (!match) return;
+                      const key = match[1] + '-' + match[2] + '-' + match[3];
+                      if (!bookedMap[key]) bookedMap[key] = [];
+                      if (!bookedMap[key].includes(r.packageKey)) bookedMap[key].push(r.packageKey);
+                  });
+                  renderCalendar(currentCalDate);
+              }, function(e) { console.warn('부킹 데이터 로드 실패:', e); });
+        }
+
+        function toDateKey(y, m, d) { return y + '-' + (m+1) + '-' + d; }
+
+        function checkAndDisablePackages(dateKey) {
+            const booked = bookedMap[dateKey] || [];
+            const sel = document.getElementById('booking-package');
+            if (!sel) return;
+            const opts = sel.options;
+            const allnightBooked = booked.includes('allnight');
+            const nightBooked    = booked.includes('night');
+            for (let i = 0; i < opts.length; i++) {
+                const v = opts[i].value;
+                if (v === 'none') { opts[i].disabled = false; continue; }
+                let disabled = false;
+                const baseText = opts[i].text.replace(' (마감)', '');
+                if (v === 'day')      disabled = booked.includes('day');
+                if (v === 'night')    disabled = nightBooked || allnightBooked;
+                if (v === 'allnight') disabled = nightBooked || allnightBooked;
+                opts[i].disabled = disabled;
+                opts[i].text = baseText + (disabled ? ' (마감)' : '');
+                if (disabled && sel.value === v) { sel.value = 'none'; }
+            }
+            calculatePrice();
+        }
+
         const packagePrices = {
             day:      { weekday: 70000,  weekend: 100000 },
             night:    { weekday: 100000, weekend: 150000 },
@@ -1068,7 +1115,7 @@
                         isWeekend = (cellDate.getDay() === 0 || cellDate.getDay() === 5 || cellDate.getDay() === 6);
                         document.getElementById('selected-date-display').innerText =
                             `${year}년 ${month + 1}월 ${i}일 (${['일','월','화','수','목','금','토'][cellDate.getDay()]})`;
-                        calculatePrice();
+                        checkAndDisablePackages(toDateKey(year, month, i));
                     });
                 }
                 calGrid.appendChild(dayDiv);
@@ -1077,6 +1124,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             renderCalendar(currentCalDate);
+            loadBookedDates();
 
             document.getElementById('cal-prev-btn')?.addEventListener('click', () => {
                 currentCalDate.setMonth(currentCalDate.getMonth() - 1); renderCalendar(currentCalDate);
