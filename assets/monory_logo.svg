@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 195" width="520" height="195">
+  <!-- Arc above O (positioned relative to MONORY text) -->
+  <!-- O is centered around x=300 in the word, arc spans from ~248 to ~352 -->
+  <path d="M 252 75 A 50 50 0 0 1 348 75" stroke="#111111" stroke-width="14" fill="none" stroke-linecap="round"/>
+
+  <!-- MONORY bold yellow text -->
+  <text
+    x="260"
+    y="142"
+    font-family="'Arial Black', 'Impact', 'Arial Bold', Arial, sans-serif"
+    font-weight="900"
+    font-size="112"
+    fill="#F5C800"
+    text-anchor="middle"
+    letter-spacing="3"
+  >MONORY</text>
+
+  <!-- Subtitle row: line - text - line -->
+  <line x1="28"  y1="170" x2="108" y2="170" stroke="#555" stroke-width="1.8"/>
+  <text
+    x="260"
+    y="176"
+    font-family="'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif"
+    font-weight="400"
+    font-size="17"
+    fill="#555555"
+    text-anchor="middle"
+    letter-spacing="0.5"
+  >모이고, 놀고, 리프레시하다. 모노리</text>
+  <line x1="412" y1="170" x2="492" y2="170" stroke="#555" stroke-width="1.8"/>
+</svg>

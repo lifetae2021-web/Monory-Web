@@ -213,11 +213,12 @@ h1, h2, h3, h4, h5 {
 
 /* 내비게이션 로고 이미지 */
 .logo-img {
-    height: 36px;
+    height: 48px;
     width: auto;
     max-width: none;
     display: block;
     object-fit: contain;
+    /* SVG 로고는 투명 배경이므로 filter 불필요 */
 }
 
 .auth-links {
@@ -569,15 +570,15 @@ footer {
     justify-content: center;
 }
 
-/* 푸터 로고 이미지 */
+/* 푸터 로고 이미지 (SVG - 투명 배경) */
 .footer-logo-img {
-    height: 50px;
+    height: 80px;
     width: auto;
     max-width: none;
     display: block;
     object-fit: contain;
-    /* 화이트 배경에 어울리도록 반전 (footer가 다크) 가능하면 사용 */
-    filter: brightness(0) invert(1);
+    /* 푸터가 다크항이므로 SVG 내부 텍스트는 어두운 배경에도 잘 보여야 한다 */
+    /* 서브타이틀은 다크모드에서도 보이도록 색상 유지 */
 }
 
 footer p {
@@ -661,6 +662,14 @@ footer p {
 
 /* 모바일 전용 배너 조정 */
 @media (max-width: 600px) {
+    .logo-img {
+        height: 38px;
+    }
+
+    .footer-logo-img {
+        height: 60px;
+    }
+
     .event-banner-box {
         padding: 14px 18px;
         border-radius: 14px;
@@ -675,11 +684,6 @@ footer p {
 
     .event-banner-bottom {
         font-size: 0.88rem;
-    }
-
-    .event-amount {
-        font-size: 0.85rem;
-        padding: 2px 9px;
     }
 }
 
