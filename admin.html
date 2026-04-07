@@ -263,23 +263,25 @@
                 </div>
 
                 <div style="overflow-x: auto;">
-                    <table id="reservations-table">
+                        <table id="reservations-table">
                         <thead>
                             <tr>
-                                <th style="width:40px;">#</th>
-                                <th>예약번호</th>
-                                <th>예약자명</th>
-                                <th>패키지</th>
-                                <th>예약 일자</th>
-                                <th>인원</th>
-                                <th>결제 금액</th>
-                                <th>유형</th>
-                                <th>상태</th>
-                                <th>결제일시</th>
+                                <th style="width:36px;">#</th>
+                                <th style="min-width:110px;">예약번호</th>
+                                <th style="min-width:110px;">예약자명 / 연락처</th>
+                                <th style="min-width:140px;">패키지</th>
+                                <th style="min-width:110px;">예약 일자</th>
+                                <th style="width:50px;">인원</th>
+                                <th style="min-width:80px;">결제금액</th>
+                                <th style="width:60px;">유형</th>
+                                <th style="min-width:180px;">요청사항</th>
+                                <th style="width:90px;">상태</th>
+                                <th style="min-width:110px;">결제일시</th>
+                                <th style="min-width:110px;">관리</th>
                             </tr>
                         </thead>
                         <tbody id="reservations-tbody">
-                            <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>실시간 연결 중...</td></tr>
+                            <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>실시간 연결 중...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -543,34 +545,58 @@
                     let idx = 1;
                     snapshot.forEach(function(doc) {
                         const r         = doc.data();
+                        const docId     = doc.id;
                         const createdAt = r.createdAt ? (r.createdAt.toDate ? r.createdAt.toDate() : new Date(r.createdAt)) : null;
-                        const fmtDt     = d => d ? d.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'}) + ' ' + d.toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'}) : '-';
-                        const isPaid    = r.status === 'paid';
+                        const fmtDt     = d => d ? d.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'}) + '<br><span style="font-size:0.78rem;opacity:0.6;">' + d.toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'}) + '</span>' : '-';
+                        const status    = r.status || 'unknown';
                         const typeLabel = r.bookingType === 'corporate' ? '🏢 기업' : '🙋 개인';
                         const isNew     = createdAt && (Date.now() - createdAt.getTime() < 24 * 60 * 60 * 1000);
+                        const requests  = r.requests && r.requests.trim() ? r.requests : null;
+
+                        // 상태 배지
+                        const statusMap = {
+                            paid:      { cls: 'status-confirmed', label: '✅ 결제완료' },
+                            completed: { cls: 'status-completed', label: '🏁 이용완료' },
+                            cancelled: { cls: 'status-cancelled', label: '❌ 취소됨'   },
+                        };
+                        const s = statusMap[status] || { cls: 'status-pending', label: '⏳ 미확인' };
+
+                        // 관리 버튼 (이미 완료/취소면 비활성)
+                        const isDone = (status === 'completed' || status === 'cancelled');
+                        const actionBtns = isDone
+                            ? `<span style="font-size:0.78rem;color:var(--text-secondary);">${status === 'completed' ? '이용완료 처리됨' : '취소 처리됨'}</span>`
+                            : `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                <button onclick="updateReservationStatus('${docId}','completed')" style="padding:4px 9px;font-size:0.75rem;border:1px solid #22c55e;background:rgba(34,197,94,0.1);color:#22c55e;border-radius:6px;cursor:pointer;transition:0.2s;" onmouseover="this.style.background='#22c55e';this.style.color='#fff';" onmouseout="this.style.background='rgba(34,197,94,0.1)';this.style.color='#22c55e';">🏁 이용완료</button>
+                                <button onclick="updateReservationStatus('${docId}','cancelled')" style="padding:4px 9px;font-size:0.75rem;border:1px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;border-radius:6px;cursor:pointer;transition:0.2s;" onmouseover="this.style.background='#ef4444';this.style.color='#fff';" onmouseout="this.style.background='rgba(239,68,68,0.1)';this.style.color='#ef4444';">❌ 예약취소</button>
+                              </div>`;
 
                         const row = document.createElement('tr');
+                        if (status === 'cancelled') row.style.opacity = '0.55';
+                        if (status === 'completed') row.style.background = 'rgba(34,197,94,0.04)';
                         row.innerHTML = `
-                            <td style="color:var(--text-secondary);">${idx++}</td>
-                            <td style="font-size:0.8rem;color:var(--text-secondary);font-family:monospace;">
-                                ${(r.merchantUid||'-')}
-                                ${isNew ? '<span style="margin-left:4px;font-size:0.65rem;background:rgba(212,175,55,0.15);color:var(--accent-gold);padding:1px 6px;border-radius:8px;font-weight:600;font-family:inherit;">NEW</span>' : ''}
+                            <td style="color:var(--text-secondary);font-size:0.85rem;">${idx++}</td>
+                            <td style="font-size:0.75rem;color:var(--text-secondary);font-family:monospace;letter-spacing:-0.3px;">
+                                ${(r.merchantUid||'-').replace('MNRY-','')}
+                                ${isNew ? '<br><span style="font-size:0.65rem;background:rgba(212,175,55,0.15);color:var(--accent-gold);padding:1px 6px;border-radius:8px;font-weight:600;">NEW</span>' : ''}
                             </td>
                             <td style="font-weight:600;">
-                                ${r.guestName||'-'}<br>
-                                <span style="font-size:0.78rem;color:var(--text-secondary);font-weight:400;">${r.phone||''}</span>
+                                ${r.guestName||'-'}
+                                ${r.companyName ? `<span style="display:block;font-size:0.75rem;color:var(--accent-gold);font-weight:500;">${r.companyName}</span>` : ''}
+                                <span style="display:block;font-size:0.78rem;color:var(--text-secondary);font-weight:400;">${r.phone||''}</span>
                             </td>
-                            <td style="font-size:0.88rem;">${r.packageName||'-'}</td>
-                            <td style="font-size:0.88rem;">${r.date||'-'}</td>
-                            <td style="text-align:center;">${r.guestCount||'-'}명</td>
-                            <td style="color:var(--accent-gold);font-weight:700;">${r.totalAmount ? r.totalAmount.toLocaleString()+'원' : '-'}</td>
-                            <td><span style="font-size:0.8rem;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,0.06);">${typeLabel}</span></td>
-                            <td>
-                                <span class="status-badge ${isPaid ? 'status-confirmed' : 'status-pending'}">
-                                    ${isPaid ? '✅ 결제완료' : '⏳ 미확인'}
-                                </span>
+                            <td style="font-size:0.85rem;line-height:1.4;">${(r.packageName||'-').replace(' (','<br><span style="font-size:0.75rem;opacity:0.6;">').replace(')','</span>')}</td>
+                            <td style="font-size:0.85rem;">${r.date||'-'}</td>
+                            <td style="text-align:center;font-weight:600;">${r.guestCount||'-'}명</td>
+                            <td style="color:var(--accent-gold);font-weight:700;font-size:0.95rem;">${r.totalAmount ? r.totalAmount.toLocaleString()+'원' : '-'}</td>
+                            <td><span style="font-size:0.78rem;padding:2px 7px;border-radius:8px;background:rgba(255,255,255,0.06);">${typeLabel}</span></td>
+                            <td style="font-size:0.82rem;color:var(--text-secondary);max-width:200px;">
+                                ${requests
+                                    ? `<div style="max-height:60px;overflow-y:auto;line-height:1.5;padding:4px 0;" title="${requests.replace(/"/g,'&quot;')}">${requests}</div>`
+                                    : '<span style="opacity:0.3;">없음</span>'}
                             </td>
+                            <td><span class="status-badge ${s.cls}" style="font-size:0.8rem;white-space:nowrap;">${s.label}</span></td>
                             <td style="font-size:0.82rem;color:var(--text-secondary);">${fmtDt(createdAt)}</td>
+                            <td>${actionBtns}</td>
                         `;
                         tbody.appendChild(row);
                     });
@@ -580,6 +606,23 @@
                     document.getElementById('res-firestore-notice').style.display = 'block';
                     tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#ef4444;">Firestore에서 데이터를 불러오지 못했습니다.<br><small style="opacity:0.7;">' + e.message + '</small></td></tr>';
                 });
+        }
+
+        // ── 예약 상태 업데이트 (이용완료 / 예약취소) ─────────────────
+        function updateReservationStatus(docId, newStatus) {
+            const labels = { completed: '이용완료', cancelled: '예약취소' };
+            const icons  = { completed: '🏁', cancelled: '❌' };
+            if (!confirm(`이 예약을 '${icons[newStatus]} ${labels[newStatus]}'으로 처리하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+
+            if (typeof firebase === 'undefined') { alert('Firebase 연결 오류'); return; }
+            const db = firebase.firestore();
+            db.collection('reservations').doc(docId)
+              .update({ status: newStatus, updatedAt: firebase.firestore.Timestamp.now() })
+              .then(() => {
+                  console.log(`✅ 상태 업데이트: ${newStatus}`);
+                  // onSnapshot이 자동으로 테이블 갱신함
+              })
+              .catch(e => alert('업데이트 실패: ' + e.message));
         }
 
         // 대시보드 진입 시 예약 목록도 미리 로드

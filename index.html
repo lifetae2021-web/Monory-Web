@@ -306,21 +306,51 @@
         }
     });
 
-    // ─── 카카오 로그인 버튼 클릭 ─────────────────────────────────
+    // ─── 카카오 로그인 버튼 클릭 (팝업 방식) ─────────────────────
     function loginWithKakao() {
         if (typeof Kakao === 'undefined') {
             alert('카카오 로그인을 불러오는 중입니다.\n잠시 후 다시 시도해주세요.');
             return;
         }
-        try {
-            if (!Kakao.isInitialized()) Kakao.init(KAKAO_APP_KEY);
-        } catch(e) {}
+        try { if (!Kakao.isInitialized()) Kakao.init(KAKAO_APP_KEY); } catch(e) {}
 
-        // 리다이렉트 방식: 팝업 차단 없이 100% 안정적 동작
-        Kakao.Auth.authorize({
-            redirectUri: KAKAO_REDIRECT,
-            scope: 'profile_nickname,profile_image',
-        });
+        // 팝업 창으로 카카오 계정 선택 화면 오픈
+        const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_APP_KEY}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT)}&response_type=code&scope=profile_nickname,profile_image`;
+        const pw = 460, ph = 640;
+        const pl = Math.round((screen.width  - pw) / 2);
+        const pt = Math.round((screen.height - ph) / 2);
+
+        const popup = window.open(
+            authUrl, 'KakaoLogin',
+            `width=${pw},height=${ph},left=${pl},top=${pt},scrollbars=yes,toolbar=no,menubar=no,location=no,status=no`
+        );
+
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            // 팝업 차단 → 리다이렉트 폴백
+            console.log('팝업 차단 감지 → 리다이렉트 방식으로 폴백');
+            Kakao.Auth.authorize({ redirectUri: KAKAO_REDIRECT, scope: 'profile_nickname,profile_image' });
+            return;
+        }
+
+        // 팝업에서 콜백 URL 감지 (300ms 간격으로 폴링)
+        const pollTimer = setInterval(() => {
+            try {
+                if (!popup || popup.closed) { clearInterval(pollTimer); return; }
+                const popupHref = popup.location.href;
+                if (popupHref && popupHref.includes(window.location.hostname)) {
+                    const code = new URLSearchParams(popup.location.search).get('code');
+                    if (code) {
+                        clearInterval(pollTimer);
+                        popup.close();
+                        closeModal('loginModal');
+                        closeModal('signupModal');
+                        handleKakaoRedirect(code);
+                    }
+                }
+            } catch(e) {
+                // 크로스 오리진(카카오 도메인)에서는 정상적으로 발생 → 무시
+            }
+        }, 300);
     }
 
     // ─── 카카오 리다이렉트 후 처리 (code → token → user info) ──────
