@@ -307,7 +307,10 @@
                 <div class="panel-header" style="border-bottom:1px solid var(--border-color); padding-bottom:16px; margin-bottom:24px; display:flex; justify-content:space-between; align-items:center;">
                     <h2 class="panel-title">
                         <i class="fa-regular fa-user" style="color:var(--accent-gold); margin-right:8px;"></i>
-                        커카오 회원 명단
+                        카카오 회원 명단
+                        <span style="margin-left:10px;font-size:0.75rem;background:rgba(34,197,94,0.15);color:#22c55e;padding:3px 10px;border-radius:20px;font-family:var(--font-body);font-weight:500;">
+                            <i class="fa-solid fa-circle" style="font-size:0.5rem;vertical-align:middle;"></i> 실시간
+                        </span>
                     </h2>
                     <div style="display:flex; align-items:center; gap:16px;">
                         <span style="font-size:0.9rem; color:var(--text-secondary);">전체 회원: <strong id="member-total-count" style="color:var(--accent-gold); font-size:1.1rem;">-</strong> 명</span>
@@ -413,13 +416,18 @@
             event.target.closest('.nav-link').classList.add('active');
         }
 
-        // 회원 명단 로드 (Firestore)
+        // 실시간 회원 명단 (Firestore onSnapshot)
+        let membersUnsubscribe = null;
+
         function loadMembers() {
-            const tbody = document.getElementById('members-tbody');
+            const tbody   = document.getElementById('members-tbody');
             const countEl = document.getElementById('member-total-count');
             if (!tbody) return;
 
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>로딩 중...</td></tr>';
+            // 기존 리스너 해제
+            if (membersUnsubscribe) { membersUnsubscribe(); membersUnsubscribe = null; }
+
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>실시간 연결 중...</td></tr>';
 
             if (typeof firebase === 'undefined') {
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Firebase SDK를 로드하지 못했습니다.</td></tr>';
@@ -427,49 +435,59 @@
             }
 
             const db = firebase.firestore();
-            db.collection('members').orderBy('joinedAt', 'desc').get()
-            .then(function(snapshot) {
-                if (countEl) countEl.textContent = snapshot.size;
-                if (snapshot.empty) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-users" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:12px;"></i>아직 가입한 회원이 없습니다.</td></tr>';
-                    return;
-                }
-                tbody.innerHTML = '';
-                let idx = 1;
-                snapshot.forEach(function(doc) {
-                    const m = doc.data();
-                    const joinedAt = m.joinedAt ? (m.joinedAt.toDate ? m.joinedAt.toDate() : new Date(m.joinedAt)) : null;
-                    const lastAt   = m.lastLoginAt ? (m.lastLoginAt.toDate ? m.lastLoginAt.toDate() : new Date(m.lastLoginAt)) : null;
-                    const fmtDate  = d => d ? d.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'}) + ' ' + d.toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'}) : '-';
 
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td style="color:var(--text-secondary);">${idx++}</td>
-                        <td>
-                            ${m.profileImage
-                                ? `<img src="${m.profileImage}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #FEE500;">`
-                                : `<div style="width:32px;height:32px;border-radius:50%;background:rgba(212,175,55,0.2);display:inline-flex;align-items:center;justify-content:center;color:var(--accent-gold);font-weight:700;">${(m.name||'?')[0]}</div>`
-                            }
-                        </td>
-                        <td style="font-weight:500;">${m.name || '-'}</td>
-                        <td style="color:var(--text-secondary);font-size:0.88rem;">${m.email || '비공개'}</td>
-                        <td>
-                            <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:#FEE500;color:#3C1E1E;font-size:0.8rem;font-weight:700;">
-                                <svg width="12" height="12" viewBox="0 0 18 18" fill="none"><path d="M9 1C4.582 1 1 3.896 1 7.47c0 2.28 1.513 4.278 3.808 5.424l-.97 3.605 4.2-2.774c.637.09 1.29.135 1.962.135 4.418 0 8-2.896 8-6.47C18 3.896 13.418 1 9 1z" fill="#3C1E1E"/></svg>
-                                커카오
-                            </span>
-                        </td>
-                        <td style="font-size:0.85rem;color:var(--text-secondary);">${fmtDate(joinedAt)}</td>
-                        <td style="font-size:0.85rem;color:var(--text-secondary);">${fmtDate(lastAt)}</td>
-                    `;
-                    tbody.appendChild(row);
+            // onSnapshot: 실시간 리스너 (신규 가입 즉시 반영)
+            membersUnsubscribe = db.collection('members')
+                .orderBy('joinedAt', 'desc')
+                .onSnapshot(function(snapshot) {
+                    if (countEl) countEl.textContent = snapshot.size;
+                    document.getElementById('member-firestore-notice').style.display = 'none';
+
+                    if (snapshot.empty) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:60px;color:var(--text-secondary);"><i class="fa-solid fa-users" style="font-size:2.5rem;opacity:0.2;display:block;margin-bottom:16px;"></i>아직 가입한 회원이 없습니다.<br><small style="font-size:0.85rem;margin-top:8px;display:block;opacity:0.6;">카카오로 첫 번째 회원이 되어보세요!</small></td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = '';
+                    let idx = 1;
+                    snapshot.forEach(function(doc) {
+                        const m        = doc.data();
+                        const joinedAt = m.joinedAt ? (m.joinedAt.toDate ? m.joinedAt.toDate() : new Date(m.joinedAt)) : null;
+                        const lastAt   = m.lastLoginAt ? (m.lastLoginAt.toDate ? m.lastLoginAt.toDate() : new Date(m.lastLoginAt)) : null;
+                        const fmtDate  = d => d ? d.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'}) + ' ' + d.toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'}) : '-';
+                        const isNew    = joinedAt && (Date.now() - joinedAt.getTime() < 24 * 60 * 60 * 1000);
+
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td style="color:var(--text-secondary);">${idx++}</td>
+                            <td>
+                                ${m.profileImage
+                                    ? `<img src="${m.profileImage}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid #FEE500;" onerror="this.style.display='none'">`
+                                    : `<div style="width:34px;height:34px;border-radius:50%;background:rgba(212,175,55,0.2);display:inline-flex;align-items:center;justify-content:center;color:var(--accent-gold);font-weight:700;font-size:1rem;">${(m.name||'?')[0]}</div>`
+                                }
+                            </td>
+                            <td style="font-weight:600;">
+                                ${m.name || '-'}
+                                ${isNew ? '<span style="margin-left:6px;font-size:0.7rem;background:rgba(34,197,94,0.15);color:#22c55e;padding:2px 7px;border-radius:10px;font-weight:500;">NEW</span>' : ''}
+                            </td>
+                            <td style="color:var(--text-secondary);font-size:0.88rem;">${m.email || '비공개'}</td>
+                            <td>
+                                <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:#FEE500;color:#3C1E1E;font-size:0.78rem;font-weight:700;">
+                                    <svg width="11" height="11" viewBox="0 0 18 18" fill="none"><path d="M9 1C4.582 1 1 3.896 1 7.47c0 2.28 1.513 4.278 3.808 5.424l-.97 3.605 4.2-2.774c.637.09 1.29.135 1.962.135 4.418 0 8-2.896 8-6.47C18 3.896 13.418 1 9 1z" fill="#3C1E1E"/></svg>
+                                    카카오
+                                </span>
+                            </td>
+                            <td style="font-size:0.85rem;color:var(--text-secondary);">${fmtDate(joinedAt)}</td>
+                            <td style="font-size:0.85rem;color:var(--text-secondary);">${fmtDate(lastAt)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                },
+                function(e) {
+                    console.error('Firestore 실시간 연결 실패:', e);
+                    document.getElementById('member-firestore-notice').style.display = 'block';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Firestore에서 데이터를 불러오지 못했습니다.<br><small style="opacity:0.7;">' + e.message + '</small></td></tr>';
                 });
-            })
-            .catch(function(e) {
-                console.error('Firestore 조회 실패:', e);
-                document.getElementById('member-firestore-notice').style.display = 'block';
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Firestore에서 데이터를 불러오지 못했습니다.<br><small>' + e.message + '</small></td></tr>';
-            });
         }
     </script>
 
@@ -486,7 +504,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.1.1 (2026.04.07)
+        v1.1.2 (2026.04.07)
     </div>
 </body>
 </html>
