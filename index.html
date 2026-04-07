@@ -12,7 +12,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.2.0">
+    <link rel="stylesheet" href="style.css?v=1.2.1">
     <!-- Toss Payments SDK -->
     <script src="https://js.tosspayments.com/v1"></script>
     <!-- Kakao SDK (integrity 없이 로드 - 해시 불일치 시 로드 차단됨) -->
@@ -926,16 +926,16 @@
                 return;
             }
 
-            IMP.init('imp00000000'); // 테스트 가맹점 UID
+            IMP.init('imp33870371'); // 실제 가맹점 식별코드
 
             IMP.request_pay({
-                pg:          'html5_inicis.INIpayTest',   // 테스트 PG
-                pay_method:  'card',
-                merchant_uid: merchantUid,
-                name:        `모노리 ${pkgLabels[pkg]}`,
-                amount:       totalAmount,
-                buyer_name:   name,
-                buyer_tel:    phone,
+                pg:           'kakaopay',        // 카카오페이 테스트 결제
+                pay_method:   'card',
+                merchant_uid:  merchantUid,
+                name:         `모노리 ${pkgLabels[pkg]}`,
+                amount:        totalAmount,
+                buyer_name:    name,
+                buyer_tel:     phone,
                 m_redirect_url: window.location.origin   // 모바일 리다이렉트
             }, function(rsp) {
                 if (rsp.success) {
