@@ -587,7 +587,7 @@
                             <td style="font-size:0.85rem;line-height:1.4;">${(r.packageName||'-').replace(' (','<br><span style="font-size:0.75rem;opacity:0.6;">').replace(')','</span>')}</td>
                             <td style="font-size:0.85rem;">${r.date||'-'}</td>
                             <td style="text-align:center;font-weight:600;">${r.guestCount||'-'}명</td>
-                            <td style="color:var(--accent-gold);font-weight:700;font-size:0.95rem;">${r.totalAmount ? r.totalAmount.toLocaleString()+'원' : '-'}</td>
+                            <td style="color:var(--accent-gold);font-weight:700;font-size:0.95rem;white-space:nowrap;">${r.totalAmount ? r.totalAmount.toLocaleString()+'원' : '-'}</td>
                             <td><span style="font-size:0.78rem;padding:2px 7px;border-radius:8px;background:rgba(255,255,255,0.06);">${typeLabel}</span></td>
                             <td style="font-size:0.82rem;color:var(--text-secondary);max-width:200px;">
                                 ${requests
@@ -644,7 +644,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.0 (2026.04.07)
+        v1.3.1 (2026.04.07)
     </div>
 </body>
 </html>

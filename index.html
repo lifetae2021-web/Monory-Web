@@ -292,7 +292,14 @@
         const params = new URLSearchParams(window.location.search);
         const code   = params.get('code');
         if (code) {
-            // URL 즉시 정리 (코드 노출 최소화)
+            // ★ 팝업 모드: 부모 창의 폴링 타이머가 감지해서 처리  
+            //   → 팝업 창 자체는 코드를 직접 처리하지 않음
+            if (window.opener && !window.opener.closed) {
+                // 팝업이므로 부모 창이 폴링으로 코드를 가져갈 때까지 잠시 대기
+                // URL 정리하지 않음 (부모 폴링이 읽어야 하므로)
+                return;
+            }
+            // 일반 리다이렉트 모드: 직접 처리
             history.replaceState({}, document.title, window.location.pathname);
             await handleKakaoRedirect(code);
             return;
