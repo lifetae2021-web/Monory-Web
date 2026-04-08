@@ -6,8 +6,8 @@
     <title>마이페이지 | Monory</title>
     <!-- 권한 체크 스크립트는 렌더링 전 가장 먼저 실행되어야 깜빡임이 없습니다 -->
     <script>
-        const userSession = localStorage.getItem('monory_user');
-        if (!userSession) {
+        const userSessionStr = localStorage.getItem('monory_user');
+        if (!userSessionStr) {
             alert('로그인이 필요한 서비스입니다.');
             window.location.replace('index.html'); // 이전 페이지 기록을 남기지 않고 튕겨냅니다.
         }
@@ -17,12 +17,189 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDK -->
+    <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+    <style>
+        .my-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 100px 20px;
+            text-align: left;
+        }
+        .my-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .res-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .res-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .res-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 12px;
+            margin-bottom: 12px;
+        }
+        .res-date {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-gold);
+        }
+        .res-status.paid {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        .res-status.cancelled {
+            color: #F44336;
+            font-weight: 600;
+        }
+        .res-status.completed {
+            color: #888;
+            font-weight: 600;
+        }
+        .res-detail {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+        .res-label {
+            color: #aaa;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 50px 0;
+            background: rgba(255,255,255,0.02);
+            border-radius: 12px;
+        }
+        #loading-state {
+            text-align: center;
+            padding: 50px 0;
+            color: #888;
+        }
+    </style>
 </head>
 <body style="background-color: var(--bg-main); color: var(--text-primary); font-family: 'Noto Sans KR', sans-serif;">
-    <div style="padding: 100px 20px; text-align: center;">
-        <h1 style="color: var(--accent-gold); margin-bottom: 20px;">마이페이지</h1>
-        <p>환영합니다! 회원님의 예약 내역 및 활동 내역을 이곳에서 확인할 수 있도록 준비 중입니다.</p>
-        <button onclick="window.location.href='index.html'" style="margin-top:40px; background: var(--accent-gold); color: #111; border: none; padding: 12px 30px; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer;">메인으로 돌아가기</button>
+    <div class="my-container">
+        <div class="my-header">
+            <h1 style="color: var(--accent-gold); margin-bottom: 10px;">마이페이지</h1>
+            <p>나의 예약 내역을 한눈에 확인하세요.</p>
+        </div>
+
+        <div id="loading-state">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 15px; color: var(--accent-gold);"></i>
+            <p>예약 내역을 불러오는 중입니다...</p>
+        </div>
+
+        <div id="res-container" style="display:none;"></div>
+        
+        <div style="text-align: center; margin-top: 60px;">
+            <button onclick="window.location.href='index.html'" style="background: none; color: #aaa; border: 1px solid #555; padding: 10px 24px; font-size: 0.9rem; border-radius: 8px; cursor: pointer;">초기화면으로 돌아가기</button>
+        </div>
     </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const userStr = localStorage.getItem('monory_user');
+            if (!userStr) return; // 상단 스크립트에서 이미 튕겨냄
+            const user = JSON.parse(userStr);
+
+            // Firebase 초기화 대기 (async setTimeout 방식)
+            const checkFirebase = setInterval(() => {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    clearInterval(checkFirebase);
+                    loadReservations(user);
+                }
+            }, 100);
+        });
+
+        async function loadReservations(user) {
+            const container = document.getElementById('res-container');
+            const loading = document.getElementById('loading-state');
+            
+            try {
+                const db = firebase.firestore();
+                // 사용자의 고유 kakaoId로 예약 내역 검색
+                const snapshot = await db.collection('reservations')
+                                         .where('kakaoUid', '==', user.kakaoId)
+                                         .get();
+                
+                loading.style.display = 'none';
+                container.style.display = 'block';
+
+                if (snapshot.empty) {
+                    // 예약 내역이 없을 때
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fa-solid fa-calendar-xmark" style="font-size:3rem; color:#444; margin-bottom:20px;"></i>
+                            <h3 style="margin-bottom: 10px;">아직 예약된 내역이 없습니다.</h3>
+                            <p style="color:#aaa; margin-bottom:30px;">지금 바로 모노리의 특별한 공간을 예약해 보세요!</p>
+                            <button onclick="window.location.href='index.html#reservation'" style="background: var(--accent-gold); color: #111; border: none; padding: 12px 30px; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer;">
+                                예약하러 가기
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 날짜 기준 내림차순 로컬 정렬 (Firestore 복합 인덱스 오류 방지)
+                const docs = [];
+                snapshot.forEach(doc => docs.push(doc.data()));
+                docs.sort((a, b) => new Date(b.createdAt?.toDate?.() || 0) - new Date(a.createdAt?.toDate?.() || 0));
+
+                let html = '<div class="res-list">';
+                docs.forEach(data => {
+                    let statusHtml = '';
+                    if (data.status === 'paid') statusHtml = '<span class="res-status paid">예약 완료</span>';
+                    else if (data.status === 'cancelled') statusHtml = '<span class="res-status cancelled">취소됨</span>';
+                    else if (data.status === 'completed') statusHtml = '<span class="res-status completed">이용 완료</span>';
+                    else statusHtml = `<span class="res-status">${data.status || '대기'}</span>`;
+
+                    const guests = data.guestCount ? (data.guestCount + '명') : '미상';
+                    const pkgName = data.packageName || '-';
+                    const dateStr = data.date ? data.date : '날짜 미상';
+                    let amountStr = '0원';
+                    if (data.totalAmount) amountStr = Number(data.totalAmount).toLocaleString() + '원';
+
+                    html += `
+                        <div class="res-card">
+                            <div class="res-header">
+                                <div class="res-date"><i class="fa-regular fa-calendar-check" style="margin-right:8px;"></i>${dateStr}</div>
+                                ${statusHtml}
+                            </div>
+                            <div class="res-detail">
+                                <div class="res-label">이용 패키지:</div><div>${pkgName}</div>
+                                <div class="res-label">이용 인원:</div><div>${guests}</div>
+                                <div class="res-label">예약자명:</div><div>${data.guestName || '-'}</div>
+                                <div class="res-label">결제 금액:</div><div style="font-weight:600; color:var(--accent-gold);">${amountStr}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch(e) {
+                console.error("예약 내역 조회 실패:", e);
+                loading.style.display = 'none';
+                container.style.display = 'block';
+                container.innerHTML = `<div class="empty-state" style="color:#F44336;">데이터를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</div>`;
+            }
+        }
+    </script>
 </body>
 </html>
