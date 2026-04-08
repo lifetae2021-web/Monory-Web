@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마이페이지 | Monory</title>
+    <!-- 권한 체크 스크립트는 렌더링 전 가장 먼저 실행되어야 깜빡임이 없습니다 -->
+    <script>
+        const userSession = localStorage.getItem('monory_user');
+        if (!userSession) {
+            alert('로그인이 필요한 서비스입니다.');
+            window.location.replace('index.html'); // 이전 페이지 기록을 남기지 않고 튕겨냅니다.
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body style="background-color: var(--bg-main); color: var(--text-primary); font-family: 'Noto Sans KR', sans-serif;">
+    <div style="padding: 100px 20px; text-align: center;">
+        <h1 style="color: var(--accent-gold); margin-bottom: 20px;">마이페이지</h1>
+        <p>환영합니다! 회원님의 예약 내역 및 활동 내역을 이곳에서 확인할 수 있도록 준비 중입니다.</p>
+        <button onclick="window.location.href='index.html'" style="margin-top:40px; background: var(--accent-gold); color: #111; border: none; padding: 12px 30px; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer;">메인으로 돌아가기</button>
+    </div>
+</body>
+</html>
