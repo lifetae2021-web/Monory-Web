@@ -357,7 +357,8 @@
         }
         try { if (!Kakao.isInitialized()) Kakao.init(KAKAO_APP_KEY); } catch(e) {}
 
-        const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_APP_KEY}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT)}&response_type=code&scope=profile_nickname,profile_image`;
+        // prompt=select_account 를 추가하여 항상 계정 선택/로그인 화면을 띄우게 함 (자동 로그인에 의한 팝업 번쩍임 방지)
+        const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_APP_KEY}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT)}&response_type=code&scope=profile_nickname,profile_image&prompt=select_account`;
         
         // ── 모바일: 팝업 차단되므로 리다이렉트 방식 ────────────────
         if (isMobileDevice()) {
