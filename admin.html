@@ -96,9 +96,9 @@
                         <span>이번 달 매출</span>
                         <div class="stat-icon"><i class="fa-solid fa-won-sign"></i></div>
                     </div>
-                    <div class="stat-value">₩ 12,450,000</div>
-                    <div class="stat-trend trend-up">
-                        <i class="fa-solid fa-arrow-trend-up"></i> +15.2% (전월 대비)
+                    <div class="stat-value" id="dash-revenue"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.2rem;opacity:0.5;"></i></div>
+                    <div class="stat-trend" id="dash-revenue-trend" style="color:var(--text-secondary);">
+                        계산 중...
                     </div>
                 </div>
 
@@ -107,9 +107,9 @@
                         <span>신규 예약</span>
                         <div class="stat-icon"><i class="fa-regular fa-calendar-plus"></i></div>
                     </div>
-                    <div class="stat-value">48 건</div>
-                    <div class="stat-trend trend-up">
-                        <i class="fa-solid fa-arrow-trend-up"></i> +4 건 (전주 대비)
+                    <div class="stat-value" id="dash-new-res"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.2rem;opacity:0.5;"></i></div>
+                    <div class="stat-trend" id="dash-new-res-trend" style="color:var(--text-secondary);">
+                        계산 중...
                     </div>
                 </div>
 
@@ -118,9 +118,9 @@
                         <span>예정된 키링크 이벤트</span>
                         <div class="stat-icon"><i class="fa-solid fa-network-wired"></i></div>
                     </div>
-                    <div class="stat-value">12 건</div>
-                    <div class="stat-trend trend-down">
-                        <i class="fa-solid fa-arrow-trend-down"></i> -2 건 (전주 대비)
+                    <div class="stat-value" id="dash-keylink-events"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.2rem;opacity:0.5;"></i></div>
+                    <div class="stat-trend trend-up" id="dash-keylink-events-trend" style="color:var(--text-secondary);">
+                        데이터 수집 중...
                     </div>
                 </div>
 
@@ -129,9 +129,9 @@
                         <span>공간 가동률</span>
                         <div class="stat-icon"><i class="fa-solid fa-percent"></i></div>
                     </div>
-                    <div class="stat-value">84%</div>
-                    <div class="stat-trend trend-up">
-                        <i class="fa-solid fa-arrow-trend-up"></i> +5.5% (전월 대비)
+                    <div class="stat-value" id="dash-occupancy"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.2rem;opacity:0.5;"></i></div>
+                    <div class="stat-trend" id="dash-occupancy-trend" style="color:var(--text-secondary);">
+                        이번 달 기준 시간 계산 중...
                     </div>
                 </div>
             </div>
@@ -146,34 +146,27 @@
                     <!-- Gender Ratio -->
                     <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center;">
                         <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">이번 주말 참가자 성비</h4>
-                        <div style="display: flex; justify-content: center; align-items: flex-end; gap: 40px; height: 100px;">
-                            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                                <div style="width: 40px; height: 80px; background: #3b82f6; border-radius: 4px 4px 0 0;"></div>
-                                <span style="font-size: 0.8rem;">남성 (48%)</span>
-                            </div>
-                            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-                                <div style="width: 40px; height: 85px; background: #ec4899; border-radius: 4px 4px 0 0;"></div>
-                                <span style="font-size: 0.8rem;">여성 (52%)</span>
-                            </div>
+                        <div id="dash-gender-ratio" style="display: flex; justify-content: center; align-items: flex-end; gap: 40px; height: 100px;">
+                            <div style="width:100%; color:#555; display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.5rem;"></i></div>
                         </div>
                     </div>
 
                     <!-- Matching Rate -->
                     <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
                         <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">현장 매칭 성사율</h4>
-                        <div style="font-size: 2.5rem; font-family: var(--font-heading); color: var(--accent-gold); font-weight: 600;">
-                            34.2%
+                        <div id="dash-matching-rate" style="font-size: 2.5rem; font-family: var(--font-heading); color: var(--accent-gold); font-weight: 600;">
+                            <i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.5rem;opacity:0.5;"></i>
                         </div>
-                        <span style="font-size: 0.8rem; color: var(--success);"><i class="fa-solid fa-arrow-up"></i> 지난주 대비 2.1% 증가</span>
+                        <span id="dash-matching-trend" style="font-size: 0.8rem; color: var(--text-secondary);">계산 중...</span>
                     </div>
 
                     <!-- Retention to Monory -->
                     <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
                         <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">참가자 -> 일반 예약 전환율</h4>
-                        <div style="font-size: 2.5rem; font-family: var(--font-heading); font-weight: 600;">
-                            12.8%
+                        <div id="dash-retention" style="font-size: 2.5rem; font-family: var(--font-heading); font-weight: 600;">
+                            <i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.5rem;opacity:0.5;"></i>
                         </div>
-                        <span style="font-size: 0.8rem; color: var(--text-secondary);">총 18팀 전용 패키지 이용</span>
+                        <span id="dash-retention-desc" style="font-size: 0.8rem; color: var(--text-secondary);">최근 30일 모니터링 중...</span>
                     </div>
                 </div>
             </div>
@@ -211,38 +204,9 @@
                     <div class="panel-header">
                         <h2 class="panel-title">오늘의 호스팅 일정</h2>
                     </div>
-                    <div class="schedule-list">
-                        <div class="schedule-item">
-                            <div class="schedule-time">
-                                <span class="date">04/01</span>
-                                <span class="time">14:00</span>
-                            </div>
-                            <div class="schedule-info">
-                                <h5>Keylink 스타트업 네트워킹</h5>
-                                <p>김대표 (참석 40명) / 케이터링 O</p>
-                            </div>
-                        </div>
-
-                        <div class="schedule-item" style="border-left: 3px solid var(--accent-gold);">
-                            <div class="schedule-time">
-                                <span class="date">04/01</span>
-                                <span class="time">19:00</span>
-                            </div>
-                            <div class="schedule-info">
-                                <h5>IT 개발자 북클럽 밋업</h5>
-                                <p>정모임 (참석 15명) / 빔프로젝터 사용</p>
-                            </div>
-                        </div>
-
-                        <div class="schedule-item" style="opacity: 0.6; background: transparent;">
-                            <div class="schedule-time">
-                                <span class="date">04/01</span>
-                                <span class="time">23:00</span>
-                            </div>
-                            <div class="schedule-info">
-                                <h5><i class="fa-solid fa-broom"></i> 공간 정비 및 청소</h5>
-                                <p>청소 업체 방문 예정</p>
-                            </div>
+                    <div class="schedule-list" id="dash-today-schedule">
+                        <div style="text-align:center; padding:30px; color:#555;">
+                            <i class="fa-solid fa-circle-notch fa-spin"></i> 일정을 불러오는 중입니다...
                         </div>
                     </div>
                 </div>
@@ -970,9 +934,200 @@
               .catch(e => alert('업데이트 실패: ' + e.message));
         }
 
-        // 대시보드 진입 시 예약 목록도 미리 로드
+        // ────────────────────────────────────────────────────────────
+        // 대시보드 실시간 통계 연동 (마스터 데이터 Fetch)
+        // ────────────────────────────────────────────────────────────
+        function loadDashboardStats() {
+            if (typeof firebase === 'undefined') return;
+            const db = firebase.firestore();
+            
+            const now = new Date();
+            const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth()-1, 1);
+            const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+            const fourteenDaysAgo = new Date(now.getTime() - (14 * 24 * 60 * 60 * 1000));
+
+            const formatCurrency = (num) => '₩ ' + num.toLocaleString();
+            
+            // 1. 예약 데이터 기반 통계 (매출, 신규예약, 가동률)
+            db.collection('reservations').get().then(snapshot => {
+                let thisMonthRevenue = 0;
+                let lastMonthRevenue = 0;
+                let recent7Reservations = 0;
+                let prev7Reservations = 0;
+                let thisMonthReservations = 0;
+                
+                const todaySchedule = [];
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const createdAt = data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt)) : null;
+                    const resDateStr = data.date && data.date.includes('(') ? data.date.split('(')[0].trim() : data.date;
+                    const resDateObj = resDateStr ? new Date(resDateStr.replace(/\./g, '-')) : null;
+                    
+                    // 매출 (status가 paid, completed인 경우만)
+                    if (data.status === 'paid' || data.status === 'completed') {
+                        if (createdAt && createdAt >= firstDayOfMonth) {
+                            thisMonthRevenue += (data.totalAmount || 0);
+                            thisMonthReservations++;
+                        } else if (createdAt && createdAt >= firstDayOfLastMonth && createdAt < firstDayOfMonth) {
+                            lastMonthRevenue += (data.totalAmount || 0);
+                        }
+                    }
+
+                    // 신규 예약 (status 무관)
+                    if (createdAt) {
+                        if (createdAt >= sevenDaysAgo) recent7Reservations++;
+                        else if (createdAt >= fourteenDaysAgo) prev7Reservations++;
+                    }
+
+                    // 오늘의 호스팅 예약 확인
+                    if (resDateObj && resDateObj.toDateString() === now.toDateString() && data.status !== 'cancelled') {
+                        let timeStr = '미정';
+                        if(data.packageName && data.packageName.includes('데이')) timeStr = '10:00';
+                        else if(data.packageName && data.packageName.includes('나이트')) timeStr = '18:00';
+                        
+                        todaySchedule.push({
+                            timeStr: timeStr,
+                            title: `[예약] ${data.guestName || '고객'}님 (${data.guestCount||0}명)`,
+                            desc: `${data.packageName || '패키지'} / ${data.requests ? '요청사항 O' : '요청사항 X'}`,
+                            timeVal: parseInt(timeStr.replace(':','')) || 9999
+                        });
+                    }
+                });
+
+                // 매출 DOM 업데이트
+                document.getElementById('dash-revenue').innerHTML = formatCurrency(thisMonthRevenue);
+                const revDiff = lastMonthRevenue === 0 ? 100 : ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue * 100).toFixed(1);
+                const revEl = document.getElementById('dash-revenue-trend');
+                if(thisMonthRevenue >= lastMonthRevenue) {
+                    revEl.className = 'stat-trend trend-up';
+                    revEl.innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> +${revDiff}% (전월 대비)`;
+                } else {
+                    revEl.className = 'stat-trend trend-down';
+                    revEl.innerHTML = `<i class="fa-solid fa-arrow-trend-down"></i> ${revDiff}% (전월 대비)`;
+                }
+
+                // 신규 예약 DOM 업데이트
+                document.getElementById('dash-new-res').innerHTML = `${recent7Reservations} 건`;
+                const resDiff = recent7Reservations - prev7Reservations;
+                const resEl = document.getElementById('dash-new-res-trend');
+                if(resDiff >= 0) {
+                    resEl.className = 'stat-trend trend-up';
+                    resEl.innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> +${resDiff} 건 (전주 대비)`;
+                } else {
+                    resEl.className = 'stat-trend trend-down';
+                    resEl.innerHTML = `<i class="fa-solid fa-arrow-trend-down"></i> ${resDiff} 건 (전주 대비)`;
+                }
+
+                // 가동률 (한 달 일수 * 2타임) 기준
+                const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+                const totalSlots = daysInMonth * 2;
+                const occupancyRate = totalSlots > 0 ? ((thisMonthReservations / totalSlots) * 100).toFixed(1) : 0;
+                document.getElementById('dash-occupancy').innerHTML = `${occupancyRate}%`;
+                document.getElementById('dash-occupancy-trend').innerHTML = `총 ${totalSlots}타임 중 ${thisMonthReservations}타임 예약`;
+
+                // 오늘의 일정 업데이트
+                // (이벤트 스케줄은 events 컬렉션 호출 후 통합)
+                db.collection('events').get().then(eventSnap => {
+                    let upcomingEvents = 0;
+                    eventSnap.forEach(eDoc => {
+                        const evt = eDoc.data();
+                        const eDate = evt.date ? (evt.date.toDate ? evt.date.toDate() : new Date(evt.date)) : null;
+                        if(eDate) {
+                            if(eDate >= now) upcomingEvents++;
+                            if(eDate.toDateString() === now.toDateString()) {
+                                todaySchedule.push({
+                                    timeStr: evt.time || '15:00',
+                                    title: `[이벤트] ${evt.title || '키링크 행사'}`,
+                                    desc: `참석 예정: ${evt.participants || 0}명`,
+                                    timeVal: parseInt((evt.time||'15:00').replace(':','')) || 1500,
+                                    isEvent: true
+                                });
+                            }
+                        }
+                    });
+                    
+                    // 예정 이벤트 DOM
+                    document.getElementById('dash-keylink-events').innerHTML = `${upcomingEvents} 건`;
+                    document.getElementById('dash-keylink-events-trend').innerHTML = '현재 등록된 키링크 이벤트';
+
+                    // 오늘 스케줄 렌더링
+                    todaySchedule.sort((a,b) => a.timeVal - b.timeVal);
+                    const scheduleDOM = document.getElementById('dash-today-schedule');
+                    if(todaySchedule.length === 0) {
+                        scheduleDOM.innerHTML = '<div style="text-align:center; padding:30px; color:#aaa;"><i class="fa-solid fa-mug-hot" style="font-size:2rem; opacity:0.3; margin-bottom:10px; display:block;"></i>오늘은 예정된 일정이 없습니다.</div>';
+                    } else {
+                        scheduleDOM.innerHTML = '';
+                        todaySchedule.forEach(sch => {
+                            const mmdd = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+                            const borderCol = sch.isEvent ? '#ec4899' : 'var(--accent-gold)';
+                            scheduleDOM.innerHTML += `
+                                <div class="schedule-item" style="border-left: 3px solid ${borderCol};">
+                                    <div class="schedule-time">
+                                        <span class="date">${mmdd}</span>
+                                        <span class="time">${sch.timeStr}</span>
+                                    </div>
+                                    <div class="schedule-info">
+                                        <h5 style="color:${sch.isEvent ? '#fbcfe8' : '#fff'}">${sch.title}</h5>
+                                        <p>${sch.desc}</p>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                }).catch(err => {
+                    document.getElementById('dash-keylink-events').innerHTML = '0 건';
+                    document.getElementById('dash-keylink-events-trend').innerHTML = '데이터 없음';
+                    const sDom = document.getElementById('dash-today-schedule');
+                    if(sDom.innerHTML.includes('spin')) sDom.innerHTML = '<div style="text-align:center; padding:30px; color:#aaa;">오늘 일정이 없습니다.</div>';
+                });
+            });
+
+            // 2. 키링크 통계 (keylink_results 컬렉션)
+            db.collection('keylink_results').orderBy('createdAt', 'desc').limit(1).get().then(snap => {
+                if(snap.empty) {
+                    // 더미 데이터 폴백 처리
+                    document.getElementById('dash-gender-ratio').innerHTML = '<div style="color:#aaa; font-size:0.9rem;">최근 데이터가 없습니다.</div>';
+                    document.getElementById('dash-matching-rate').innerHTML = '- %';
+                    document.getElementById('dash-matching-trend').innerHTML = '이벤트 결과 기록 없음';
+                    document.getElementById('dash-retention').innerHTML = '- %';
+                    document.getElementById('dash-retention-desc').innerHTML = '추적 불가';
+                    return;
+                }
+                const data = snap.docs[0].data();
+                const mPct = data.maleRatio || 50;
+                const fPct = 100 - mPct;
+                
+                document.getElementById('dash-gender-ratio').innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                        <div style="width: 40px; height: ${Math.max(mPct*1.5, 20)}px; background: #3b82f6; border-radius: 4px 4px 0 0; transition: height 1s ease;"></div>
+                        <span style="font-size: 0.8rem;">남성 (${mPct}%)</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                        <div style="width: 40px; height: ${Math.max(fPct*1.5, 20)}px; background: #ec4899; border-radius: 4px 4px 0 0; transition: height 1s ease;"></div>
+                        <span style="font-size: 0.8rem;">여성 (${fPct}%)</span>
+                    </div>
+                `;
+                
+                document.getElementById('dash-matching-rate').innerHTML = `${data.matchingRate || 0}%`;
+                document.getElementById('dash-matching-trend').innerHTML = data.matchingTrend || '수집 완료';
+                
+                document.getElementById('dash-retention').innerHTML = `${data.retentionRate || 0}%`;
+                document.getElementById('dash-retention-desc').innerHTML = data.retentionDesc || '최근 전환 통계';
+            }).catch(() => {
+                document.getElementById('dash-gender-ratio').innerHTML = '<div style="color:#aaa;">데이터 로드 실패</div>';
+                document.getElementById('dash-matching-rate').innerHTML = '오류';
+                document.getElementById('dash-retention').innerHTML = '오류';
+            });
+        }
+
+        // 대시보드 진입 시 데이터 통합 로드
         document.addEventListener('DOMContentLoaded', () => {
-            if (typeof firebase !== 'undefined') loadReservations();
+            if (typeof firebase !== 'undefined') {
+                loadReservations();
+                loadDashboardStats();
+            }
         });
     </script>
 
