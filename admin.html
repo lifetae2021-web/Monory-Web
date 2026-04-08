@@ -41,7 +41,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link"><i class="fa-solid fa-users-viewfinder"></i> 키링크 이벤트</a>
+                <a href="#" class="nav-link" onclick="showSection('events')"><i class="fa-solid fa-users-viewfinder"></i> 키링크 이벤트</a>
             </li>
             <li class="nav-item">
                 <a href="#" class="nav-link" onclick="showSection('members')" id="nav-members">
@@ -136,40 +136,7 @@
                 </div>
             </div>
 
-            <!-- Keylink Special Monitoring Section -->
-            <div class="panel" style="margin-bottom: 40px; border-color: var(--accent-gold);">
-                <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px;">
-                    <h2 class="panel-title"><i class="fa-solid fa-gem" style="color: var(--accent-gold); margin-right: 8px;"></i>키링크 전환율 및 매칭 통계</h2>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
-                    <!-- Gender Ratio -->
-                    <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center;">
-                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">이번 주말 참가자 성비</h4>
-                        <div id="dash-gender-ratio" style="display: flex; justify-content: center; align-items: flex-end; gap: 40px; height: 100px;">
-                            <div style="width:100%; color:#555; display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.5rem;"></i></div>
-                        </div>
-                    </div>
 
-                    <!-- Matching Rate -->
-                    <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
-                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">현장 매칭 성사율</h4>
-                        <div id="dash-matching-rate" style="font-size: 2.5rem; font-family: var(--font-heading); color: var(--accent-gold); font-weight: 600;">
-                            <i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.5rem;opacity:0.5;"></i>
-                        </div>
-                        <span id="dash-matching-trend" style="font-size: 0.8rem; color: var(--text-secondary);">계산 중...</span>
-                    </div>
-
-                    <!-- Retention to Monory -->
-                    <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
-                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">참가자 -> 일반 예약 전환율</h4>
-                        <div id="dash-retention" style="font-size: 2.5rem; font-family: var(--font-heading); font-weight: 600;">
-                            <i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.5rem;opacity:0.5;"></i>
-                        </div>
-                        <span id="dash-retention-desc" style="font-size: 0.8rem; color: var(--text-secondary);">최근 30일 모니터링 중...</span>
-                    </div>
-                </div>
-            </div>
 
             <!-- Data Tables and Lists -->
             <div class="tables-grid">
@@ -414,6 +381,46 @@
             </div>
         </div>
 
+        <!-- ============================
+             키링크 이벤트 전용 섹션
+             ============================ -->
+        <div class="content-area" id="section-events" style="display:none;">
+            <!-- Keylink Special Monitoring Section -->
+            <div class="panel" style="margin-bottom: 40px; border-color: var(--accent-gold);">
+                <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px;">
+                    <h2 class="panel-title"><i class="fa-solid fa-gem" style="color: var(--accent-gold); margin-right: 8px;"></i>키링크 전환율 및 매칭 통계</h2>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+                    <!-- Gender Ratio -->
+                    <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center;">
+                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 16px;">이번 주말 참가자 성비</h4>
+                        <div id="dash-gender-ratio" style="display: flex; justify-content: center; align-items: flex-end; gap: 40px; height: 100px;">
+                            <div style="width:100%; color:#555; display:flex; align-items:center; justify-content:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.5rem;"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Matching Rate -->
+                    <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">현장 매칭 성사율</h4>
+                        <div id="dash-matching-rate" style="font-size: 2.5rem; font-family: var(--font-heading); color: var(--accent-gold); font-weight: 600;">
+                            <i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.5rem;opacity:0.5;"></i>
+                        </div>
+                        <span id="dash-matching-trend" style="font-size: 0.8rem; color: var(--text-secondary);">계산 중...</span>
+                    </div>
+
+                    <!-- Retention to Monory -->
+                    <div style="background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center;">
+                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">참가자 -> 일반 예약 전환율</h4>
+                        <div id="dash-retention" style="font-size: 2.5rem; font-family: var(--font-heading); font-weight: 600;">
+                            <i class="fa-solid fa-circle-notch fa-spin" style="font-size:1.5rem;opacity:0.5;"></i>
+                        </div>
+                        <span id="dash-retention-desc" style="font-size: 0.8rem; color: var(--text-secondary);">최근 30일 모니터링 중...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Firebase Auth 설정 및 보안 검사 -->
@@ -486,6 +493,7 @@
             document.getElementById('section-members') && (document.getElementById('section-members').style.display = 'none');
             document.getElementById('section-reservations') && (document.getElementById('section-reservations').style.display = 'none');
             document.getElementById('section-cms') && (document.getElementById('section-cms').style.display = 'none');
+            document.getElementById('section-events') && (document.getElementById('section-events').style.display = 'none');
             const mainContent = document.querySelector('.content-area:not([id])');
             if (mainContent) mainContent.style.display = 'none';
 
@@ -498,6 +506,9 @@
             } else if (name === 'cms') {
                 document.getElementById('section-cms').style.display = 'block';
                 loadFirebaseCMSData();
+            } else if (name === 'events') {
+                document.getElementById('section-events').style.display = 'block';
+                loadDashboardStats(); // 키링크 통계 로드 포함됨
             } else {
                 if (mainContent) mainContent.style.display = 'block';
             }
