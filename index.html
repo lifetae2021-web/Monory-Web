@@ -279,7 +279,7 @@
     <script>
     // ─── 카카오 설정 ──────────────────────────────────────────────
     const KAKAO_APP_KEY    = 'c697d9b2e64f7b8ba66bf65ef93ab9a2';
-    const KAKAO_REDIRECT   = 'https://monory-web.web.app';
+    const KAKAO_REDIRECT   = window.location.origin;
 
     // ─── 페이지 로드 시 초기화 + 리다이렉트 콜백 처리 ──────────────
     // ─── 모바일 감지 (팝업 대신 리다이렉트 사용) ──────────────────
@@ -306,6 +306,7 @@
                     window.opener.handleKakaoRedirect(code);
                 } catch(e) {
                     console.error("부모 창으로 데이터 전달 실패", e);
+                    alert("카카오 로그인 통신 오류(팝업): " + e.message);
                 }
                 window.close();
                 return;
@@ -410,8 +411,11 @@
         }, 100);
     }
 
+    let isKakaoLoginProcessing = false;
     // ─── 카카오 리다이렉트 후 처리 (code → token → user info) ──────
     async function handleKakaoRedirect(code) {
+        if (isKakaoLoginProcessing) return; // 중복 요청(KOE320 에러) 완벽 차단
+        isKakaoLoginProcessing = true;
         try {
             // 로딩 표시
             const loggedout = document.getElementById('auth-loggedout');
@@ -432,8 +436,10 @@
 
             if (tokenData.error) {
                 console.error('토큰 교환 실패:', tokenData);
+                // KOE320 등의 치명적 에러 시 얼럿을 띄움
                 alert('카카오 로그인 에러: ' + tokenData.error_description + ' / ' + tokenData.error);
                 _restoreLoggedoutUI();
+                isKakaoLoginProcessing = false;
                 return;
             }
 
@@ -461,7 +467,9 @@
 
         } catch(e) {
             console.error('카카오 로그인 처리 오류:', e);
+            alert('카카오 로그인 처리 중 오류 발생: ' + e.message);
             _restoreLoggedoutUI();
+            isKakaoLoginProcessing = false;
         }
     }
 
