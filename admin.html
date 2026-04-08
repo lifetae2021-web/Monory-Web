@@ -10,6 +10,17 @@
     <!-- Load FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin.css">
+    <style>
+        .edit-form-group { margin-bottom: 24px; }
+        .edit-label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-secondary); }
+        .edit-input, .edit-textarea { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px 16px; color: var(--text-primary); font-family: var(--font-body); transition: 0.3s ease; }
+        .edit-input:focus, .edit-textarea:focus { border-color: var(--accent-gold); outline: none; }
+        .edit-textarea { resize: vertical; min-height: 100px; }
+        .save-btn { background: var(--accent-gold); color: var(--bg-main); border: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-family: var(--font-heading); cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 8px; }
+        .save-btn:hover { background: var(--accent-gold-hover); box-shadow: 0 0 15px var(--accent-glow); }
+        .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        @media (max-width: 900px) { .edit-grid { grid-template-columns: 1fr; } }
+    </style>
 </head>
 <body>
 
@@ -41,7 +52,7 @@
                 <a href="#" class="nav-link"><i class="fa-solid fa-chart-line"></i> 매출 통계</a>
             </li>
             <li class="nav-item">
-                <a href="admin-edit.html" class="nav-link"><i class="fa-solid fa-pen-to-square"></i> 콘텐츠 편집 (CMS)</a>
+                <a href="#" class="nav-link" onclick="showSection('cms')" id="nav-cms"><i class="fa-solid fa-pen-to-square"></i> 콘텐츠 편집 (CMS)</a>
             </li>
             <li class="nav-item" style="margin-top: auto; position: absolute; bottom: 20px; width: 100%;">
                 <a href="#" class="nav-link"><i class="fa-solid fa-gear"></i> 시스템 설정</a>
@@ -347,6 +358,98 @@
             </div>
         </div>
 
+        <!-- ============================
+             콘텐츠 편집 (CMS) 섹션
+             ============================ -->
+        <div class="content-area" id="section-cms" style="display:none;">
+            <div class="edit-grid" style="margin-bottom: 30px;">
+                <!-- Version Recovery Panel (Full Width) -->
+                <div class="panel" style="grid-column: 1 / -1; background: rgba(212, 175, 55, 0.05); border-color: rgba(212, 175, 55, 0.3);">
+                    <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <h2 class="panel-title" style="color: var(--accent-gold);"><i class="fa-solid fa-clock-rotate-left" style="margin-right: 8px;"></i>버전 관리 시스템 (Rollback)</h2>
+                    </div>
+                    <div style="display: flex; gap: 16px; align-items: flex-end;">
+                        <div class="edit-form-group" style="flex: 1; margin: 0;">
+                            <label class="edit-label">과거 버전 선택</label>
+                            <select id="input-history-select" class="edit-input">
+                                <option value="">로딩 중...</option>
+                            </select>
+                        </div>
+                        <button type="button" id="btn-revert" class="save-btn" style="background: var(--bg-secondary); border: 1px solid var(--accent-gold); color: var(--accent-gold);"><i class="fa-solid fa-rotate-left"></i> 이 버전으로 되돌리기</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="edit-grid">
+                <!-- Section 1: Main Homepage Content -->
+                <div class="panel">
+                    <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px;">
+                        <h2 class="panel-title"><i class="fa-solid fa-desktop" style="color: var(--accent-gold); margin-right: 8px;"></i>메인 홈 문구 설정</h2>
+                    </div>
+                    <form id="content-form">
+                        <div class="edit-form-group">
+                            <label class="edit-label">메인 첫 줄 슬로건 (모바일 공통)</label>
+                            <input type="text" id="input-slogan" class="edit-input" value="모임, 놀기, 리프레시가 함께하는 공간">
+                        </div>
+                        <div class="edit-form-group">
+                            <label class="edit-label">브랜드 네임</label>
+                            <input type="text" id="input-brand" class="edit-input" value="Monory">
+                        </div>
+                        <div class="edit-form-group">
+                            <label class="edit-label">영업 상세 설명</label>
+                            <textarea id="input-description" class="edit-textarea">당신의 소중한 순간이 더욱 빛날 수 있도록,
+프리미엄 커뮤니티 공간 모노리가 함께합니다.</textarea>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end;">
+                            <button type="submit" class="save-btn"><i class="fa-solid fa-check"></i> 문구 저장</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Section 2: Keylink & Pricing Settings -->
+                <div class="panel">
+                    <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px;">
+                        <h2 class="panel-title"><i class="fa-solid fa-gem" style="color: var(--accent-gold); margin-right: 8px;"></i>키링크 혜택 및 예약 패키지 설정</h2>
+                    </div>
+                    <form id="package-form">
+                        <div class="edit-form-group">
+                            <label class="edit-label">소개팅 참여자 특별 할인율 (%)</label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="number" id="input-discount" class="edit-input" value="10" style="width: 100px;">
+                                <span style="color: var(--text-secondary);">% 할인</span>
+                            </div>
+                        </div>
+                        
+                        <div class="edit-form-group">
+                            <label class="edit-label">데이 패키지 예약 가격 (원)</label>
+                            <input type="number" id="input-price-day" class="edit-input" value="120000">
+                        </div>
+                        
+                        <div class="edit-form-group">
+                            <label class="edit-label">나이트 패키지 예약 가격 (원)</label>
+                            <input type="number" id="input-price-night" class="edit-input" value="180000">
+                        </div>
+                        
+                        <div class="edit-form-group">
+                            <label class="edit-label">키링크 홍보 배너 표시 여부 (우측 하단)</label>
+                            <select id="input-banner-toggle" class="edit-input">
+                                <option value="show" selected>표시함 (ON)</option>
+                                <option value="hide">숨김 (OFF)</option>
+                            </select>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end;">
+                            <button type="submit" class="save-btn"><i class="fa-solid fa-check"></i> 패키지 설정 저장</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div id="version-badge" style="margin-top:20px; background: rgba(10,10,12,0.9); border: 1px solid var(--accent-gold); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; color: var(--accent-gold); display:inline-block;">
+                현재 버전: 로딩 중...
+            </div>
+        </div>
+
     </main>
 
     <!-- Firebase Auth 설정 및 보안 검사 -->
@@ -416,8 +519,9 @@
         // 섹션 전환
         function showSection(name) {
             // 모든 섹션 숨기기
-            document.getElementById('section-members')     && (document.getElementById('section-members').style.display     = 'none');
+            document.getElementById('section-members') && (document.getElementById('section-members').style.display = 'none');
             document.getElementById('section-reservations') && (document.getElementById('section-reservations').style.display = 'none');
+            document.getElementById('section-cms') && (document.getElementById('section-cms').style.display = 'none');
             const mainContent = document.querySelector('.content-area:not([id])');
             if (mainContent) mainContent.style.display = 'none';
 
@@ -427,13 +531,134 @@
             } else if (name === 'reservations') {
                 document.getElementById('section-reservations').style.display = 'block';
                 loadReservations();
+            } else if (name === 'cms') {
+                document.getElementById('section-cms').style.display = 'block';
+                loadFirebaseCMSData();
             } else {
                 if (mainContent) mainContent.style.display = 'block';
             }
 
             // Active 클래스
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            event.target.closest('.nav-link')?.classList.add('active');
+            if(event && event.target) {
+                event.target.closest('.nav-link')?.classList.add('active');
+            }
+        }
+
+        // Firebase Firestore Version Control Logic (CMS)
+        let currentActiveVersion = 1;
+        let isCMSLoaded = false;
+        
+        function loadFirebaseCMSData() {
+            if(isCMSLoaded) return; // 이미 로드되었으면 중복 실행 방지
+            isCMSLoaded = true;
+            
+            if (typeof firebase === 'undefined') return;
+            const db = firebase.firestore();
+            const configRef = db.collection("monory_config").doc("settings");
+            const historyRef = configRef.collection("history");
+            
+            configRef.onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    currentActiveVersion = data.currentVersion || 1;
+                    const badge = document.getElementById('version-badge');
+                    if(badge) badge.innerText = `현재 반영된 버전: v${currentActiveVersion}`;
+                    
+                    // Populate inputs if they don't have focus (prevent overwriting while typing)
+                    if(document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                        if (data.slogan) document.getElementById('input-slogan').value = data.slogan;
+                        if (data.brand) document.getElementById('input-brand').value = data.brand;
+                        if (data.description) document.getElementById('input-description').value = data.description;
+                        if (data.discountInfo) document.getElementById('input-discount').value = data.discountInfo;
+                        if (data.priceDay) document.getElementById('input-price-day').value = data.priceDay;
+                        if (data.priceNight) document.getElementById('input-price-night').value = data.priceNight;
+                        if (data.bannerToggle) document.getElementById('input-banner-toggle').value = data.bannerToggle;
+                    }
+                } else {
+                    const badge = document.getElementById('version-badge');
+                    if(badge) badge.innerText = `현재 반영된 버전: v1`;
+                }
+                
+                // History Load
+                historyRef.orderBy('version', 'desc').get().then(snapshot => {
+                    const select = document.getElementById('input-history-select');
+                    if(!select) return;
+                    select.innerHTML = '<option value="">선택하세요...</option>';
+                    snapshot.forEach(doc => {
+                        const d = doc.data();
+                        const dateStr = d.timestamp ? d.timestamp.toDate().toLocaleString() : '과거 기록';
+                        select.innerHTML += `<option value="${doc.id}">v${d.version} (${dateStr})</option>`;
+                    });
+                    if(snapshot.empty) {
+                        select.innerHTML = '<option value="">저장 기록 없음</option>';
+                    }
+                });
+            });
+
+            function getFullFormData() {
+                return {
+                    slogan: document.getElementById('input-slogan').value,
+                    brand: document.getElementById('input-brand').value,
+                    description: document.getElementById('input-description').value,
+                    discountInfo: document.getElementById('input-discount').value,
+                    priceDay: document.getElementById('input-price-day').value,
+                    priceNight: document.getElementById('input-price-night').value,
+                    bannerToggle: document.getElementById('input-banner-toggle').value
+                };
+            }
+
+            function saveWithVersionControl(newData, alertMsg) {
+                const nextVersion = currentActiveVersion + 1;
+                const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+                
+                const newSnapshotObj = {
+                    ...newData,
+                    version: nextVersion,
+                    timestamp: timestamp
+                };
+
+                historyRef.doc('v' + nextVersion).set(newSnapshotObj).then(() => {
+                    return configRef.set({
+                        ...newData,
+                        currentVersion: nextVersion
+                    }, { merge: true });
+                }).then(() => {
+                    alert(`[v${nextVersion}] ` + alertMsg);
+                }).catch(err => alert('버전 에러: ' + err.message));
+            }
+
+            document.getElementById('content-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                saveWithVersionControl(getFullFormData(), '메인 홈 문구가 저장 및 배포되었습니다.');
+            });
+
+            document.getElementById('package-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                saveWithVersionControl(getFullFormData(), '예약 패키지 설정이 저장 및 배포되었습니다.');
+            });
+
+            document.getElementById('btn-revert').addEventListener('click', () => {
+                const selectedId = document.getElementById('input-history-select').value;
+                if(!selectedId) return alert('돌아갈 과거 버전을 선택해주세요.');
+                
+                if(confirm('선택한 과거 버전으로 화면이 복구됩니다. 덮어쓰기 할까요?')) {
+                    historyRef.doc(selectedId).get().then(doc => {
+                        if(doc.exists) {
+                            const data = doc.data();
+                            if (data.slogan) document.getElementById('input-slogan').value = data.slogan;
+                            if (data.brand) document.getElementById('input-brand').value = data.brand;
+                            if (data.description) document.getElementById('input-description').value = data.description;
+                            if (data.discountInfo) document.getElementById('input-discount').value = data.discountInfo;
+                            if (data.priceDay) document.getElementById('input-price-day').value = data.priceDay;
+                            if (data.priceNight) document.getElementById('input-price-night').value = data.priceNight;
+                            if (data.bannerToggle) document.getElementById('input-banner-toggle').value = data.bannerToggle;
+                            
+                            saveWithVersionControl(getFullFormData(), `과거 ${selectedId} 버전 복구(Rollback) 성공! 홈페이지에 즉각 반영됩니다.`);
+                        }
+                    }).catch(e => alert(e.message));
+                }
+            });
         }
 
         // 실시간 회원 명단 (Firestore onSnapshot)
