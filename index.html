@@ -425,6 +425,7 @@
 
             if (tokenData.error) {
                 console.error('토큰 교환 실패:', tokenData);
+                alert('카카오 로그인 에러: ' + tokenData.error_description + ' / ' + tokenData.error);
                 _restoreLoggedoutUI();
                 return;
             }
