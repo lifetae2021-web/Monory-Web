@@ -123,13 +123,25 @@
             
             <div id="error-msg" class="error-message">이메일 또는 비밀번호가 올바르지 않습니다.</div>
             
-            <button type="submit" class="login-btn" id="submit-btn"><i class="fa-solid fa-right-to-bracket"></i> 로그인</button>
+            <button type="submit" class="login-btn" id="submit-btn"><i class="fa-solid fa-right-to-bracket"></i> 이메일 로그인</button>
         </form>
+
+        <div style="margin: 25px 0; border-top: 1px solid var(--border-color); position: relative;">
+            <span style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--bg-secondary); padding: 0 10px; color: var(--text-secondary); font-size: 0.8rem;">또는</span>
+        </div>
+
+        <button type="button" class="login-btn" id="btn-kakao-admin" style="background: #FEE500; color: #3C1E1E;">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="vertical-align: text-top; margin-right: 6px;">
+                <path d="M9 1C4.582 1 1 3.896 1 7.47c0 2.28 1.513 4.278 3.808 5.424l-.97 3.605 4.2-2.774c.637.09 1.29.135 1.962.135 4.418 0 8-2.896 8-6.47C18 3.896 13.418 1 9 1z" fill="#3C1E1E"/>
+            </svg>
+            카카오 계정으로 관리자 로그인
+        </button>
     </div>
 
-    <!-- Firebase Auth 설정 -->
+    <!-- Firebase Auth & Firestore 설정 -->
     <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
 
     <script>
@@ -137,9 +149,11 @@
             setTimeout(() => {
                 const auth = firebase.auth();
                 
-                // 로그인 상태면 바로 대시보드로 이동
+                // 이미 이메일 관리자 인증이 되어 있거나 카카오 관리자 세션이 있다면 대시보드로 이동
                 auth.onAuthStateChanged((user) => {
-                    if (user) {
+                    const hasAuth = !!user;
+                    const hasKakaoAdmin = !!sessionStorage.getItem('monory_admin_session');
+                    if (hasAuth || hasKakaoAdmin) {
                         window.location.href = 'admin.html';
                     }
                 });
@@ -187,6 +201,66 @@
                             }
                         });
                 });
+
+                // --- 카카오 관리자 로그인 연동 ---
+                const KAKAO_APP_KEY = 'c697d9b2e64f7b8ba66bf65ef93ab9a2';
+                const KAKAO_REDIRECT = window.location.origin;
+
+                document.getElementById('btn-kakao-admin').addEventListener('click', () => {
+                    const btn = document.getElementById('btn-kakao-admin');
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 확인 중...';
+                    
+                    const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_APP_KEY}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT)}&response_type=code&scope=profile_nickname,profile_image&prompt=select_account`;
+                    const popup = window.open(authUrl, 'kakaoAdminLogin', 'width=450,height=600,scrollbars=yes');
+                    
+                    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+                        alert('팝업 차단이 감지되었습니다. 브라우저 설정에서 팝업을 허용해주세요.');
+                        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="vertical-align: text-top; margin-right: 6px;"><path d="M9 1C4.582 1 1 3.896 1 7.47c0 2.28 1.513 4.278 3.808 5.424l-.97 3.605 4.2-2.774c.637.09 1.29.135 1.962.135 4.418 0 8-2.896 8-6.47C18 3.896 13.418 1 9 1z" fill="#3C1E1E"/></svg> 카카오 계정으로 관리자 로그인';
+                    }
+                });
+
+                // 인증 팝업 (index.html)에서 넘어온 user 정보 수신
+                window.addEventListener('message', async (event) => {
+                    const btn = document.getElementById('btn-kakao-admin');
+
+                    if (event.data && event.data.type === 'KAKAO_LOGIN_SUCCESS') {
+                        const user = event.data.user;
+                        const db = firebase.firestore();
+                        
+                        try {
+                            const doc = await db.collection('members').doc(String(user.kakaoId)).get();
+                            if (doc.exists) {
+                                const role = doc.data().role;
+                                if (role === 'super_admin' || role === 'general_admin') {
+                                    // 관리자 권한 확인됨
+                                    sessionStorage.setItem('monory_admin_session', JSON.stringify({
+                                        kakaoId: user.kakaoId,
+                                        role: role,
+                                        name: user.name
+                                    }));
+                                    window.location.href = 'admin.html';
+                                } else {
+                                    // 일반 회원인 경우 튕겨냄
+                                    alert('관리자 권한이 없습니다.');
+                                    window.location.href = 'index.html';
+                                }
+                            } else {
+                                alert('가입된 회원 정보를 찾을 수 없습니다.');
+                                btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="vertical-align: text-top; margin-right: 6px;"><path d="M9 1C4.582 1 1 3.896 1 7.47c0 2.28 1.513 4.278 3.808 5.424l-.97 3.605 4.2-2.774c.637.09 1.29.135 1.962.135 4.418 0 8-2.896 8-6.47C18 3.896 13.418 1 9 1z" fill="#3C1E1E"/></svg> 카카오 계정으로 관리자 로그인';
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            alert('권한을 확인하는 중 서버 오류가 발생했습니다.');
+                            btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="vertical-align: text-top; margin-right: 6px;"><path d="M9 1C4.582 1 1 3.896 1 7.47c0 2.28 1.513 4.278 3.808 5.424l-.97 3.605 4.2-2.774c.637.09 1.29.135 1.962.135 4.418 0 8-2.896 8-6.47C18 3.896 13.418 1 9 1z" fill="#3C1E1E"/></svg> 카카오 계정으로 관리자 로그인';
+                        }
+                    }
+                    
+                    if (event.data && event.data.type === 'KAKAO_LOGIN_FAIL') {
+                        alert('카카오 인증에 실패했습니다.');
+                        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="vertical-align: text-top; margin-right: 6px;"><path d="M9 1C4.582 1 1 3.896 1 7.47c0 2.28 1.513 4.278 3.808 5.424l-.97 3.605 4.2-2.774c.637.09 1.29.135 1.962.135 4.418 0 8-2.896 8-6.47C18 3.896 13.418 1 9 1z" fill="#3C1E1E"/></svg> 카카오 계정으로 관리자 로그인';
+                    }
+                });
+
             }, 500); // init.js 로딩 대기
         });
     </script>

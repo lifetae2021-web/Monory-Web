@@ -402,6 +402,53 @@ tr:hover td {
 .schedule-info h5 { margin-bottom: 4px; font-size: 0.95rem; }
 .schedule-info p { font-size: 0.8rem; color: var(--text-secondary); }
 
+/* Member Tabs & Roles */
+.member-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.member-tab-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: 0.2s;
+}
+.member-tab-btn:hover {
+    border-color: var(--accent-gold);
+}
+.member-tab-btn.active {
+    background: rgba(212, 175, 55, 0.1);
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 4px;
+}
+.role-badge.super-admin {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.role-badge.general-admin {
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
 /* Responsive Dashboard */
 @media (max-width: 1200px) {
     .stats-grid {

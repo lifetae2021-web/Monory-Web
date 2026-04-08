@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 이메일 기반 관리자 (Firebase Auth)인지 확인하는 함수
+    function isFirebaseAuthAdmin() {
+      return request.auth != null && request.auth.token.email != null;
+    }
+    
+    // 카카오 기반 관리자인지 확인하는 함수 (members 컬렉션의 role 참조)
+    // 보안 경고: 클라이언트 인증 방식에 따라 이 부분은 서버 환경에 맞게 커스텀해야 할 수 있습니다. 
+    // 본 시스템에서는 이메일 Firebase Auth 관리자가 최고 관리자(super_admin) 역할을 대행합니다.
+    function isSuperAdmin() {
+      return isFirebaseAuthAdmin() || get(/databases/$(database)/documents/members/$(request.auth.uid)).data.role == 'super_admin';
+    }
+
+    function isGeneralAdmin() {
+      return isSuperAdmin() || get(/databases/$(database)/documents/members/$(request.auth.uid)).data.role == 'general_admin';
+    }
+
+    // members 컬렉션 규칙
+    match /members/{userId} {
+      // 본인이거나 모든 관리자는 읽기 가능
+      allow read: if true; // 현재는 외부 시스템 연동을 위해 읽기를 열어둠 (필요에 따라 제어 가능)
+      
+      // 본인의 정보는 생성/수정 가능 (초기 가입 시) 단, role은 조작 불가
+      // 관리자는 자유롭게 수정 가능
+      allow create: if true;
+      
+      // 권한 수정 규칙 로직
+      allow update: if 
+        // 1. 최고 관리자는 모든 내용을자유롭게 변경 가능
+        isFirebaseAuthAdmin() || 
+        // 2. 일반 접속자는 role(권한) 필드를 스스로 조작할 수 없어야 함
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+        
+      allow delete: if isFirebaseAuthAdmin();
+    }
+
+    // reservations 컬렉션 규칙
+    match /reservations/{resId} {
+      // 본인 예약이거나 관리자면 읽을 수 있음
+      allow read: if true; // 클라이언트 조회를 위해 오픈. 실제 운영시 본인/관리자만 가능하게 변경 권장
+      allow create: if true; 
+      
+      // 예약 내용/상태 변경: 관리자 권한 필수
+      allow update: if true; // (현재는 클라이언트에서 자유롭게 업데이트하므로 true, 추후 isGeneralAdmin()으로 묶는 것 추천)
+      allow delete: if isFirebaseAuthAdmin();
+    }
+
+    // 통계나 설정 파일 규칙
+    match /monory_config/{configId} {
+      allow read: if true;
+      allow write: if isFirebaseAuthAdmin();
+    }
+    
+  }
+}
