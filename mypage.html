@@ -20,6 +20,7 @@
     <!-- Firebase SDK -->
     <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-functions-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
     <style>
         .my-container {
@@ -201,11 +202,89 @@
             const checkFirebase = setInterval(() => {
                 if (typeof firebase !== 'undefined' && firebase.firestore) {
                     clearInterval(checkFirebase);
+                    
+                    // 모바일 결제 리다이렉트 처리 로직
+                    handleMobilePaymentRedirect(user);
+
                     loadReservations(user);
                     loadCoupons(user);
                 }
             }, 100);
         });
+
+        // ── 모바일 결제 리다이렉트 처리 ──
+        async function handleMobilePaymentRedirect(user) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const isPaymentSuccessParams = urlParams.get('payment') === 'success';
+            const impSuccess = urlParams.get('imp_success') === 'true'; // 포트원이 모바일에 붙여주는 파라미터
+            const impUid = urlParams.get('imp_uid');
+            
+            // 모놀리 결제 세션 데이터 읽기
+            const pendingStr = sessionStorage.getItem('monory_pending_booking');
+
+            if (isPaymentSuccessParams) {
+                // UI: 파라미터 날려서 브라우저 히스토리 조작 (뒤로가기 방지)
+                history.pushState(null, '', window.location.pathname);
+
+                if (impSuccess && pendingStr) {
+                    // 모바일 PG사를 거쳐서 되돌아왔고 성공했을 경우 Firestore 저장 수행
+                    const pendingData = JSON.parse(pendingStr);
+                    pendingData.impUid = impUid;
+                    
+                    try {
+                        const db = firebase.firestore();
+                        await db.collection('reservations').add({
+                            kakaoUid:    user.kakaoId   || null,
+                            kakaoName:   user.name      || null,
+                            bookingType: pendingData.bookingType,
+                            companyName: pendingData.companyName  || null,
+                            guestName:   pendingData.guestName,
+                            phone:       pendingData.phone,
+                            requests:    pendingData.requests  || '',
+                            date:        pendingData.date,
+                            guestCount:  pendingData.guestCount,
+                            packageKey:  pendingData.packageKey,
+                            packageName: pendingData.packageName,
+                            totalAmount: pendingData.totalAmount,
+                            usedCoupon:  pendingData.usedCoupon || null,
+                            isWeekend:   pendingData.isWeekend,
+                            impUid:      pendingData.impUid,
+                            merchantUid: pendingData.merchantUid,
+                            status:      'paid',
+                            createdAt:   firebase.firestore.Timestamp.now()
+                        });
+                        console.log('✅ 모바일 결제 후 자동 저장 완료');
+
+                        // 적용된 쿠폰 소진 처리
+                        if (pendingData.usedCoupon) {
+                            db.collection('members').doc(String(user.kakaoId)).collection('coupons').doc(pendingData.usedCoupon.id)
+                              .update({ isUsed: true, usedAt: firebase.firestore.Timestamp.now() })
+                              .catch(e => console.error('쿠폰 상태 변경 실패:', e));
+                        }
+                    } catch(e) {
+                        console.error('모바일 결제 데이터 저장 실패:', e);
+                    }
+                    sessionStorage.removeItem('monory_pending_booking');
+                }
+
+                if (impSuccess || (!impSuccess && !urlParams.has('imp_success'))) {
+                    // 성공 파라미터가 명시적으로 있거나, 단순 수동 접근(데스크톱 등)으로 payment=success만 온 경우 팝업 띄움
+                    showSuccessModal();
+                } else if(!impSuccess && urlParams.has('imp_success')){
+                    // 사용자가 모바일 결제 중 취소를 눌러서 리다이렉트로 되돌아온 경우
+                    alert('결제가 취소되었거나 실패했습니다.');
+                    sessionStorage.removeItem('monory_pending_booking');
+                }
+            }
+        }
+
+        function showSuccessModal() {
+            document.getElementById('paymentSuccessModal').classList.add('active');
+        }
+
+        function closeSuccessModal() {
+            document.getElementById('paymentSuccessModal').classList.remove('active');
+        }
 
         // 쿠폰 불러오기
         async function loadCoupons(user) {
@@ -269,7 +348,7 @@
 
                 // 날짜 기준 내림차순 로컬 정렬 (Firestore 복합 인덱스 오류 방지)
                 const docs = [];
-                snapshot.forEach(doc => docs.push(doc.data()));
+                snapshot.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
                 docs.sort((a, b) => new Date(b.createdAt?.toDate?.() || 0) - new Date(a.createdAt?.toDate?.() || 0));
 
                 let html = '<div class="res-list">';
@@ -277,9 +356,14 @@
                     // 과거 예약은 자동으로 리뷰 버튼 표시하도록 유도 (임시조건: 날짜가 지났거나 completed 상태)
                     const resDateStr = data.date && data.date.includes('(') ? data.date.split('(')[0].trim() : data.date;
                     const resDateObj = resDateStr ? new Date(resDateStr.replace(/\./g, '-')) : new Date();
-                    const isPast = resDateObj < new Date();
+                    // 이용 시작 시간 판단 없이, 당일 0시면 그냥 isPast 처리 
+                    // 단, 당일은 환불 불가일 수 있으나 여기서는 전액환불 버튼 여부를 단순 일자 기준으로 가닥을 잡습니다.
+                    const todayFloor = new Date();
+                    todayFloor.setHours(0, 0, 0, 0);
+                    const isPast = resDateObj < todayFloor;
                     
                     let canReview = false;
+                    let canCancel = false;
                     let statusHtml = '';
                     if (data.status === 'paid') {
                         if (isPast) {
@@ -287,6 +371,7 @@
                             canReview = true;
                         } else {
                             statusHtml = '<span class="res-status paid">예약 완료</span>';
+                            canCancel = true;
                         }
                     }
                     else if (data.status === 'cancelled') statusHtml = '<span class="res-status cancelled">취소됨</span>';
@@ -319,6 +404,11 @@
                                     <button onclick="openReviewModal('${data.guestName}', '${pkgName}')" style="background:transparent; border:1px solid var(--accent-gold); color:var(--accent-gold); padding:8px 16px; border-radius:6px; cursor:pointer; font-size:0.85rem; font-weight:500;"><i class="fa-solid fa-pen-to-square"></i> 포토 리뷰 작성</button>
                                 </div>
                             ` : ''}
+                            ${canCancel ? `
+                                <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; text-align:right;">
+                                    <button id="btn-cancel-${data.id}" onclick="requestCancellation('${data.id}')" style="background:transparent; border:1px solid #F44336; color:#F44336; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:0.85rem; font-weight:500; transition:0.2s;" onmouseover="this.style.background='#F44336'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#F44336';"><i class="fa-solid fa-ban"></i> 예약 취소</button>
+                                </div>
+                            ` : ''}
                         </div>
                     `;
                 });
@@ -331,6 +421,54 @@
                 container.style.display = 'block';
                 container.innerHTML = `<div class="empty-state" style="color:#F44336;">데이터를 불러오는 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.</div>`;
             }
+        }
+
+        // ── 예약 취소 로직 ──────────────────────────────────────
+        async function requestCancellation(reservationId) {
+            if (!confirm('정말 이 예약을 취소하시겠습니까?\n결제가 전액 환불 처리됩니다.')) return;
+            
+            const btn = document.getElementById(`btn-cancel-${reservationId}`);
+            const originText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 취소 처리 중...';
+
+            try {
+                // Firebase Functions 호환 모듈에서 호출
+                const functions = firebase.functions();
+                const cancelReservation = functions.httpsCallable('cancelReservation');
+                
+                const result = await cancelReservation({ reservationId });
+                if (result.data && result.data.success) {
+                    showToast('✅ 환불 및 취소가 완료되었습니다.');
+                    // 리스트 새로고침
+                    const userStr = localStorage.getItem('monory_user');
+                    if (userStr) loadReservations(JSON.parse(userStr));
+                }
+            } catch(e) {
+                console.error("취소 오류:", e);
+                alert('예약 취소에 실패했습니다: ' + (e.message || '알 수 없는 오류'));
+            } finally {
+                if(document.getElementById(`btn-cancel-${reservationId}`)) {
+                    btn.disabled = false;
+                    btn.innerHTML = originText;
+                }
+            }
+        }
+
+        // 간단한 토스트 알림
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+                background:#1a1a1a; color:var(--accent-gold); padding:15px 24px;
+                border-radius:12px; font-weight:600; text-align:center;
+                z-index:999999; box-shadow:0 5px 20px rgba(0,0,0,0.5); border:1px solid rgba(212,175,55,0.3);
+                animation: slideUpToast 0.4s ease;
+            `;
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity='0'; toast.style.transition='opacity 0.5s'; }, 2500);
+            setTimeout(() => toast.remove(), 3000);
         }
 
         // ── 리뷰 모달 로직 ──────────────────────────────────────
@@ -428,6 +566,17 @@
             </div>
 
             <button id="btn-submit-review" class="btn-submit" onclick="submitReview()">리뷰 등록하기</button>
+        </div>
+    </div>
+
+    <!-- Celebration Modal (Mobile Redirect & Desktop success) -->
+    <div id="paymentSuccessModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:999999; align-items:center; justify-content:center; backdrop-filter:blur(8px);">
+        <div class="modal-content" style="max-width: 400px; text-align: center; border: 1px solid var(--accent-gold); box-shadow: 0 0 30px rgba(212,175,55,0.3);">
+            <div style="font-size: 3rem; margin-bottom: 15px;">🎉</div>
+            <h2 style="font-family:var(--font-heading); color:var(--accent-gold); margin-bottom: 20px;">예약 완료!</h2>
+            <p style="color:var(--text-primary); margin-bottom: 10px; font-weight: 500;">모노리에 오신 것을 환영합니다!</p>
+            <p style="color:var(--text-secondary); font-size: 0.9rem; margin-bottom: 30px; line-height: 1.5;">성공적으로 예약이 완료되었습니다.<br>아래 페이지에서 예약 내역과 스마트 도어락 키를 확인하실 수 있습니다.</p>
+            <button class="btn-submit" onclick="closeSuccessModal()">예약 내역 확인하기</button>
         </div>
     </div>
 </body>

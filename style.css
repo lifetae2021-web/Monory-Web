@@ -278,6 +278,39 @@ h1, h2, h3, h4, h5 {
     }
 }
 
+@media (max-width: 768px) {
+    /* 강력한 특정성을 위해 부모 클래스 포함 및 !important 적용 */
+    .auth-links #nav-profile-img, 
+    .auth-links #nav-username {
+        display: none !important;
+    }
+    
+    .auth-links {
+        gap: 8px !important;
+        justify-content: flex-end !important;
+    }
+
+    /* 마이페이지 링크 스타일 조정 */
+    .auth-links a[href="mypage.html"] {
+        margin: 0 !important;
+        padding: 7px 12px !important;
+        font-size: 0.8rem !important;
+        border: 1px solid #ccc;
+        border-radius: 30px;
+        color: #444;
+        display: flex !important;
+        align-items: center;
+        background: none;
+    }
+
+    /* 로그아웃 버튼 스타일 조정 */
+    .auth-links .auth-btn {
+        padding: 7px 12px !important;
+        font-size: 0.8rem !important;
+        white-space: nowrap;
+    }
+}
+
 .nav-links {
     list-style: none;
     display: flex;
@@ -1779,4 +1812,12 @@ textarea.s2-input {
     .s2-summary-bar .s2-sum-item { min-width: 60px; }
     .btn-pay { font-size: 1rem; padding: 14px; }
     .booking-type-toggle button { padding: 10px 0; font-size: 0.9rem; }
+}
+
+/* 강제 모바일 상단바 UI 수정 */
+@media (max-width: 768px) {
+  .auth-links #nav-username, 
+  .auth-links #nav-profile-img {
+    display: none !important;
+  }
 }

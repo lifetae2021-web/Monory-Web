@@ -12,7 +12,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.3.0">
+    <link rel="stylesheet" href="style.css?v=1.3.1">
     <!-- Toss Payments SDK -->
     <script src="https://js.tosspayments.com/v1"></script>
     <!-- Kakao SDK (integrity 없이 로드 - 해시 불일치 시 로드 차단됨) -->
@@ -1162,7 +1162,7 @@
                 buyer_name:    name,
                 buyer_tel:     phone,
                 // ★ 모바일: 결제 완료 후 이 URL로 리다이렉트 (imp_uid, merchant_uid, imp_success 파라미터 자동 포함)
-                m_redirect_url: window.location.origin + '/?payment_return=1'
+                m_redirect_url: window.location.origin + '/payment-success.html'
             }, function(rsp) {
                 // PC 콜백 (모바일은 페이지 이동이라 이 콜백이 실행되지 않음)
                 sessionStorage.removeItem('monory_pending_booking'); // 저장 데이터 정리
@@ -1184,7 +1184,8 @@
                         isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false
                     });
                     closeModal('bookingModal');
-                    showPaymentSuccess(name, totalAmount, pkgLabels[pkg]);
+                    // PC 결제 성공 시 payment-success.html로 이동
+                    window.location.href = 'payment-success.html?imp_uid=' + rsp.imp_uid;
                 } else {
                     if (rsp.error_msg && !rsp.error_msg.includes('취소')) {
                         alert('결제 오류: ' + rsp.error_msg);
@@ -1231,6 +1232,52 @@
                 })
                   .catch(e  => console.error('예약 저장 실패:', e));
             } catch(e) { console.error('Firestore 오류:', e); }
+        }
+
+        // ── X버튼 및 메인 복귀 시 끊긴 결제(모바일 등) 검증 처리 ──
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                checkPendingMobilePayment();
+            }
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            checkPendingMobilePayment();
+        });
+
+        async function checkPendingMobilePayment() {
+            const pendingStr = sessionStorage.getItem('monory_pending_booking');
+            if(!pendingStr) return;
+            const pendingParams = JSON.parse(pendingStr);
+            if(!pendingParams.merchantUid) return;
+
+            // 이미 처리 중이면 중복 실행 방지
+            if(sessionStorage.getItem('monory_payment_checking') === '1') return;
+            sessionStorage.setItem('monory_payment_checking', '1');
+
+            console.log('[PortOne] 대기열에 남은 결제(모바일 X버튼 복귀 등) 확인 중...');
+            try {
+                if (typeof firebase !== 'undefined' && firebase.functions) {
+                    const functions = firebase.functions();
+                    const checkPaymentStatus = functions.httpsCallable('checkPaymentStatus');
+                    
+                    const res = await checkPaymentStatus({ merchantUid: pendingParams.merchantUid });
+                    if(res.data && res.data.success && res.data.status === 'paid') {
+                        // 실제 결제 성공했다면 저장 후 마이페이지
+                        pendingParams.impUid = res.data.data.imp_uid;
+                        saveReservationToFirestore(pendingParams);
+                        sessionStorage.removeItem('monory_pending_booking');
+                        // 검증 성공 시 마이페이지 대신 성공 페이지로 이동
+                        window.location.href = 'payment-success.html?imp_uid=' + res.data.data.imp_uid;
+                        return;
+                    } 
+                }
+            } catch(e) {
+                console.warn('결제 검증 오류/실패: ', e);
+            } finally {
+                sessionStorage.removeItem('monory_payment_checking');
+                // 미결제 상태로 복귀했다면 pending 삭제 (다시 예약하도록)
+                sessionStorage.removeItem('monory_pending_booking');
+            }
         }
 
         // ── 결제 성공 토스트 ─────────────────────────────────────────
