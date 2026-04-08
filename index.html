@@ -535,13 +535,25 @@
 
     // ─── 로그아웃 ────────────────────────────────────────────────
     function kakaoLogout() {
+        // 세션 파기
         localStorage.removeItem('monory_user');
+        
         const loggedout = document.getElementById('auth-loggedout');
         const loggedin  = document.getElementById('auth-loggedin');
-        if (loggedout) loggedout.style.display = 'flex';
+        
+        // UI 즉시 초기화 방어 코드
         if (loggedin)  loggedin.style.display  = 'none';
-        if (typeof Kakao !== 'undefined' && Kakao.Auth.getAccessToken()) {
-            Kakao.Auth.logout();
+        if (loggedout) loggedout.style.display = 'flex';
+        if (typeof _restoreLoggedoutUI === 'function') {
+            _restoreLoggedoutUI(); // 로그인 중... 텍스트를 원래 버튼으로 복구
+        }
+
+        if (typeof Kakao !== 'undefined' && Kakao.Auth && Kakao.Auth.getAccessToken()) {
+            Kakao.Auth.logout(() => {
+                window.location.reload();
+            });
+        } else {
+            window.location.reload();
         }
     }
     </script>
