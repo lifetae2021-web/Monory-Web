@@ -29,6 +29,7 @@
         <ul class="nav-links">
             <li><a href="#home">HOME</a></li>
             <li><a href="#gallery">공간사진</a></li>
+            <li><a href="community.html">커뮤니티</a></li>
             <li><a href="#reservation" style="color: var(--accent-gold); font-weight: bold;">예약하기</a></li>
             <li><a href="#location">오시는길</a></li>
         </ul>
@@ -225,6 +226,22 @@
                 <a href="#" onclick="openModal('bookingModal'); return false;" class="cta-pulse-btn" id="open-booking-btn">
                     일정 선택 및 예약하기 <i class="fa-solid fa-calendar-check"></i>
                 </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="reviews" style="padding: 100px 0; background-color: var(--bg-secondary);">
+        <div class="container">
+            <div class="text-center" style="margin-bottom: 50px;">
+                <h2 class="section-badge">PHOTO REVIEWS</h2>
+                <h3 class="section-title">고객 리얼 후기</h3>
+                <p class="section-description centered">
+                    모노리와 함께한 고객님들의 빛나는 순간을 확인하세요.
+                </p>
+            </div>
+            
+            <div class="reviews-grid" id="reviews-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                <p style="text-align:center; grid-column: 1/-1; color:#888;">리뷰를 불러오는 중입니다...</p>
             </div>
         </div>
     </section>
@@ -505,6 +522,16 @@
                         lastLoginAt:  now
                     });
                     console.log('✅ 신규 회원 등록:', user.name);
+
+                    // 신규 가입 환영 쿠폰 자동 발급
+                    docRef.collection('coupons').doc('WELCOME_10K').set({
+                        couponId: 'WELCOME_10K',
+                        name: '신규 가입 환영 1만원 할인 쿠폰',
+                        discountAmount: 10000,
+                        isUsed: false,
+                        issuedAt: now,
+                        expireAt: new firebase.firestore.Timestamp(now.seconds + (30 * 24 * 60 * 60), 0)
+                    });
                 } else {
                     docRef.update({ lastLoginAt: now });
                 }
@@ -590,7 +617,6 @@
                 el.classList.add('visible');
             });
 
-            // Firebase DB Load Logic
             if (typeof firebase !== 'undefined') {
                 const db = firebase.firestore();
                 db.collection("monory_config").doc("settings").onSnapshot((doc) => {
@@ -598,6 +624,11 @@
                         const data = doc.data();
 
                         // Set Texts
+                        const heroTitle = document.getElementById("hero-title");
+                        if (heroTitle && data.hero_title) heroTitle.innerText = data.hero_title;
+                        const heroSubtitle = document.getElementById("hero-subtitle");
+                        if (heroSubtitle && data.hero_subtitle) heroSubtitle.innerText = data.hero_subtitle;
+
                         if (data.slogan) document.getElementById('display-slogan').innerText = data.slogan;
                         if (data.brand) document.getElementById('display-brand').innerText = data.brand;
                         if (data.description) document.getElementById('display-description').innerText = data.description.replace(/\n/g, '\n');
@@ -614,6 +645,43 @@
                             document.getElementById('display-banner').style.display = 'flex';
                         }
                     }
+                });
+
+                // 리뷰 모음 실시간 로딩
+                db.collection("reviews").orderBy('createdAt', 'desc').limit(6).onSnapshot((snapshot) => {
+                    const grid = document.getElementById('reviews-grid');
+                    if (!grid) return;
+                    if (snapshot.empty) {
+                        grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color:#aaa;">아직 등록된 리뷰가 없습니다. 첫 리뷰의 주인공이 되어보세요!</p>';
+                        return;
+                    }
+                    grid.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const stars = '<i class="fa-solid fa-star" style="color:var(--accent-gold);"></i>'.repeat(data.rating || 5);
+                        let dateStr = '';
+                        if (data.createdAt) {
+                            dateStr = data.createdAt.toDate().toLocaleDateString();
+                        }
+                        grid.innerHTML += `
+                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+                                <div style="height: 200px; overflow: hidden; background: #000;">
+                                    <img src="${data.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="Review Image">
+                                </div>
+                                <div style="padding: 20px;">
+                                    <div style="margin-bottom: 10px;">${stars}</div>
+                                    <p style="color: #ddd; font-size: 0.95rem; line-height: 1.5; margin-bottom: 15px;">"${data.content}"</p>
+                                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                                        <div style="display: flex; align-items: center; gap: 10px;">
+                                            <img src="${data.authorProfile || 'https://via.placeholder.com/40'}" style="width: 30px; height: 30px; border-radius: 50%;">
+                                            <span style="color: #888; font-size: 0.85rem;">${data.authorName}</span>
+                                        </div>
+                                        <div style="font-size:0.8rem; color:#666;">${dateStr}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
                 });
             }
         }, 100);
@@ -817,6 +885,13 @@
                                     <div class="guest-info-text">* 기본 8인 / 1인 초과 시 10,000원 추가결제</div>
                                 </div>
 
+                                <div class="option-group" id="coupon-group" style="display:none; margin-top:20px;">
+                                    <label>쿠폰 적용</label>
+                                    <select id="booking-coupon" class="custom-select" style="margin-bottom: 0; padding: 12px; font-size: 0.95rem; background-color: #fff; border: 1px solid #ddd; color: #1a1a1a;">
+                                        <option value="none">사용할 쿠폰을 선택하세요 (선택 안함)</option>
+                                    </select>
+                                </div>
+
                                 <div class="price-summary-box">
                                     <div class="summary-row">
                                         <span>패키지 적용가</span>
@@ -825,6 +900,10 @@
                                     <div class="summary-row" style="margin-top: 10px;">
                                         <span>인원 추가액 확정</span>
                                         <span id="summary-extra-price">0원</span>
+                                    </div>
+                                    <div class="summary-row" id="summary-coupon-row" style="margin-top: 10px; display:none; color:var(--accent-gold);">
+                                        <span>쿠폰 할인</span>
+                                        <span id="summary-coupon-discount">-0원</span>
                                     </div>
                                     <hr style="border-color: rgba(0,0,0,0.08); border-width: 1px; margin: 15px 0;">
                                     <div class="summary-row total">
@@ -1034,6 +1113,13 @@
             const pkgLabels  = { day:'데이 패키지 (10:00~17:00)', night:'나이트 패키지 (18:00~24:00)', allnight:'올나잇 패키지 (18:00~익일 09:00)' };
             const merchantUid = 'MNRY-' + Date.now();
 
+            const couponSelect = document.getElementById('booking-coupon');
+            const usedCoupon = couponSelect && couponSelect.value !== 'none' ? {
+                id: couponSelect.value,
+                name: couponSelect.options[couponSelect.selectedIndex].text,
+                discount: parseInt(couponSelect.options[couponSelect.selectedIndex].dataset.discount || '0')
+            } : null;
+
             // ★ 모바일 리다이렉트 대비: 결제 정보를 sessionStorage에 미리 저장
             const pendingBooking = {
                 bookingType:  currentBookingType,
@@ -1046,6 +1132,7 @@
                 packageKey:   pkg,
                 packageName:  pkgLabels[pkg],
                 totalAmount:  totalAmount,
+                usedCoupon:   usedCoupon,
                 isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false,
                 merchantUid:  merchantUid
             };
@@ -1093,6 +1180,7 @@
                         packageKey:   pkg,
                         packageName:  pkgLabels[pkg],
                         totalAmount:  totalAmount,
+                        usedCoupon:   usedCoupon, // 결제성공시 쿠폰 처리용 데이터 추가
                         isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false
                     });
                     closeModal('bookingModal');
@@ -1126,12 +1214,21 @@
                     packageKey:  data.packageKey,
                     packageName: data.packageName,
                     totalAmount: data.totalAmount,
+                    usedCoupon:  data.usedCoupon || null,
                     isWeekend:   data.isWeekend,
                     impUid:      data.impUid,
                     merchantUid: data.merchantUid,
                     status:      'paid',
                     createdAt:   firebase.firestore.Timestamp.now()
-                }).then(ref => console.log('✅ 예약 저장 완료:', ref.id))
+                }).then(ref => {
+                    console.log('✅ 예약 저장 완료:', ref.id);
+                    // 쿠폰 사용 상태 변경
+                    if (data.usedCoupon && user && user.kakaoId) {
+                        db.collection('members').doc(String(user.kakaoId)).collection('coupons').doc(data.usedCoupon.id)
+                          .update({ isUsed: true, usedAt: firebase.firestore.Timestamp.now() })
+                          .catch(e => console.error('쿠폰 상태 업데이트 실패', e));
+                    }
+                })
                   .catch(e  => console.error('예약 저장 실패:', e));
             } catch(e) { console.error('Firestore 오류:', e); }
         }
@@ -1289,6 +1386,12 @@
             if (!selectedDateObj) return;
             const pkg       = document.getElementById('booking-package').value;
             const guestCount = parseInt(document.getElementById('guest-count').value) || 8;
+            
+            const couponSelect = document.getElementById('booking-coupon');
+            let discountAmount = 0;
+            if (couponSelect && couponSelect.value !== 'none') {
+                discountAmount = parseInt(couponSelect.options[couponSelect.selectedIndex].dataset.discount || '0');
+            }
 
             let pkgPrice = 0;
             if (pkg !== 'none') pkgPrice = isWeekend ? packagePrices[pkg].weekend : packagePrices[pkg].weekday;
@@ -1296,11 +1399,68 @@
             let extraPrice = 0;
             if (guestCount > basePersonCount) extraPrice = (guestCount - basePersonCount) * extraPersonPrice;
 
-            const total = pkgPrice + extraPrice;
+            let total = pkgPrice + extraPrice - discountAmount;
+            if (total < 0) total = 0;
+
             document.getElementById('summary-pkg-price').innerText   = pkgPrice.toLocaleString() + '원';
             document.getElementById('summary-extra-price').innerText = extraPrice.toLocaleString() + '원';
+            
+            const couponRow = document.getElementById('summary-coupon-row');
+            if (discountAmount > 0) {
+                couponRow.style.display = 'flex';
+                document.getElementById('summary-coupon-discount').innerText = '-' + discountAmount.toLocaleString() + '원';
+            } else {
+                if (couponRow) couponRow.style.display = 'none';
+            }
+            
             document.getElementById('summary-total-price').innerText = total.toLocaleString() + '원';
         }
+        
+        // ── 보유 쿠폰 불러오기 ──────────────────────────────────────
+        async function loadMyCoupons() {
+            const userStr = localStorage.getItem('monory_user');
+            if (!userStr || typeof firebase === 'undefined') return;
+            try {
+                const user = JSON.parse(userStr);
+                const db = firebase.firestore();
+                const snapshot = await db.collection('members').doc(String(user.kakaoId)).collection('coupons')
+                    .where('isUsed', '==', false)
+                    .get();
+                
+                const selectEl = document.getElementById('booking-coupon');
+                if (!selectEl) return;
+                
+                selectEl.innerHTML = '<option value="none">사용할 쿠폰을 선택하세요 (선택 안함)</option>';
+                let count = 0;
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const now = new Date();
+                    // 만료 체크
+                    if (data.expireAt && data.expireAt.toDate() > now) {
+                        const opt = document.createElement('option');
+                        opt.value = doc.id;
+                        opt.dataset.discount = data.discountAmount;
+                        opt.text = `[${data.discountAmount.toLocaleString()}원 할인] ${data.name}`;
+                        selectEl.appendChild(opt);
+                        count++;
+                    }
+                });
+                
+                if (count > 0) {
+                    document.getElementById('coupon-group').style.display = 'block';
+                }
+            } catch(e) { console.error('쿠폰 로딩 실패', e); }
+        }
+
+        // 모달 열 때 쿠폰 리스트 로딩
+        const originOpenModal = window.openModal;
+        window.openModal = function(id) {
+            originOpenModal(id);
+            if (id === 'bookingModal') {
+                loadMyCoupons();
+            }
+        };
 
         // ── 모바일 메뉴 ─────────────────────────────────────────────
         function toggleMobileMenu() {
@@ -1322,6 +1482,7 @@
         <ul class="mobile-nav-links">
             <li><a href="#home" onclick="closeMobileMenu()">HOME</a></li>
             <li><a href="#gallery" onclick="closeMobileMenu()">공간사진</a></li>
+            <li><a href="community.html" onclick="closeMobileMenu()">커뮤니티</a></li>
             <li><a href="#reservation" onclick="closeMobileMenu()">예약하기</a></li>
             <li><a href="#location" onclick="closeMobileMenu()">오시는길</a></li>
         </ul>

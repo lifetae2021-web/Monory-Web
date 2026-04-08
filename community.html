@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>모노리 커뮤니티</title>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDK -->
+    <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/init.js?useEmulator=false"></script>
+
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        :root {
+            --bg-main: #111111;
+            --bg-secondary: #1a1a1a;
+            --text-primary: #f5f5f5;
+            --text-secondary: #aaaaaa;
+            --accent-gold: #D4AF37;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        body { background-color: var(--bg-main); color: var(--text-primary); }
+
+        .comm-container {
+            max-width: 900px;
+            margin: 60px auto;
+            padding: 20px;
+        }
+
+        .comm-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        /* Tabs */
+        .member-tabs {
+            display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;
+        }
+        .tab-btn {
+            background: none; border: none; color: var(--text-secondary); font-size: 1.05rem; padding: 10px 20px; cursor: pointer; transition: 0.3s; font-weight: 500; position: relative;
+        }
+        .tab-btn.active {
+            color: var(--accent-gold); font-weight: 700;
+        }
+        .tab-btn.active::after {
+            content: ''; position: absolute; bottom: -11px; left: 0; width: 100%; height: 2px; background: var(--accent-gold);
+        }
+
+        /* Posts */
+        .post-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .post-card:hover { border-color: rgba(212,175,55,0.5); }
+        .post-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+        }
+        .post-title { font-size: 1.15rem; font-weight: 600; color: #fff; }
+        .post-meta { font-size: 0.85rem; color: #888; display: flex; align-items: center; gap: 10px; }
+        .post-content { display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color); line-height: 1.6; color: #ccc; white-space: pre-wrap; }
+        .post-card.open .post-content { display: block; }
+        
+        .badge-notice { background: rgba(212,175,55,0.15); color: var(--accent-gold); padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(212,175,55,0.3); }
+
+        .btn-write {
+            background: var(--accent-gold);
+            color: #111; border: none;
+            padding: 12px 24px; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .btn-write:hover { background: #f3e5ab; }
+
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal-overlay.active { display: flex; }
+        .modal-content { background: var(--bg-secondary); padding: 30px; border-radius: 12px; width: 90%; max-width: 600px; border: 1px solid var(--border-color); position: relative; }
+        .modal-close { position: absolute; right: 20px; top: 20px; background: none; border: none; color: #aaa; font-size: 1.5rem; cursor: pointer; }
+        .comm-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+        .comm-input:focus { outline: none; border-color: var(--accent-gold); }
+    </style>
+</head>
+<body>
+    <div class="comm-container">
+        <div class="comm-header">
+            <h1 style="color: var(--accent-gold); margin-bottom: 10px;">모노리 커뮤니티</h1>
+            <p style="color: var(--text-secondary);">모노리에서의 경험을 자유롭게 공유해 보세요.</p>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="member-tabs">
+                <button class="tab-btn active" onclick="switchTab('general')" id="tab-general">자유게시판</button>
+                <button class="tab-btn" onclick="switchTab('notice')" id="tab-notice" style="display:none;">공지사항</button>
+                <!-- 공지사항 탭은 데이터 존재 여부에 따라 표출하도록 할 수 있지만, 일단 모두 노출시킵니다. -->
+            </div>
+            
+            <button class="btn-write" id="btn-open-write" onclick="openWriteModal()"><i class="fa-solid fa-pen"></i> 글쓰기</button>
+        </div>
+
+        <div id="posts-container" style="min-height: 300px;">
+            <div style="text-align: center; padding: 50px; color:#888;">게시글을 불러오는 중입니다...</div>
+        </div>
+
+        <div style="text-align: center; margin-top: 60px;">
+            <button onclick="window.location.href='index.html'" style="background: none; color: #aaa; border: 1px solid #555; padding: 10px 24px; font-size: 0.9rem; border-radius: 8px; cursor: pointer;">메인으로 가기</button>
+        </div>
+    </div>
+
+    <!-- Write Modal -->
+    <div id="writeModal" class="modal-overlay" onclick="if(event.target===this) closeWriteModal()">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeWriteModal()">&times;</button>
+            <h2 style="color:var(--accent-gold); margin-bottom: 20px;">게시글 작성</h2>
+            
+            <div id="isAdminNotice" style="display:none; margin-bottom:15px;">
+                <label style="display:flex; align-items:center; gap:8px; color:#ddd; cursor:pointer;">
+                    <input type="checkbox" id="write-is-notice"> 이 글을 [공지사항]으로 등록합니다.
+                </label>
+            </div>
+            
+            <input type="text" id="write-title" class="comm-input" placeholder="제목을 입력하세요">
+            <textarea id="write-content" class="comm-input" style="height: 200px; resize:none;" placeholder="내용을 자유롭게 작성해 주세요."></textarea>
+            
+            <button id="btn-submit-post" class="btn-write" style="width:100%; justify-content:center; margin-top:10px;" onclick="submitPost()">등록하기</button>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'general';
+        let currentUser = null;
+        let currentUserRole = 'user'; // admin 여부 체크
+        let postsListener = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const userStr = localStorage.getItem('monory_user');
+            if (userStr) {
+                currentUser = JSON.parse(userStr);
+                checkUserRole();
+            } else {
+                // 비로그인
+                document.getElementById('btn-open-write').style.display = 'none';
+            }
+
+            document.getElementById('tab-notice').style.display = 'block'; // 강제 표출
+
+            const checkFirebase = setInterval(() => {
+                if (typeof firebase !== 'undefined' && firebase.firestore) {
+                    clearInterval(checkFirebase);
+                    loadPosts(currentTab);
+                }
+            }, 100);
+        });
+
+        async function checkUserRole() {
+            if(!currentUser) return;
+            const db = firebase.firestore();
+            try {
+                const doc = await db.collection('members').doc(String(currentUser.kakaoId)).get();
+                if(doc.exists) {
+                    const role = doc.data().role || 'user';
+                    currentUserRole = role;
+                    if(role === 'super_admin' || role === 'general_admin') {
+                        document.getElementById('isAdminNotice').style.display = 'block';
+                    }
+                }
+            }catch(e) {}
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            loadPosts(tab);
+        }
+
+        function loadPosts(category) {
+            const container = document.getElementById('posts-container');
+            const db = firebase.firestore();
+            
+            if (postsListener) postsListener(); // 이전 구독 취소
+
+            container.innerHTML = `<div style="text-align: center; padding: 50px; color:#888;"><i class="fa-solid fa-spinner fa-spin"></i> 불러오는 중...</div>`;
+
+            postsListener = db.collection('community_posts')
+                .where('category', '==', category)
+                .orderBy('createdAt', 'desc')
+                .onSnapshot((snapshot) => {
+                    if (snapshot.empty) {
+                        container.innerHTML = `<div style="text-align: center; padding: 50px; background: rgba(255,255,255,0.02); border-radius:12px; color:#aaa;">등록된 게시글이 없습니다.</div>`;
+                        return;
+                    }
+
+                    container.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const dateStr = data.createdAt ? data.createdAt.toDate().toLocaleDateString() : '';
+                        const badge = data.category === 'notice' ? `<span class="badge-notice">공지</span> ` : '';
+                        
+                        const div = document.createElement('div');
+                        div.className = 'post-card';
+                        div.innerHTML = `
+                            <div class="post-header" onclick="this.parentElement.classList.toggle('open')">
+                                <div class="post-title">${badge}${data.title}</div>
+                                <div class="post-meta">
+                                    <span><i class="fa-solid fa-user" style="font-size:0.8rem; margin-right:4px;"></i>${data.authorName}</span>
+                                    <span>${dateStr}</span>
+                                    <i class="fa-solid fa-chevron-down" style="font-size:0.8rem; margin-left:10px;"></i>
+                                </div>
+                            </div>
+                            <div class="post-content">${data.content}</div>
+                        `;
+                        container.appendChild(div);
+                    });
+                }, (error) => {
+                    console.error("게시글 불러오기 실패:", error);
+                    container.innerHTML = `<div style="text-align: center; padding: 50px; color:#F44336;">데이터를 불러올 수 없습니다. 복합 색인(Index) 생성이 필요할 수 있습니다. 콘솔 링크를 확인하세요.</div>`;
+                });
+        }
+
+        function openWriteModal() {
+            if(!currentUser) {
+                alert('로그인 후 이용할 수 있습니다.');
+                return;
+            }
+            document.getElementById('writeModal').classList.add('active');
+            document.getElementById('write-title').value = '';
+            document.getElementById('write-content').value = '';
+        }
+
+        function closeWriteModal() {
+            document.getElementById('writeModal').classList.remove('active');
+        }
+
+        async function submitPost() {
+            const title = document.getElementById('write-title').value.trim();
+            const content = document.getElementById('write-content').value.trim();
+            const isNoticeObj = document.getElementById('write-is-notice');
+            let category = 'general';
+
+            if (isNoticeObj && isNoticeObj.checked) {
+                if (currentUserRole !== 'super_admin' && currentUserRole !== 'general_admin') {
+                    alert('공지사항 작성 권한이 없습니다.');
+                    return;
+                }
+                category = 'notice';
+            }
+
+            if(!title) { alert('제목을 입력해주세요.'); return; }
+            if(!content) { alert('내용을 입력해주세요.'); return; }
+
+            const btn = document.getElementById('btn-submit-post');
+            btn.disabled = true;
+            btn.innerHTML = '등록 중...';
+
+            try {
+                const db = firebase.firestore();
+                await db.collection('community_posts').add({
+                    category: category,
+                    title: title,
+                    content: content,
+                    authorId: currentUser.kakaoId,
+                    authorName: currentUser.name,
+                    createdAt: firebase.firestore.Timestamp.now()
+                });
+                
+                closeWriteModal();
+                // 작성 분류에 따라 자동으로 탭 전환
+                if(currentTab !== category) {
+                    switchTab(category);
+                }
+            } catch(e) {
+                console.error('글 작성 실패:', e);
+                alert('글 작성을 실패했습니다: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '등록하기';
+            }
+        }
+    </script>
+</body>
+</html>
