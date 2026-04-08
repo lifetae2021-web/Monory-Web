@@ -302,7 +302,7 @@
             if (window.opener && !window.opener.closed) {
                 try {
                     window.opener.closeModal('loginModal');
-                    window.opener.closeModal('signupModal');
+                    window.opener.closeModal('registerModal');
                     window.opener.handleKakaoRedirect(code);
                 } catch(e) {
                     console.error("부모 창으로 데이터 전달 실패", e);
@@ -401,7 +401,7 @@
                         clearInterval(pollTimer);
                         popup.close();
                         closeModal('loginModal');
-                        closeModal('signupModal');
+                        closeModal('registerModal');
                         handleKakaoRedirect(code);
                     }
                 }
@@ -910,12 +910,14 @@
     <script>
         function openModal(id) {
             const el = document.getElementById(id);
+            if (!el) return;
             el.style.display = 'flex';
             el.classList.add('active');
             document.body.style.overflow = 'hidden';
         }
         function closeModal(id) {
             const el = document.getElementById(id);
+            if (!el) return;
             el.classList.remove('active');
             el.style.display = 'none';
             if (!document.querySelector('.modal-overlay.active') &&
@@ -923,7 +925,9 @@
                 document.body.style.overflow = '';
             }
             // 모달 닫을 때 예약 모달은 1단계로 리셋
-            if (id === 'bookingModal') resetBookingModal();
+            if (id === 'bookingModal' && typeof resetBookingModal === 'function') {
+                resetBookingModal();
+            }
         }
         function switchModal(closeId, openId) {
             closeModal(closeId);
