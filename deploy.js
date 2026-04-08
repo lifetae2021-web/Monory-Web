@@ -39,6 +39,14 @@ try {
         console.log('💡 No new changes to commit (or commit failed). Proceeding to deploy...');
     }
 
+    // 5.5 Git Push (깃허브에 반영)
+    console.log('⬆️ Pushing to GitHub...');
+    try {
+        execSync('git push', { stdio: 'inherit' });
+    } catch (e) {
+        console.log('⚠️ Git push failed, check your remote repository settings.');
+    }
+
     // 6. Firebase Deploy
     console.log('\n🔥 Firebase Deploying...\n');
     execSync('firebase deploy --only hosting', { stdio: 'inherit' });
