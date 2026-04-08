@@ -305,7 +305,7 @@
             }
             // 리다이렉트 모드(모바일 등): 직접 처리
             history.replaceState({}, document.title, window.location.pathname);
-            await handleKakaoTokenExchange(code);
+            await handleKakaoRedirect(code);
             return;
         }
 
@@ -357,78 +357,49 @@
         }
         try { if (!Kakao.isInitialized()) Kakao.init(KAKAO_APP_KEY); } catch(e) {}
 
-        // ── 모바일: 리다이렉트 방식 ─────────────────────────────────
+        const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_APP_KEY}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT)}&response_type=code&scope=profile_nickname,profile_image`;
+        
+        // ── 모바일: 팝업 차단되므로 리다이렉트 방식 ────────────────
         if (isMobileDevice()) {
-            const authUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_APP_KEY}&redirect_uri=${encodeURIComponent(KAKAO_REDIRECT)}&response_type=code&scope=profile_nickname,profile_image`;
             window.location.href = authUrl;
             return;
         }
 
-        // ── PC: SDK 팝업 방식 (CORS-safe, 카카오 SDK가 토큰까지 처리) ──
-        Kakao.Auth.login({
-            scope: 'profile_nickname,profile_image',
-            success: function(authObj) {
-                // SDK가 토큰 교환까지 완료해서 authObj.access_token 제공
-                _fetchKakaoUserInfo(authObj.access_token);
-            },
-            fail: function(err) {
-                console.log('카카오 로그인 취소 또는 실패:', err);
-            }
-        });
-    }
+        // ── PC: 팝업 방식 ──────────────────────────────────────────
+        const pw = 460, ph = 640;
+        const pl = Math.round((screen.width  - pw) / 2);
+        const pt = Math.round((screen.height - ph) / 2);
 
-    // ─── 카카오 사용자 정보 가져오기 (SDK access_token 사용) ─────
-    function _fetchKakaoUserInfo(accessToken) {
-        Kakao.API.request({
-            url: '/v2/user/me',
-            success: function(userData) {
-                const user = {
-                    kakaoId:      userData.id,
-                    name:         userData.kakao_account?.profile?.nickname || '모노리 회원',
-                    email:        userData.kakao_account?.email             || '',
-                    profileImage: userData.kakao_account?.profile?.profile_image_url || '',
-                    provider:     'kakao',
-                    lastLoginAt:  new Date().toISOString()
-                };
-                updateNavbarUser(user);
-                localStorage.setItem('monory_user', JSON.stringify(user));
-                saveUserToFirestore(user);
-            },
-            fail: function(err) {
-                console.error('카카오 사용자 정보 조회 실패:', err);
-                _restoreLoggedoutUI();
-            }
-        });
-    }
+        const popup = window.open(
+            authUrl, 'KakaoLogin',
+            `width=${pw},height=${ph},left=${pl},top=${pt},scrollbars=yes,toolbar=no,menubar=no,location=no,status=no`
+        );
 
-    // ─── 모바일 리다이렉트: code로 토큰 교환 후 사용자 정보 처리 ──
-    // ⚠️ 브라우저에서 kauth.kakao.com/oauth/token 직접 호출은 CORS 차단됨
-    // → 대신 SDK의 Kakao.Auth.setAccessToken + API 호출 방식 사용
-    async function handleKakaoTokenExchange(code) {
-        try {
-            const loggedout = document.getElementById('auth-loggedout');
-            if (loggedout) loggedout.innerHTML = '<span style="font-size:0.85rem;color:#888;">로그인 중...</span>';
-
-            // 카카오 서버를 통한 토큰 교환 (CORS 우회: no-cors는 응답 읽기 불가)
-            // → 프록시 없이 순수 프론트엔드에서는 직접 토큰 교환 불가
-            // → 해결: 리다이렉트로 돌아올 때 SDK 세션이 살아있으면 SDK API를 바로 사용 가능
-            //         살아있지 않으면 다시 로그인 유도
-            if (typeof Kakao !== 'undefined' && Kakao.Auth.getAccessToken()) {
-                _fetchKakaoUserInfo(Kakao.Auth.getAccessToken());
-            } else {
-                // SDK 세션이 없으면 code를 서버리스하게 처리할 수 없음
-                // → localStorage에 code를 저장하고 SDK 팝업으로 한번 더 시도
-                console.warn('모바일 리다이렉트: SDK 세션 없음, 재로그인 유도');
-                _restoreLoggedoutUI();
-                // 자동으로 SDK 로그인 재시도 (모바일은 팝업 불가이므로 알림)
-                setTimeout(() => {
-                    alert('카카오 로그인이 완료되었습니다. 버튼을 다시 눌러 계속해주세요.');
-                }, 100);
-            }
-        } catch(e) {
-            console.error('카카오 로그인 처리 오류:', e);
-            _restoreLoggedoutUI();
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            // 팝업 차단 감지 시 리다이렉트 폴백
+            window.location.href = authUrl;
+            return;
         }
+
+        // 팝업에서 콜백 URL 감지 (300ms 간격)
+        const pollTimer = setInterval(() => {
+            try {
+                if (!popup || popup.closed) { clearInterval(pollTimer); return; }
+                const popupHref = popup.location.href;
+                if (popupHref && popupHref.includes(window.location.hostname)) {
+                    const code = new URLSearchParams(popup.location.search).get('code');
+                    if (code) {
+                        clearInterval(pollTimer);
+                        popup.close();
+                        closeModal('loginModal');
+                        closeModal('signupModal');
+                        handleKakaoRedirect(code);
+                    }
+                }
+            } catch(e) {
+                // 크로스 오리진 제한 작동 = 정상 접근 중
+            }
+        }, 300);
     }
 
     // ─── 카카오 리다이렉트 후 처리 (code → token → user info) ──────
