@@ -298,9 +298,16 @@
         const params = new URLSearchParams(window.location.search);
         const code   = params.get('code');
         if (code) {
-            // 팝업 모드: 부모 창이 폴링으로 읽을 수 있도록 잠시 후 닫기
+            // 팝업 모드: 부모 창의 함수를 직접 호출하고 창을 즉시 닫음 (Race condition 방지)
             if (window.opener && !window.opener.closed) {
-                setTimeout(() => { window.close(); }, 300);
+                try {
+                    window.opener.closeModal('loginModal');
+                    window.opener.closeModal('signupModal');
+                    window.opener.handleKakaoRedirect(code);
+                } catch(e) {
+                    console.error("부모 창으로 데이터 전달 실패", e);
+                }
+                window.close();
                 return;
             }
             // 리다이렉트 모드(모바일 등): 직접 처리
@@ -382,7 +389,7 @@
             return;
         }
 
-        // 팝업에서 콜백 URL 감지 (300ms 간격)
+        // 팝업에서 콜백 URL 감지 (100ms 간격으로 더 빠르게)
         const pollTimer = setInterval(() => {
             try {
                 if (!popup || popup.closed) { clearInterval(pollTimer); return; }
@@ -398,9 +405,9 @@
                     }
                 }
             } catch(e) {
-                // 크로스 오리진 제한 작동 = 정상 접근 중
+                // 크로스 오리진 제한 작동 = 카카오 로그인 화면에 머물고 있음
             }
-        }, 300);
+        }, 100);
     }
 
     // ─── 카카오 리다이렉트 후 처리 (code → token → user info) ──────
