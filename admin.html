@@ -869,7 +869,7 @@
                         const createdAt = r.createdAt ? (r.createdAt.toDate ? r.createdAt.toDate() : new Date(r.createdAt)) : null;
                         const fmtDt     = d => d ? d.toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'}) + '<br><span style="font-size:0.78rem;opacity:0.6;">' + d.toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit'}) + '</span>' : '-';
                         const status    = r.status || 'unknown';
-                        const typeLabel = r.bookingType === 'corporate' ? '🏢 기업' : '🙋 개인';
+                        const typeLabel = r.bookingType === 'corporate' ? '🏢' : '🙋';
                         const isNew     = createdAt && (Date.now() - createdAt.getTime() < 24 * 60 * 60 * 1000);
                         const requests  = r.requests && r.requests.trim() ? r.requests : null;
 
@@ -1155,7 +1155,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.10 (2026-04-09)
+        v1.3.11 (2026-04-09)
     </div>
 </body>
 </html>
