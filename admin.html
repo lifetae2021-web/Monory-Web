@@ -846,9 +846,8 @@
                                     <td style="font-size:0.82rem;color:var(--text-secondary);">${(r.merchantUid||'-').slice(-8)}</td>
                                     <td style="font-weight:600;">${r.guestName||'-'}</td>
                                     <td style="font-size:0.88rem;">${r.packageName||'-'}</td>
-                                    <td style="font-size:0.85rem;">${r.date||'-'}</td>
-                                    <td style="color:var(--accent-gold);font-weight:600;">${r.totalAmount ? r.totalAmount.toLocaleString()+'원' : '-'}</td>
-                                    <td><span class="status-badge ${r.status==='paid'?'status-confirmed':'status-pending'}">${r.status==='paid'?'결제완료':'미완료'}</span></td>
+                                    <td style="font-size:0.85rem; white-space:nowrap;">${(r.date||'-').replace(/20(\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일/g, '$1.$2.$3')}</td>
+                                    <td style="white-space:nowrap;"><span class="status-badge ${r.status==='paid'?'status-confirmed':'status-pending'}" style="white-space:nowrap;">${r.status==='paid'?'결제완료':'미완료'}</span></td>
                                 `;
                                 dashTbody.appendChild(row);
                             });
@@ -905,7 +904,7 @@
                                 <span style="display:block;font-size:0.78rem;color:var(--text-secondary);font-weight:400;">${r.phone||''}</span>
                             </td>
                             <td style="font-size:0.85rem;line-height:1.4;">${(r.packageName||'-').replace(' (','<br><span style="font-size:0.75rem;opacity:0.6;">').replace(')','</span>')}</td>
-                            <td style="font-size:0.85rem;">${r.date||'-'}</td>
+                            <td style="font-size:0.85rem; white-space:nowrap;">${(r.date||'-').replace(/20(\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일/g, '$1.$2.$3')}</td>
                             <td style="text-align:center;font-weight:600;">${r.guestCount||'-'}명</td>
                             <td style="color:var(--accent-gold);font-weight:700;font-size:0.95rem;white-space:nowrap;">${r.totalAmount ? r.totalAmount.toLocaleString()+'원' : '-'}</td>
                             <td><span style="font-size:0.78rem;padding:2px 7px;border-radius:8px;background:rgba(255,255,255,0.06);">${typeLabel}</span></td>
@@ -1155,7 +1154,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.3 (2026-04-09)
+        v1.3.4 (2026-04-09)
     </div>
 </body>
 </html>
