@@ -49,7 +49,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link"><i class="fa-solid fa-chart-line"></i> 매출 통계</a>
+                <a href="#" class="nav-link" onclick="showSection('stats')" id="nav-stats"><i class="fa-solid fa-chart-line"></i> 매출 통계</a>
             </li>
             <li class="nav-item">
                 <a href="#" class="nav-link" onclick="showSection('cms')" id="nav-cms"><i class="fa-solid fa-pen-to-square"></i> 콘텐츠 편집 (CMS)</a>
@@ -288,6 +288,59 @@
                 </div>
             </div>
         </div>
+        
+        <!-- ============================
+             매출 통계 섹션 (Firestore 집계)
+             ============================ -->
+        <div class="content-area" id="section-stats" style="display:none;">
+            <div class="stats-grid" style="margin-bottom: 30px;">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span>이번 달 총 매출</span>
+                        <div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div>
+                    </div>
+                    <div class="stat-value" id="stats-month-total">₩ 0</div>
+                    <div class="stat-trend trend-up" id="stats-month-count">총 0건</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span>오늘 매출</span>
+                        <div class="stat-icon"><i class="fa-solid fa-bolt"></i></div>
+                    </div>
+                    <div class="stat-value" id="stats-today-total">₩ 0</div>
+                    <div class="stat-trend" id="stats-today-count">오늘 0건</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span>누적 전체 매출</span>
+                        <div class="stat-icon"><i class="fa-solid fa-database"></i></div>
+                    </div>
+                    <div class="stat-value" id="stats-all-total">₩ 0</div>
+                    <div class="stat-trend" id="stats-all-count">전체 0건</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header" style="border-bottom:1px solid var(--border-color); padding-bottom:16px; margin-bottom:24px;">
+                    <h2 class="panel-title"><i class="fa-solid fa-table-list" style="color:var(--accent-gold); margin-right:8px;"></i>일별 매출 리스트</h2>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>날짜</th>
+                                <th>결제 건수</th>
+                                <th>매출액</th>
+                                <th>주요 예약자</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stats-daily-tbody">
+                            <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>데이터 집계 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
         <!-- ============================
              콘텐츠 편집 (CMS) 섹션
@@ -494,6 +547,7 @@
             document.getElementById('section-reservations') && (document.getElementById('section-reservations').style.display = 'none');
             document.getElementById('section-cms') && (document.getElementById('section-cms').style.display = 'none');
             document.getElementById('section-events') && (document.getElementById('section-events').style.display = 'none');
+            document.getElementById('section-stats') && (document.getElementById('section-stats').style.display = 'none');
             const mainContent = document.querySelector('.content-area:not([id])');
             if (mainContent) mainContent.style.display = 'none';
 
@@ -508,7 +562,10 @@
                 loadFirebaseCMSData();
             } else if (name === 'events') {
                 document.getElementById('section-events').style.display = 'block';
-                loadDashboardStats(); // 키링크 통계 로드 포함됨
+                loadDashboardStats();
+            } else if (name === 'stats') {
+                document.getElementById('section-stats').style.display = 'block';
+                loadRevenueStats();
             } else {
                 if (mainContent) mainContent.style.display = 'block';
             }
@@ -954,6 +1011,100 @@
         }
 
         // ────────────────────────────────────────────────────────────
+        // 매출 통계 시스템 연동
+        // ────────────────────────────────────────────────────────────
+        let statsUnsubscribe = null;
+
+        function loadRevenueStats() {
+            const tbody = document.getElementById('stats-daily-tbody');
+            if (!tbody) return;
+
+            if (statsUnsubscribe) { statsUnsubscribe(); statsUnsubscribe = null; }
+
+            const db = firebase.firestore();
+            const formatCurrency = (num) => '₩ ' + num.toLocaleString();
+            
+            statsUnsubscribe = db.collection('reservations')
+                .where('status', 'in', ['paid', 'completed']) // 결제완료 및 이용완료 포함
+                .orderBy('createdAt', 'desc')
+                .onSnapshot(snapshot => {
+                    if (snapshot.empty) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;">매출 데이터가 없습니다.</td></tr>';
+                        return;
+                    }
+
+                    const now = new Date();
+                    const todayStr = now.toDateString();
+                    const currentMonth = now.getMonth();
+                    const currentYear = now.getFullYear();
+
+                    let monthTotal = 0;
+                    let monthCount = 0;
+                    let todayTotal = 0;
+                    let todayCount = 0;
+                    let allTotal = 0;
+                    let allCount = snapshot.size;
+
+                    const dailyMap = {};
+
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const amount = data.totalAmount || 0;
+                        const createdAt = data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt)) : null;
+                        
+                        if (!createdAt) return;
+
+                        allTotal += amount;
+
+                        // 오늘 매출
+                        if (createdAt.toDateString() === todayStr) {
+                            todayTotal += amount;
+                            todayCount++;
+                        }
+
+                        // 이번 달 매출
+                        if (createdAt.getMonth() === currentMonth && createdAt.getFullYear() === currentYear) {
+                            monthTotal += amount;
+                            monthCount++;
+                        }
+
+                        // 일별 집계
+                        const dStr = createdAt.toLocaleDateString('ko-KR', {year:'2-digit', month:'2-digit', day:'2-digit'});
+                        if (!dailyMap[dStr]) {
+                            dailyMap[dStr] = { count: 0, total: 0, topGuest: data.guestName || '-' };
+                        }
+                        dailyMap[dStr].count++;
+                        dailyMap[dStr].total += amount;
+                    });
+
+                    // 상단 카드 업데이트
+                    document.getElementById('stats-month-total').textContent = formatCurrency(monthTotal);
+                    document.getElementById('stats-month-count').textContent = `총 ${monthCount}건`;
+                    document.getElementById('stats-today-total').textContent = formatCurrency(todayTotal);
+                    document.getElementById('stats-today-count').textContent = `오늘 ${todayCount}건`;
+                    document.getElementById('stats-all-total').textContent = formatCurrency(allTotal);
+                    document.getElementById('stats-all-count').textContent = `전체 ${allCount}건`;
+
+                    // 테이블 업데이트
+                    tbody.innerHTML = '';
+                    Object.keys(dailyMap).sort((a,b) => b.localeCompare(a)).forEach(date => {
+                        const day = dailyMap[date];
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${date}</td>
+                            <td>${day.count} 건</td>
+                            <td style="color:var(--accent-gold); font-weight:600;">${formatCurrency(day.total)}</td>
+                            <td style="color:var(--text-secondary); font-size:0.85rem;">${day.topGuest}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }, err => {
+                    console.error('Stats logic error:', err);
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:40px;color:#ef4444;">데이터 로드 실패: ${err.message}</td></tr>`;
+                });
+        }
+
+        // ────────────────────────────────────────────────────────────
         // 대시보드 실시간 통계 연동 (마스터 데이터 Fetch)
         // ────────────────────────────────────────────────────────────
         function loadDashboardStats() {
@@ -1163,7 +1314,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.12 (2026-04-09)
+        v1.3.13 (2026-04-09)
     </div>
 </body>
 </html>
