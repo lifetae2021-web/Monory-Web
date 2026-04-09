@@ -31,11 +31,11 @@
             padding: 120px 24px 60px;
             text-align: left;
         }
-        .pc-only { display: block; }
-        .mobile-only { display: none; }
+        .pc-only { display: flex !important; }
+        .mobile-only { display: none !important; }
         @media (max-width: 900px) {
             .pc-only { display: none !important; }
-            .mobile-only { display: block !important; }
+            .mobile-only { display: flex !important; }
         }
         .my-header {
             text-align: center;
@@ -187,15 +187,19 @@
                 <a href="index.html" class="auth-btn">로그인 페이지로</a>
             </div>
             <!-- 로그인 상태 -->
-            <div id="auth-loggedin" style="display:none; gap:10px; align-items:center;">
-                <img id="nav-profile-img" src="" alt="" class="pc-only" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #FEE500;">
-                <span id="nav-username" class="pc-only" style="font-size:0.9rem;font-weight:600;color:#1a1a1a;"></span>
-                <a href="mypage.html" class="pc-only" style="font-size:0.85rem;font-weight:600;color:var(--accent-gold);text-decoration:none;margin-left:5px;margin-right:5px;letter-spacing:0.5px;">마이페이지</a>
-                <button onclick="kakaoLogout()" class="auth-btn pc-only" style="background:none;border:1px solid #ccc;cursor:pointer;">로그아웃</button>
+            <div id="auth-loggedin" style="display:none; align-items:center;">
+                <!-- PC 전용 헤더 -->
+                <div class="pc-only" style="align-items:center; gap:10px;">
+                    <img id="nav-profile-img" src="" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #FEE500; display:none;">
+                    <span id="nav-username" style="font-size:0.9rem;font-weight:600;color:#1a1a1a;"></span>
+                    <button onclick="kakaoLogout()" class="auth-btn" style="background:none;border:1px solid #ccc;cursor:pointer;">로그아웃</button>
+                </div>
                 
-                <!-- 모바일 전용 (PC에서는 보이지 않음) -->
-                <a href="index.html" class="mobile-only" style="font-size:0.95rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">HOME</a>
-                <a href="#" onclick="kakaoLogout(); return false;" class="mobile-only" style="font-size:0.95rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">로그아웃</a>
+                <!-- 모바일 전용 헤더 -->
+                <div class="mobile-only" style="align-items:center; gap:20px; margin-right: 15px;">
+                    <a href="index.html" style="font-size:1rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">HOME</a>
+                    <a href="#" onclick="kakaoLogout(); return false;" style="font-size:1rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">로그아웃</a>
+                </div>
             </div>
         </div>
         <div class="menu-trigger" id="mobile-menu-trigger" onclick="toggleMobileMenu()">
