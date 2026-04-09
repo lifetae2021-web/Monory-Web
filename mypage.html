@@ -16,7 +16,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.3.19">
+    <link rel="stylesheet" href="style.css?v=1.3.20">
+    <!-- Kakao SDK -->
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
     <!-- Firebase SDK -->
     <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
@@ -26,7 +28,7 @@
         .my-container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 100px 20px;
+            padding: 120px 24px 60px;
             text-align: left;
         }
         .my-header {
@@ -159,7 +161,39 @@
     <!-- Firebase Storage Load -->
     <script defer src="/__/firebase/10.8.0/firebase-storage-compat.js"></script>
 </head>
-<body style="background-color: var(--bg-main); color: var(--text-primary); font-family: 'Noto Sans KR', sans-serif;">
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <a href="index.html">
+                <img src="assets/monory_logo.svg" alt="MONORY" class="logo-img">
+            </a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html#home">HOME</a></li>
+            <li><a href="index.html#gallery">공간사진</a></li>
+            <li><a href="community.html">커뮤니티</a></li>
+            <li><a href="index.html#reservation" style="color: var(--accent-gold); font-weight: bold;">예약하기</a></li>
+            <li><a href="index.html#location">오시는길</a></li>
+        </ul>
+        <div class="auth-links" id="auth-links">
+            <!-- 비로그인 상태 (마이페이지에서는 보이지 않아야 하지만 방어 로직으로 추가) -->
+            <div id="auth-loggedout" style="display:none; gap:10px; align-items:center;">
+                <a href="index.html" class="auth-btn">로그인 페이지로</a>
+            </div>
+            <!-- 로그인 상태 -->
+            <div id="auth-loggedin" style="display:none; gap:10px; align-items:center;">
+                <img id="nav-profile-img" src="" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #FEE500;">
+                <span id="nav-username" style="font-size:0.9rem;font-weight:600;color:#1a1a1a;"></span>
+                <a href="mypage.html" style="font-size:0.85rem;font-weight:600;color:var(--accent-gold);text-decoration:none;margin-left:5px;margin-right:5px;letter-spacing:0.5px;">마이페이지</a>
+                <button onclick="kakaoLogout()" class="auth-btn" style="background:none;border:1px solid #ccc;cursor:pointer;">로그아웃</button>
+            </div>
+        </div>
+        <div class="menu-trigger" id="mobile-menu-trigger" onclick="toggleMobileMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </nav>
     <div class="my-container">
         <div class="my-header">
             <h1 style="color: var(--accent-gold); margin-bottom: 10px;">마이페이지</h1>
@@ -593,5 +627,77 @@
             <button class="btn-submit" onclick="closeSuccessModal()">예약 내역 확인하기</button>
         </div>
     </div>
+    <!-- Mobile Nav Overlay -->
+    <div class="mobile-nav-overlay" id="mobile-nav-overlay">
+        <ul class="mobile-nav-links">
+            <li><a href="index.html#home" onclick="closeMobileMenu()">HOME</a></li>
+            <li><a href="index.html#gallery" onclick="closeMobileMenu()">공간사진</a></li>
+            <li><a href="community.html" onclick="closeMobileMenu()">커뮤니티</a></li>
+            <li><a href="index.html#reservation" onclick="closeMobileMenu()">예약하기</a></li>
+            <li><a href="index.html#location" onclick="closeMobileMenu()">오시는길</a></li>
+        </ul>
+    </div>
+
+    <script>
+        // ─── Navbar Logic ───────────────────
+        function isMobileDevice() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+                || window.innerWidth <= 768;
+        }
+
+        function updateNavbarUser(user) {
+            const loggedout = document.getElementById('auth-loggedout');
+            const loggedin  = document.getElementById('auth-loggedin');
+            const img       = document.getElementById('nav-profile-img');
+            const nameEl    = document.getElementById('nav-username');
+            if (!loggedout || !loggedin) return;
+
+            loggedout.style.display = 'none';
+            loggedin.style.display  = 'flex';
+
+            if (img) {
+                img.src           = user.profileImage || '';
+                img.style.display = user.profileImage ? 'block' : 'none';
+            }
+            if (nameEl) nameEl.textContent = user.name + ' 님';
+        }
+
+        function kakaoLogout() {
+            localStorage.removeItem('monory_user');
+            if (typeof Kakao !== 'undefined' && Kakao.Auth && Kakao.Auth.getAccessToken()) {
+                Kakao.Auth.logout(() => { window.location.replace('index.html'); });
+            } else {
+                window.location.replace('index.html');
+            }
+        }
+
+        function toggleMobileMenu() {
+            const trigger = document.getElementById('mobile-menu-trigger');
+            const overlay = document.getElementById('mobile-nav-overlay');
+            trigger.classList.toggle('active');
+            overlay.classList.toggle('active');
+            document.body.style.overflow = overlay.classList.contains('active') ? 'hidden' : '';
+        }
+        function closeMobileMenu() {
+            document.getElementById('mobile-menu-trigger').classList.remove('active');
+            document.getElementById('mobile-nav-overlay').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Initialize Navbar
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('monory_user');
+            if (saved) {
+                try {
+                    const user = JSON.parse(saved);
+                    updateNavbarUser(user);
+                    // Kakao SDK Init
+                    if (typeof Kakao !== 'undefined' && !Kakao.isInitialized()) {
+                        Kakao.init('c697d9b2e64f7b8ba66bf65ef93ab9a2');
+                    }
+                } catch(e) {}
+            }
+        });
+    </script>
 </body>
 </html>
