@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.3.22">
+    <link rel="stylesheet" href="style.css?v=1.3.23">
     <!-- Kakao SDK -->
     <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
     <!-- Firebase SDK -->
@@ -188,11 +188,12 @@
             </div>
             <!-- 로그인 상태 -->
             <div id="auth-loggedin" style="display:none; gap:10px; align-items:center;">
-                <img id="nav-profile-img" src="" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #FEE500;">
-                <span id="nav-username" style="font-size:0.9rem;font-weight:600;color:#1a1a1a;"></span>
+                <img id="nav-profile-img" src="" alt="" class="pc-only" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #FEE500;">
+                <span id="nav-username" class="pc-only" style="font-size:0.9rem;font-weight:600;color:#1a1a1a;"></span>
                 <a href="mypage.html" class="pc-only" style="font-size:0.85rem;font-weight:600;color:var(--accent-gold);text-decoration:none;margin-left:5px;margin-right:5px;letter-spacing:0.5px;">마이페이지</a>
-                <a href="index.html" class="mobile-only" style="font-size:0.9rem;font-weight:600;color:#1a1a1a;text-decoration:none;margin-right:12px;letter-spacing:0.5px;">HOME</a>
-                <button onclick="kakaoLogout()" class="auth-btn" style="background:none;border:1px solid #ccc;cursor:pointer;">로그아웃</button>
+                <a href="index.html" class="mobile-only" style="font-size:0.9rem;font-weight:600;color:#1a1a1a;text-decoration:none;margin-right:15px;letter-spacing:0.5px;">HOME</a>
+                <a href="#" onclick="kakaoLogout(); return false;" class="mobile-only" style="font-size:0.9rem;font-weight:600;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">로그아웃</a>
+                <button onclick="kakaoLogout()" class="auth-btn pc-only" style="background:none;border:1px solid #ccc;cursor:pointer;">로그아웃</button>
             </div>
         </div>
         <div class="menu-trigger" id="mobile-menu-trigger" onclick="toggleMobileMenu()">
@@ -708,7 +709,7 @@
     </script>
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.22 (2026-04-10)
+        v1.3.23 (2026-04-10)
     </div>
 </body>
 </html>
