@@ -848,7 +848,15 @@
                                     <td style="font-size:0.88rem;">${r.packageName||'-'}</td>
                                     <td style="font-size:0.85rem; white-space:nowrap;">${(r.date||'-').replace(/20(\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일/g, '$1.$2.$3')}</td>
                                     <td style="color:var(--accent-gold);font-weight:600;white-space:nowrap;">${r.totalAmount ? r.totalAmount.toLocaleString()+'원' : '-'}</td>
-                                    <td style="white-space:nowrap;"><span class="status-badge ${r.status==='paid'?'status-confirmed':'status-pending'}" style="white-space:nowrap;">${r.status==='paid'?'결제완료':'미완료'}</span></td>
+                                    <td style="white-space:nowrap;">
+                                        ${(() => {
+                                            const s = r.status === 'paid' ? { cls: 'status-confirmed', lbl: '결제완료' } :
+                                                      r.status === 'cancelled' ? { cls: 'status-cancelled', lbl: '취소됨' } :
+                                                      r.status === 'completed' ? { cls: 'status-completed', lbl: '이용완료' } :
+                                                      { cls: 'status-pending', lbl: '미완료' };
+                                            return `<span class="status-badge ${s.cls}" style="white-space:nowrap;">${s.lbl}</span>`;
+                                        })()}
+                                    </td>
                                 `;
                                 dashTbody.appendChild(row);
                             });
@@ -1155,7 +1163,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.11 (2026-04-09)
+        v1.3.12 (2026-04-09)
     </div>
 </body>
 </html>
