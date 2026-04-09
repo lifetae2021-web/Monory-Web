@@ -1832,3 +1832,13 @@ textarea.s2-input {
     margin-bottom: 5px;
   }
 }
+
+.pc-br {
+  display: block;
+  content: "";
+}
+@media (max-width: 768px) {
+  .pc-br {
+    display: none;
+  }
+}
