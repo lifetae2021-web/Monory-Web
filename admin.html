@@ -1013,10 +1013,10 @@
                 const revEl = document.getElementById('dash-revenue-trend');
                 if(thisMonthRevenue >= lastMonthRevenue) {
                     revEl.className = 'stat-trend trend-up';
-                    revEl.innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> +${revDiff}% (전월 대비)`;
+                    revEl.innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> +${revDiff}% (전월 대비)<br><span style="font-size:0.82rem; opacity:0.8; margin-top:4px; display:inline-block;">(전달 매출: ${formatCurrency(lastMonthRevenue)})</span>`;
                 } else {
                     revEl.className = 'stat-trend trend-down';
-                    revEl.innerHTML = `<i class="fa-solid fa-arrow-trend-down"></i> ${revDiff}% (전월 대비)`;
+                    revEl.innerHTML = `<i class="fa-solid fa-arrow-trend-down"></i> ${revDiff}% (전월 대비)<br><span style="font-size:0.82rem; opacity:0.8; margin-top:4px; display:inline-block;">(전달 매출: ${formatCurrency(lastMonthRevenue)})</span>`;
                 }
 
                 // 신규 예약 DOM 업데이트
@@ -1155,7 +1155,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.1 (2026.04.07)
+        v1.3.2 (2026-04-09)
     </div>
 </body>
 </html>
