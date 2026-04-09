@@ -1821,3 +1821,14 @@ textarea.s2-input {
     display: none !important;
   }
 }
+
+.mobile-br {
+  display: none;
+}
+@media (max-width: 768px) {
+  .mobile-br {
+    display: block;
+    content: "";
+    margin-bottom: 5px;
+  }
+}
