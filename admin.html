@@ -1352,7 +1352,7 @@
     </script>
 
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.44 (2026-04-11)
+        v1.3.45 (2026-04-11)
     </div>
 
     <!-- 🎫 쿠폰 발송 모달 -->
@@ -1413,6 +1413,9 @@
                     </label>
                     <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#fff; font-size:0.9rem;">
                         <input type="radio" name="coupon-validity" value="12" style="accent-color:var(--accent-gold);"> 12개월
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:var(--accent-gold); font-size:0.9rem; font-weight:bold;">
+                        <input type="radio" name="coupon-validity" value="unlimited" style="accent-color:var(--accent-gold);"> ♾️ 무제한(기한 없음)
                     </label>
                 </div>
             </div>
@@ -1500,9 +1503,18 @@
                 return;
             }
 
-            const validityMonths = parseInt(document.querySelector('input[name="coupon-validity"]:checked').value);
-            const expiryDate = new Date();
-            expiryDate.setMonth(expiryDate.getMonth() + validityMonths);
+            // ── 유효기간 처리 ─────────────────────────────────
+            const validityVal = document.querySelector('input[name="coupon-validity"]:checked').value;
+            const isUnlimited = validityVal === 'unlimited';
+
+            // 무제한이면 2099-12-31을 저장 (가장 안전한 방식)
+            const expiryDate = isUnlimited
+                ? new Date('2099-12-31T23:59:59')
+                : (() => {
+                    const d = new Date();
+                    d.setMonth(d.getMonth() + parseInt(validityVal));
+                    return d;
+                })();
 
             const titleSelect = document.getElementById('coupon-title-select');
             const customTitleInput = document.getElementById('coupon-title-custom');
@@ -1518,13 +1530,13 @@
                 isUsed:       false,
                 title:        couponTitle,
                 name:         `[관리자 선물] ${couponTitle}`,
-                // ── 할인 타입 (신규 통합 필드) ──────────────────────
-                discountType:   currentDiscountType,  // 'percent' | 'fixed'
-                discountValue:  value,                // 숫자값 (% 또는 원)
-                // ── 기존 호환성 유지 (mypage 표시에 사용) ────────────
+                isUnlimited:  isUnlimited,               // 무제한 여부 명시
+                // ── 할인 타입 ─────────────────────────────────────────
+                discountType:   currentDiscountType,
+                discountValue:  value,
                 discountRate:   currentDiscountType === 'percent' ? value : 0,
                 discountAmount: currentDiscountType === 'fixed'   ? value : 0,
-                // ── 날짜 필드 ────────────────────────────────────────
+                // ── 날짜 필드 (2099 = 무제한) ──────────────────────────
                 createdAt:  firebase.firestore.Timestamp.now(),
                 expireAt:   firebase.firestore.Timestamp.fromDate(expiryDate),
                 expiryDate: firebase.firestore.Timestamp.fromDate(expiryDate)
@@ -1532,8 +1544,9 @@
 
             db.collection('members').doc(currentCouponTargetUid).collection('coupons').add(couponData)
                 .then(() => {
-                    const typeLabel = currentDiscountType === 'percent' ? `${value}% 할인` : `${value.toLocaleString()}원 할인`;
-                    alert(`성공적으로 쿠폰이 발송되었습니다.\n(${couponTitle} / ${typeLabel} / ${validityMonths}개월)`);
+                    const typeLabel    = currentDiscountType === 'percent' ? `${value}% 할인` : `${value.toLocaleString()}원 할인`;
+                    const periodLabel  = isUnlimited ? '무제한' : `${validityVal}개월`;
+                    alert(`성공적으로 쿠폰이 발송되었습니다.\n(${couponTitle} / ${typeLabel} / 유효기간: ${periodLabel})`);
                     closeCouponIssueModal();
                 })
                 .catch(err => {

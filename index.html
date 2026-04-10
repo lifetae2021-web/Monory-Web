@@ -1555,7 +1555,14 @@
             if (data.expiryDate) {
                 return new Date(data.expiryDate);
             }
-            return null; // 유효기간 정보 없으면 null (무효)
+            return null;
+        }
+
+        // 2099년 이상이면 무제한으로 간주
+        function isUnlimitedCoupon(data) {
+            if (data.isUnlimited) return true;
+            const expireDate = getExpireDate(data);
+            return expireDate && expireDate.getFullYear() >= 2099;
         }
 
         // ── 헤더 쿠폰 알림 모니터링 (mypage loadCoupons와 100% 동일 로직) ──
@@ -1570,7 +1577,10 @@
 
                   const now = new Date();
                   const validCoupons = snapshot.docs.filter(doc => {
-                      const expireDate = getExpireDate(doc.data());
+                      const data = doc.data();
+                      // 무제한 쿠폰이거나, 유효기간이 미래인 경우 유효
+                      if (isUnlimitedCoupon(data)) return true;
+                      const expireDate = getExpireDate(data);
                       return expireDate !== null && expireDate > now;
                   });
 
@@ -1630,7 +1640,7 @@
     </div>
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.44 (2026-04-11)
+        v1.3.45 (2026-04-11)
     </div>
 </body>
 

@@ -353,6 +353,13 @@
             return null; // 유효기간 정보 없으면 null (무효)
         }
 
+        // 2099년 이상이면 무제한으로 간주
+        function isUnlimitedCoupon(data) {
+            if (data.isUnlimited) return true;
+            const expireDate = getExpireDate(data);
+            return expireDate && expireDate.getFullYear() >= 2099;
+        }
+
         // 쿠폰 불러오기
         async function loadCoupons(user) {
             const listObj = document.getElementById('coupon-list');
@@ -367,23 +374,32 @@
 
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    const expireDate = getExpireDate(data);
+                    const expireDate  = getExpireDate(data);
+                    const isUnlimited = isUnlimitedCoupon(data);
 
-                    // 유효기간이 미래인 경우만 표시
-                    if (expireDate && expireDate > now) {
+                    // 무제한이거나, 유효기간이 미래인 경우만 표시
+                    if (isUnlimited || (expireDate && expireDate > now)) {
                         let discountText = '';
-                        if (data.discountRate && data.discountRate > 0) {
-                            discountText = `${data.discountRate}% 할인`;
-                        } else if (data.discountAmount && data.discountAmount > 0) {
-                            discountText = `${data.discountAmount.toLocaleString()}원 할인`;
+                        if (data.discountType === 'percent' || (data.discountRate && data.discountRate > 0)) {
+                            const rate = data.discountValue || data.discountRate;
+                            discountText = `${rate}% 할인`;
+                        } else if (data.discountType === 'fixed' || (data.discountAmount && data.discountAmount > 0)) {
+                            const amount = data.discountValue || data.discountAmount;
+                            discountText = `${amount.toLocaleString()}원 할인`;
                         } else {
                             discountText = '쿠폰 적용 중';
                         }
+
+                        // 유효기간 표시 (무제한 처리)
+                        const expireLabel = isUnlimited
+                            ? '♾️ 무제한'
+                            : `~${expireDate.toLocaleDateString()}까지`;
+
                         count++;
                         html += `
                             <div class="coupon-card" style="text-align: center;">
                                 <p style="font-size: 1.2rem; font-weight: bold; color: var(--accent-gold); margin-bottom: 8px;">${discountText} 쿠폰</p>
-                                <span style="font-size:0.75rem; color:#aaa; display:block;">~${expireDate.toLocaleDateString()}까지</span>
+                                <span style="font-size:0.75rem; color:#aaa; display:block;">${expireLabel}</span>
                             </div>
                         `;
                     }
@@ -700,7 +716,10 @@
 
                   const now = new Date();
                   const validCoupons = snapshot.docs.filter(doc => {
-                      const expireDate = getExpireDate(doc.data());
+                      const data = doc.data();
+                      // 무제한 쿠폰이거나, 유효기간이 미래인 경우 유효
+                      if (isUnlimitedCoupon(data)) return true;
+                      const expireDate = getExpireDate(data);
                       return expireDate !== null && expireDate > now;
                   });
 
@@ -778,7 +797,7 @@
     </script>
 
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.44 (2026-04-11)
+        v1.3.45 (2026-04-11)
     </div>
 </body>
 </html>
