@@ -795,13 +795,13 @@ footer p {
     }
 }
 
-/* Rotation Floating Button (Mobile Only) */
+/* Rotation Floating Button (PC & Mobile) */
 .rotation-fab {
-    display: none;
+    display: flex; /* 모든 기기에서 보이도록 수정 */
     position: fixed;
-    bottom: 25px; /* 사용자가 요청한 위치로 낮춤 */
-    left: 20px;
-    background: #FFD700; /* 황금 노란색 */
+    bottom: 30px; /* 요로 정밀 조정 */
+    left: 30px;
+    background: #FFD700;
     color: #000;
     width: 90px;
     height: 90px;
@@ -815,7 +815,7 @@ footer p {
     font-size: 0.8rem;
     line-height: 1.3;
     box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-    z-index: 10001; /* 다른 어떤 요소보다 위에 배치 */
+    z-index: 1000; /* 헤더 등과 겹치지 않게 정밀 조정 */
     animation: fab-floating 3s infinite ease-in-out;
     transition: transform 0.2s;
     border: 2px solid #000;
@@ -827,7 +827,7 @@ footer p {
 
 @keyframes fab-floating {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); } /* 5px로 부드럽게 조정 */
+    50% { transform: translateY(-5px); }
 }
 
 .booking-modal-container {
@@ -1010,9 +1010,7 @@ footer p {
         gap: 10px;
     }
     
-    .rotation-fab {
-        display: flex;
-    }
+    /* .rotation-fab reveal removed as it is now globally visible */
     
     .dashboard-panel, .booking-card {
         padding: 15px;
