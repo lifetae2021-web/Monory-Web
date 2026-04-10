@@ -1560,18 +1560,18 @@
                       const now = new Date();
                       hasValidCoupon = snapshot.docs.some(doc => {
                           const data = doc.data();
-                          if (data.expiryDate) {
-                              // Firestore Timestamp 객체인 경우 .toDate() 사용
-                              let expiry;
-                              if (data.expiryDate && typeof data.expiryDate.toDate === 'function') {
-                                  expiry = data.expiryDate.toDate();
-                              } else {
-                                  expiry = new Date(data.expiryDate);
-                              }
-                              return expiry > now; // 만료일이 지금보다 미래여야 유효
+                          // expireAt 필드 우선 체크 (admin이 저장하는 주 필드)
+                          if (data.expireAt && typeof data.expireAt.toDate === 'function') {
+                              return data.expireAt.toDate() > now;
                           }
-                          // expiryDate 필드가 없으면 유효하지 않은 것으로 처리 (strict)
-                          return false;
+                          // expiryDate 필드 fallback
+                          if (data.expiryDate) {
+                              const expiry = typeof data.expiryDate.toDate === 'function'
+                                  ? data.expiryDate.toDate()
+                                  : new Date(data.expiryDate);
+                              return expiry > now;
+                          }
+                          return false; // 유효기간 정보 없으면 무효 처리
                       });
                   }
 
