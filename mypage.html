@@ -672,25 +672,30 @@
               .onSnapshot(snapshot => {
                   const badge = document.getElementById('header-coupon-badge');
                   const badgeMobile = document.getElementById('header-coupon-badge-mobile');
-                  
+
+                  let hasValidCoupon = false;
+
                   if (!snapshot.empty) {
                       const now = new Date();
-                      const validCoupons = snapshot.docs.filter(doc => {
+                      hasValidCoupon = snapshot.docs.some(doc => {
                           const data = doc.data();
                           if (data.expiryDate) {
-                              const expiry = new Date(data.expiryDate);
-                              return expiry >= now;
+                              // Firestore Timestamp 객체인 경우 .toDate() 사용
+                              let expiry;
+                              if (typeof data.expiryDate.toDate === 'function') {
+                                  expiry = data.expiryDate.toDate();
+                              } else {
+                                  expiry = new Date(data.expiryDate);
+                              }
+                              return expiry > now;
                           }
-                          return true;
+                          return false; // expiryDate 없으면 무효 처리 (strict)
                       });
+                  }
 
-                      if (validCoupons.length > 0) {
-                          if (badge) badge.style.display = 'flex';
-                          if (badgeMobile) badgeMobile.style.display = 'flex';
-                      } else {
-                          if (badge) badge.style.display = 'none';
-                          if (badgeMobile) badgeMobile.style.display = 'none';
-                      }
+                  if (hasValidCoupon) {
+                      if (badge) badge.style.display = 'flex';
+                      if (badgeMobile) badgeMobile.style.display = 'flex';
                   } else {
                       if (badge) badge.style.display = 'none';
                       if (badgeMobile) badgeMobile.style.display = 'none';
