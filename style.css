@@ -1855,20 +1855,19 @@ textarea.s2-input {
     top: -26px;
     left: 50%;
     transform: translateX(-50%);
-    background: #1a1a1a;
-    color: #FFD700;
-    border: 1px solid #FFD700;
+    background: #FEE500; /* 노란색 배경 */
+    color: #1a1a1a;      /* 검은색 글자 */
+    border: 1px solid #1a1a1a; /* 하얀색 헤더에서도 잘 보이게 테두리 추가 */
     padding: 2px 10px;
     border-radius: 20px;
     font-size: 0.7rem;
     font-weight: 800;
     white-space: nowrap;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     display: none; 
     z-index: 1001;
     pointer-events: none;
     animation: badge-bounce 2.5s infinite ease-in-out;
-    text-shadow: 0 0 2px rgba(0,0,0,0.5); /* 가독성 극대화 */
 }
 
 .coupon-alert-badge::after {
@@ -1879,7 +1878,7 @@ textarea.s2-input {
     transform: translateX(-50%);
     border-width: 6px 6px 0;
     border-style: solid;
-    border-color: #FFD700 transparent transparent;
+    border-color: #FEE500 transparent transparent; /* 노란색 배경과 동일하게 */
 }
 
 @keyframes badge-bounce {
