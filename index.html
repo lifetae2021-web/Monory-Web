@@ -1555,8 +1555,24 @@
                   const badgeMobile = document.getElementById('header-coupon-badge-mobile');
                   
                   if (!snapshot.empty) {
-                      if (badge) badge.style.display = 'flex';
-                      if (badgeMobile) badgeMobile.style.display = 'flex';
+                      const now = new Date();
+                      const validCoupons = snapshot.docs.filter(doc => {
+                          const data = doc.data();
+                          // 유효기간 필드가 있고, 현재 날짜보다 이후인 경우만 유효함
+                          if (data.expiryDate) {
+                              const expiry = new Date(data.expiryDate);
+                              return expiry >= now;
+                          }
+                          return true; // 유효기간 정보가 없으면 일단 유효한 것으로 간주
+                      });
+
+                      if (validCoupons.length > 0) {
+                          if (badge) badge.style.display = 'flex';
+                          if (badgeMobile) badgeMobile.style.display = 'flex';
+                      } else {
+                          if (badge) badge.style.display = 'none';
+                          if (badgeMobile) badgeMobile.style.display = 'none';
+                      }
                   } else {
                       if (badge) badge.style.display = 'none';
                       if (badgeMobile) badgeMobile.style.display = 'none';
@@ -1607,7 +1623,7 @@
     </div>
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.39 (2026-04-10)
+        v1.3.40 (2026-04-11)
     </div>
 </body>
 
