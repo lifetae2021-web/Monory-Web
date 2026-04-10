@@ -274,12 +274,13 @@
                                 <th>생년월일</th>
                                 <th>제공자 / 등급</th>
                                 <th>가입일</th>
+                                <th>보유 쿠폰</th>
                                 <th>관리/설정</th>
                             </tr>
                         </thead>
                         <tbody id="members-tbody">
                             <tr>
-                                <td colspan="7" style="text-align:center; padding:40px; color:var(--text-secondary);">
+                                <td colspan="8" style="text-align:center; padding:40px; color:var(--text-secondary);">
                                     <i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>로딩 중...
                                 </td>
                             </tr>
@@ -713,10 +714,10 @@
             // 기존 리스너 해제
             if (membersUnsubscribe) { membersUnsubscribe(); membersUnsubscribe = null; }
 
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>실시간 연결 중...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i>실시간 연결 중...</td></tr>';
 
             if (typeof firebase === 'undefined') {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Firebase SDK를 로드하지 못했습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#ef4444;">Firebase SDK를 로드하지 못했습니다.</td></tr>';
                 return;
             }
 
@@ -753,7 +754,7 @@
                 function(e) {
                     console.error('Firestore 실시간 연결 실패:', e);
                     document.getElementById('member-firestore-notice').style.display = 'block';
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:#ef4444;">Firestore에서 데이터를 불러오지 못했습니다.<br><small style="opacity:0.7;">' + e.message + '</small></td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:#ef4444;">Firestore에서 데이터를 불러오지 못했습니다.<br><small style="opacity:0.7;">' + e.message + '</small></td></tr>';
                 });
         }
 
@@ -762,7 +763,7 @@
             if (!tbody) return;
 
             if (allMembersData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:60px;color:var(--text-secondary);"><i class="fa-solid fa-users" style="font-size:2.5rem;opacity:0.2;display:block;margin-bottom:16px;"></i>아직 가입한 회원이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:60px;color:var(--text-secondary);"><i class="fa-solid fa-users" style="font-size:2.5rem;opacity:0.2;display:block;margin-bottom:16px;"></i>아직 가입한 회원이 없습니다.</td></tr>';
                 return;
             }
 
@@ -772,7 +773,7 @@
             }
 
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:60px;color:var(--text-secondary);">해당하는 회원이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:60px;color:var(--text-secondary);">해당하는 회원이 없습니다.</td></tr>';
                 return;
             }
 
@@ -838,9 +839,43 @@
                             ${badgeHtml}
                     </td>
                     <td style="font-size:0.85rem;color:var(--text-secondary);">${fmtDate(joinedAt)}</td>
+                    <td id="coupon-col-${m.id}" style="text-align:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:0.8rem;opacity:0.3;"></i></td>
                     <td>${actionHtml}</td>
                 `;
                 tbody.appendChild(row);
+
+                // 보유 쿠폰 비동기 조회
+                if (typeof firebase !== 'undefined') {
+                    const db = firebase.firestore();
+                    db.collection('members').doc(m.id).collection('coupons')
+                      .where('status', '==', 'active').get()
+                      .then(snapshot => {
+                          const col = document.getElementById(`coupon-col-${m.id}`);
+                          if (!col) return;
+                          if (snapshot.empty) {
+                              col.innerHTML = '<span style="color:var(--text-secondary); font-size:0.85rem;">0개</span>';
+                          } else {
+                              let countMap = {};
+                              snapshot.forEach(doc => {
+                                  const c = doc.data();
+                                  let typeStr = '';
+                                  if (c.discountRate) typeStr = `${c.discountRate}% 할인`;
+                                  else if (c.discountAmount) typeStr = `${c.discountAmount.toLocaleString()}원 쿠폰`;
+                                  else typeStr = '특별 쿠폰';
+                                  countMap[typeStr] = (countMap[typeStr] || 0) + 1;
+                              });
+                              
+                              let badges = [];
+                              for (const [t, cnt] of Object.entries(countMap)) {
+                                  badges.push(`<div style="display:inline-block; background:rgba(212,175,55,0.1); border:1px solid rgba(212,175,55,0.3); color:var(--accent-gold); font-size:0.75rem; padding:2px 6px; border-radius:4px; margin:2px; white-space:nowrap;">${t}(${cnt})</div>`);
+                              }
+                              col.innerHTML = badges.join('');
+                          }
+                      }).catch(err => {
+                          const col = document.getElementById(`coupon-col-${m.id}`);
+                          if (col) col.innerHTML = '<span style="color:#ef4444; font-size:0.8rem;">조회 실패</span>';
+                      });
+                }
             });
         }
 
@@ -1318,7 +1353,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.24 (2026-04-10)
+        v1.3.25 (2026-04-10)
     </div>
 
     <!-- 🎫 쿠폰 발송 모달 -->
