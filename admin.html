@@ -1353,7 +1353,7 @@
 
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.26 (2026-04-10)
+        v1.3.27 (2026-04-10)
     </div>
 
     <!-- 🎫 쿠폰 발송 모달 -->
@@ -1363,6 +1363,18 @@
                 <i class="fa-solid fa-ticket"></i> 쿠폰 발송
             </h3>
             <p id="coupon-target-info" style="font-size:0.95rem; margin-bottom:20px; color:#fff;"></p>
+
+            <div style="margin-bottom:25px;">
+                <label style="display:block; font-size:0.85rem; color:#aaa; margin-bottom:8px;">쿠폰 메시지(제목)</label>
+                <div style="display:flex; gap:10px;">
+                    <select id="coupon-title-select" onchange="toggleCustomTitleInput()" style="background:rgba(255,255,255,0.05); border:1px solid #444; color:#fff; padding:12px; border-radius:8px; flex:1; font-size:0.95rem;">
+                        <option value="생일 할인 쿠폰">생일 할인 쿠폰</option>
+                        <option value="소개팅 할인 쿠폰">소개팅 할인 쿠폰</option>
+                        <option value="custom">직접 적기</option>
+                    </select>
+                    <input type="text" id="coupon-title-custom" placeholder="제목 입력" style="display:none; background:rgba(255,255,255,0.05); border:1px solid #444; color:#fff; padding:12px; border-radius:8px; flex:1; font-size:0.95rem;">
+                </div>
+            </div>
             
             <div style="margin-bottom:25px;">
                 <label style="display:block; font-size:0.85rem; color:#aaa; margin-bottom:8px;">몇 % 할인 쿠폰을 보낼까요?</label>
@@ -1412,6 +1424,17 @@
             currentCouponTargetUid = null;
         }
 
+        function toggleCustomTitleInput() {
+            const select = document.getElementById('coupon-title-select');
+            const customInput = document.getElementById('coupon-title-custom');
+            if (select.value === 'custom') {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+            }
+        }
+
         function issueAdminCoupon() {
             if (!currentCouponTargetUid) return;
             const rate = parseInt(document.getElementById('coupon-discount-rate').value);
@@ -1425,15 +1448,22 @@
             const expiryDate = new Date();
             expiryDate.setMonth(expiryDate.getMonth() + validityMonths);
 
+            const titleSelect = document.getElementById('coupon-title-select');
+            const customTitleInput = document.getElementById('coupon-title-custom');
+            let couponTitle = titleSelect.value;
+            if (couponTitle === 'custom') {
+                couponTitle = customTitleInput.value.trim() || '관리자 증정 쿠폰';
+            }
+
             const db = firebase.firestore();
             const couponData = {
                 userId: currentCouponTargetUid,
                 discountRate: rate,
-                name: `[관리자 선물] ${rate}% 할인 쿠폰`, // 마이페이지 표시용 이름
+                name: `[관리자 선물] ${couponTitle}`, // 마이페이지 표시용 이름
                 discountAmount: 0, // % 할인인 경우 0 또는 특정 로직 처리 가능하나 요청서 기준 rate 저장
                 status: 'active',
                 isUsed: false,
-                title: '관리자 증정 쿠폰',
+                title: couponTitle,
                 createdAt: firebase.firestore.Timestamp.now(),
                 expireAt: firebase.firestore.Timestamp.fromDate(expiryDate),
                 expiryDate: firebase.firestore.Timestamp.fromDate(expiryDate)
