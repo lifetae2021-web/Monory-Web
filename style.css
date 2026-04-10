@@ -278,8 +278,25 @@ h1, h2, h3, h4, h5 {
     }
 }
 
+/* ── PC/Mobile 반응형 라우트 클래스 ──────────────────────────────── */
+.pc-only {
+    display: flex;
+}
+.mobile-only {
+    display: none;
+}
+
 @media (max-width: 768px) {
-    /* 강력한 특정성을 위해 부모 클래스 포함 및 !important 적용 */
+    .pc-only {
+        display: none !important;
+    }
+    .mobile-only {
+        display: flex !important;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* 프로필 이미지/이름 숨김 */
     .auth-links #nav-profile-img, 
     .auth-links #nav-username {
         display: none !important;
@@ -290,11 +307,9 @@ h1, h2, h3, h4, h5 {
         justify-content: flex-end !important;
     }
 
-
-
-    /* 로그아웃 버튼 스타일 조정 */
+    /* 모바일 링크: 버튼 스타일 제거, 순수 텍스트 링크로 */
     .auth-links .auth-btn {
-        padding: 7px 12px !important;
+        padding: 7px 10px !important;
         font-size: 0.8rem !important;
         white-space: nowrap;
     }
@@ -1805,8 +1820,12 @@ textarea.s2-input {
 
 /* 강제 모바일 상단바 UI 수정 */
 @media (max-width: 768px) {
-  .auth-links #nav-username, 
-  .auth-links #nav-profile-img {
+  .auth-links .pc-only {
+    display: none !important;
+  }
+}
+@media (min-width: 769px) {
+  .auth-links .mobile-only {
     display: none !important;
   }
 }
@@ -1832,7 +1851,7 @@ textarea.s2-input {
   }
 }
 
-/* ── 쿠폰 알림 말풍선 (Coupon Alert Balloon) ────────────────────────── */
+/* ── 쿠폰 알림 말풍선 (Coupon Alert Badge) ────────────────────────── */
 .coupon-badge-container {
     position: relative;
     display: inline-flex;
@@ -1841,67 +1860,72 @@ textarea.s2-input {
 
 .coupon-alert-badge {
     position: absolute;
-    top: -26px;
+    top: -28px;
     left: 50%;
     transform: translateX(-50%);
-    background: #FEE500; /* 노란색 배경 */
-    color: #1a1a1a;      /* 검은색 글자 */
-    border: 1px solid #1a1a1a; /* 하얀색 헤더에서도 잘 보이게 테두리 추가 */
-    padding: 2px 10px;
+    background: #FFD700;
+    color: #1a1a1a;
+    border: 1px solid rgba(0,0,0,0.25);
+    padding: 2px 8px;
     border-radius: 20px;
     font-size: 0.7rem;
     font-weight: 800;
     white-space: nowrap;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     display: none; 
     z-index: 1001;
     pointer-events: none;
-    animation: badge-bounce 2.5s infinite ease-in-out;
+    animation: badge-bounce-up 2.5s infinite ease-in-out;
 }
 
+/* 말풍선 꼬리: 아래쪽을 가리킴 (메뉴 텍스트 방향) */
 .coupon-alert-badge::after {
     content: '';
     position: absolute;
     bottom: -6px;
     left: 50%;
     transform: translateX(-50%);
-    border-width: 6px 6px 0;
+    border-width: 6px 5px 0;
     border-style: solid;
-    border-color: #FEE500 transparent transparent; /* 노란색 배경과 동일하게 */
+    border-color: #FFD700 transparent transparent;
 }
 
-@keyframes badge-bounce {
+@keyframes badge-bounce-up {
     0%, 100% { transform: translateX(-50%) translateY(0); }
-    50% { transform: translateX(-50%) translateY(-6px); }
+    50% { transform: translateX(-50%) translateY(-5px); }
 }
 
-/* 모바일에서의 위치 및 크기 최적화 (768px 초과 ~ 900px 이하) */
+/* PC 900px 이하 크기 미세 조정 */
 @media (min-width: 769px) and (max-width: 900px) {
     .coupon-alert-badge {
         top: -24px;
-        font-size: 0.65rem;
-        padding: 1px 8px;
+        font-size: 0.6rem;
+        padding: 1px 7px;
     }
 }
 
-/* 모바일 전용 수칙 (768px 이하) */
+/* 모바일 전용: '마이페이지' 글자 바로 아래에 배치 */
 @media (max-width: 768px) {
     .coupon-alert-badge {
-        top: 25px; /* '마이페이지' 텍스트 아래로 이동 */
-        font-size: 0.65rem;
-        padding: 1px 8px;
-        animation: badge-bounce-mobile 2.5s infinite ease-in-out;
+        top: auto;
+        bottom: -22px; /* 텍스트 아래로 이동 */
+        font-size: 0.6rem;
+        padding: 1px 6px;
+        animation: badge-bounce-down 2.5s infinite ease-in-out;
     }
+    /* 꼬리를 위쪽으로 반전 (위의 '마이페이지' 텍스트를 가리킴) */
     .coupon-alert-badge::after {
         top: -6px;
         bottom: auto;
-        border-width: 0 6px 6px;
-        border-color: transparent transparent #FEE500;
+        border-width: 0 5px 6px;
+        border-color: transparent transparent #FFD700;
     }
 }
 
-@keyframes badge-bounce-mobile {
+@keyframes badge-bounce-down {
     0%, 100% { transform: translateX(-50%) translateY(0); }
     50% { transform: translateX(-50%) translateY(3px); }
 }
+
+
 
