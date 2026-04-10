@@ -1047,6 +1047,29 @@
             if (event.target.id === id) closeModal(id);
         }
 
+        // ── 쿠폰 사용 연동: URL 파라미터로 예약 모달 자동 오픈 ─────────
+        // mypage.html의 '지금 바로 사용하기' 버튼이 ?openModal=booking 파라미터를 붙여 이동
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('openModal') === 'booking') {
+                // URL에서 파라미터 제거 (뒤로가기 시 재오픈 방지)
+                const cleanUrl = window.location.pathname + '#reservation';
+                history.replaceState(null, '', cleanUrl);
+
+                // 페이지 요소·Firebase 완전 로딩 후 모달 오픈 (600ms 여유)
+                setTimeout(() => {
+                    // #reservation 섹션으로 부드럽게 스크롤 후 모달 오픈
+                    const reservationSection = document.getElementById('reservation');
+                    if (reservationSection) {
+                        reservationSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    setTimeout(() => {
+                        openModal('bookingModal');
+                    }, 400); // 스크롤 완료 후 모달 오픈
+                }, 600);
+            }
+        });
+
         // ── 예약 모달 단계 전환 ──────────────────────────────────────
         function goToStep2() {
             if (!selectedDateObj) { alert('캘린더에서 예약하실 날짜를 지정해주세요.'); return; }
