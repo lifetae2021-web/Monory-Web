@@ -202,6 +202,10 @@
                 <!-- 모바일 전용 헤더 -->
                 <div class="mobile-only" style="align-items:center; gap:20px; margin-right: 15px;">
                     <a href="index.html" style="font-size:1rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">HOME</a>
+                    <div class="coupon-badge-container">
+                        <div id="header-coupon-badge-mobile" class="coupon-alert-badge">쿠폰 있어요 !</div>
+                        <a href="mypage.html" style="font-size:1rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">마이페이지</a>
+                    </div>
                     <a href="#" onclick="kakaoLogout(); return false;" style="font-size:1rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">로그아웃</a>
                 </div>
             </div>
@@ -671,14 +675,14 @@
               .where('status', '==', 'active')
               .onSnapshot(snapshot => {
                   const badge = document.getElementById('header-coupon-badge');
-                  const mobileFloatingBadge = document.getElementById('mobile-floating-coupon-badge');
+                  const badgeMobile = document.getElementById('header-coupon-badge-mobile');
                   
                   if (!snapshot.empty) {
                       if (badge) badge.style.display = 'block';
-                      if (mobileFloatingBadge) mobileFloatingBadge.style.display = 'block';
+                      if (badgeMobile) badgeMobile.style.display = 'block';
                   } else {
                       if (badge) badge.style.display = 'none';
-                      if (mobileFloatingBadge) mobileFloatingBadge.style.display = 'none';
+                      if (badgeMobile) badgeMobile.style.display = 'none';
                   }
               }, err => {
                   console.error('쿠폰 알림 체크 실패:', err);
@@ -744,10 +748,7 @@
     </script>
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.31 (2026-04-10)
+        v1.3.32 (2026-04-10)
     </div>
-
-    <!-- Mobile Floating Coupon Badge -->
-    <div id="mobile-floating-coupon-badge" class="coupon-floating-badge" onclick="window.location.href='mypage.html'">쿠폰 있어요 !</div>
 </body>
 </html>
