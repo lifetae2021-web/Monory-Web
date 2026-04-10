@@ -1548,11 +1548,14 @@
               .where('status', '==', 'active')
               .onSnapshot(snapshot => {
                   const badge = document.getElementById('header-coupon-badge');
-                  if (!badge) return;
+                  const mobileFloatingBadge = document.getElementById('mobile-floating-coupon-badge');
+                  
                   if (!snapshot.empty) {
-                      badge.style.display = 'block';
+                      if (badge) badge.style.display = 'block';
+                      if (mobileFloatingBadge) mobileFloatingBadge.style.display = 'block';
                   } else {
-                      badge.style.display = 'none';
+                      if (badge) badge.style.display = 'none';
+                      if (mobileFloatingBadge) mobileFloatingBadge.style.display = 'none';
                   }
               }, err => {
                   console.error('쿠폰 알림 체크 실패:', err);
@@ -1595,8 +1598,11 @@
     </div>
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.28 (2026-04-10)
+        v1.3.31 (2026-04-10)
     </div>
+
+    <!-- Mobile Floating Coupon Badge -->
+    <div id="mobile-floating-coupon-badge" class="coupon-floating-badge" onclick="window.location.href='mypage.html'">쿠폰 있어요 !</div>
 </body>
 
 </html>

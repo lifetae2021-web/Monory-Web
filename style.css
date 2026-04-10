@@ -1887,11 +1887,43 @@ textarea.s2-input {
     50% { transform: translateX(-50%) translateY(-6px); }
 }
 
-/* 모바일에서의 위치 및 크기 최적화 */
-@media (max-width: 900px) {
+/* 모바일에서의 위치 및 크기 최적화 (768px 초과 ~ 900px 이하) */
+@media (min-width: 769px) and (max-width: 900px) {
     .coupon-alert-badge {
         top: -24px;
         font-size: 0.65rem;
         padding: 1px 8px;
     }
 }
+
+/* 모바일 전용 수칙 (768px 이하) */
+@media (max-width: 768px) {
+    .coupon-badge-container {
+        display: none !important; /* 모바일 헤더에서는 숨김 */
+    }
+}
+
+/* ── 모바일 플로팅 쿠폰 알림 (Mobile Floating Badge) ────────────────── */
+.coupon-floating-badge {
+    position: fixed;
+    bottom: 30px;
+    right: 20px;
+    background: #FEE500;
+    color: #1a1a1a;
+    padding: 12px 20px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 800;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    z-index: 9999;
+    cursor: pointer;
+    display: none; /* JS에서 제어 */
+    animation: floating-bounce 2s infinite ease-in-out;
+    border: 2px solid #1a1a1a;
+}
+
+@keyframes floating-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
