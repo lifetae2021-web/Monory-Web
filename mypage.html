@@ -192,6 +192,10 @@
                 <div class="pc-only" style="align-items:center; gap:10px;">
                     <img id="nav-profile-img" src="" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #FEE500; display:none;">
                     <span id="nav-username" style="font-size:0.9rem;font-weight:600;color:#1a1a1a;"></span>
+                    <div class="coupon-badge-container">
+                        <div id="header-coupon-badge" class="coupon-alert-badge">쿠폰 있어요!</div>
+                        <a href="mypage.html" style="font-size:0.85rem;font-weight:600;color:var(--accent-gold);text-decoration:none;margin-left:5px;margin-right:5px;letter-spacing:0.5px;">마이페이지</a>
+                    </div>
                     <button onclick="kakaoLogout()" class="auth-btn" style="background:none;border:1px solid #ccc;cursor:pointer;">로그아웃</button>
                 </div>
                 
@@ -659,6 +663,25 @@
                 || window.innerWidth <= 768;
         }
 
+        // ── 헤더 쿠폰 알림 모니터링 ──────────────────────────────────
+        function checkHeaderCouponAlert(uid) {
+            if (!uid || typeof firebase === 'undefined') return;
+            const db = firebase.firestore();
+            db.collection('members').doc(String(uid)).collection('coupons')
+              .where('status', '==', 'active')
+              .onSnapshot(snapshot => {
+                  const badge = document.getElementById('header-coupon-badge');
+                  if (!badge) return;
+                  if (!snapshot.empty) {
+                      badge.style.display = 'block';
+                  } else {
+                      badge.style.display = 'none';
+                  }
+              }, err => {
+                  console.error('쿠폰 알림 체크 실패:', err);
+              });
+        }
+
         function updateNavbarUser(user) {
             const loggedout = document.getElementById('auth-loggedout');
             const loggedin  = document.getElementById('auth-loggedin');
@@ -674,6 +697,9 @@
                 img.style.display = user.profileImage ? 'block' : 'none';
             }
             if (nameEl) nameEl.textContent = user.name + ' 님';
+
+            // 쿠폰 알림 체크 추가
+            checkHeaderCouponAlert(user.kakaoId);
         }
 
         function kakaoLogout() {
@@ -715,7 +741,7 @@
     </script>
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.24 (2026-04-10)
+        v1.3.28 (2026-04-10)
     </div>
 </body>
 </html>
