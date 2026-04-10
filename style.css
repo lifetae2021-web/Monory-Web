@@ -1861,16 +1861,20 @@ textarea.s2-input {
     top: -28px;
     left: 50%;
     transform: translateX(-50%);
+    display: flex !important; /* 지시대로 !important 부여 */
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
     background: #FFD700;
     color: #1a1a1a;
     border: 1px solid rgba(0,0,0,0.25);
-    padding: 3px 10px; /* 텍스트가 답답하지 않게 좌우 패딩 정밀 조정 */
+    padding: 2px 10px; /* 상하 2px, 좌우 10px로 정밀 조정 */
     border-radius: 20px;
     font-size: 0.72rem;
     font-weight: 900;
     white-space: nowrap;
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    display: none; 
+    display: none; /* 기본 숨김, JS로 display: flex !important로 활성화 유도 */
     z-index: 1001;
     pointer-events: none;
     animation: badge-bounce-up 2.5s infinite ease-in-out;
