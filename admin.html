@@ -1352,17 +1352,18 @@
     </script>
 
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.40 (2026-04-11)
+        v1.3.44 (2026-04-11)
     </div>
 
     <!-- 🎫 쿠폰 발송 모달 -->
     <div id="couponIssueModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
-        <div style="background:var(--bg-secondary); border:1px solid var(--border-color); padding:30px; border-radius:16px; width:90%; max-width:400px; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
+        <div style="background:var(--bg-secondary); border:1px solid var(--border-color); padding:30px; border-radius:16px; width:90%; max-width:420px; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
             <h3 style="margin-bottom:20px; font-family:var(--font-heading); color:var(--accent-gold); display:flex; align-items:center; gap:10px;">
                 <i class="fa-solid fa-ticket"></i> 쿠폰 발송
             </h3>
             <p id="coupon-target-info" style="font-size:0.95rem; margin-bottom:20px; color:#fff;"></p>
 
+            <!-- 쿠폰 제목 선택 -->
             <div style="margin-bottom:25px;">
                 <label style="display:block; font-size:0.85rem; color:#aaa; margin-bottom:8px;">쿠폰 메시지(제목)</label>
                 <div style="display:flex; gap:10px;">
@@ -1374,15 +1375,30 @@
                     <input type="text" id="coupon-title-custom" placeholder="제목 입력" style="display:none; background:rgba(255,255,255,0.05); border:1px solid #444; color:#fff; padding:12px; border-radius:8px; flex:1; font-size:0.95rem;">
                 </div>
             </div>
-            
-            <div style="margin-bottom:25px;">
-                <label style="display:block; font-size:0.85rem; color:#aaa; margin-bottom:8px;">몇 % 할인 쿠폰을 보낼까요?</label>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <input type="number" id="coupon-discount-rate" value="10" min="1" max="100" style="background:rgba(255,255,255,0.05); border:1px solid #444; color:#fff; padding:12px; border-radius:8px; width:100px; font-size:1.1rem; text-align:center;">
-                    <span style="font-size:1.1rem; color:var(--accent-gold); font-weight:bold;">% 할인</span>
+
+            <!-- 할인 방식 선택 (신규 추가) -->
+            <div style="margin-bottom:18px;">
+                <label style="display:block; font-size:0.85rem; color:#aaa; margin-bottom:10px;">할인 방식</label>
+                <div style="display:flex; gap:0; border:1px solid #444; border-radius:8px; overflow:hidden;">
+                    <label id="tab-percent" onclick="setDiscountType('percent')" style="flex:1; text-align:center; padding:10px; cursor:pointer; background:var(--accent-gold); color:#000; font-weight:bold; font-size:0.9rem; transition:all 0.2s;">
+                        % 퍼센트 할인
+                    </label>
+                    <label id="tab-fixed" onclick="setDiscountType('fixed')" style="flex:1; text-align:center; padding:10px; cursor:pointer; background:rgba(255,255,255,0.05); color:#aaa; font-weight:bold; font-size:0.9rem; transition:all 0.2s;">
+                        ₩ 금액 할인
+                    </label>
                 </div>
             </div>
 
+            <!-- 할인 값 입력 -->
+            <div style="margin-bottom:25px;">
+                <label id="coupon-value-label" style="display:block; font-size:0.85rem; color:#aaa; margin-bottom:8px;">몇 % 할인 쿠폰을 보낼까요?</label>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <input type="number" id="coupon-discount-value" value="10" min="1" style="background:rgba(255,255,255,0.05); border:1px solid #444; color:#fff; padding:12px; border-radius:8px; width:120px; font-size:1.1rem; text-align:center;">
+                    <span id="coupon-value-unit" style="font-size:1.1rem; color:var(--accent-gold); font-weight:bold;">% 할인</span>
+                </div>
+            </div>
+
+            <!-- 유효기간 설정 -->
             <div style="margin-bottom:25px;">
                 <label style="display:block; font-size:0.85rem; color:#aaa; margin-bottom:12px;">유효기간 설정</label>
                 <div style="display:flex; flex-wrap:wrap; gap:15px;">
@@ -1410,11 +1426,46 @@
 
     <script>
         let currentCouponTargetUid = null;
+        let currentDiscountType = 'percent'; // 'percent' | 'fixed'
+
+        function setDiscountType(type) {
+            currentDiscountType = type;
+            const tabPercent  = document.getElementById('tab-percent');
+            const tabFixed    = document.getElementById('tab-fixed');
+            const label       = document.getElementById('coupon-value-label');
+            const unit        = document.getElementById('coupon-value-unit');
+            const input       = document.getElementById('coupon-discount-value');
+
+            if (type === 'percent') {
+                tabPercent.style.background = 'var(--accent-gold)';
+                tabPercent.style.color      = '#000';
+                tabFixed.style.background   = 'rgba(255,255,255,0.05)';
+                tabFixed.style.color        = '#aaa';
+                label.textContent = '몇 % 할인 쿠폰을 보낼까요?';
+                unit.textContent  = '% 할인';
+                input.max         = 100;
+                input.value       = 10;
+            } else {
+                tabFixed.style.background   = 'var(--accent-gold)';
+                tabFixed.style.color        = '#000';
+                tabPercent.style.background = 'rgba(255,255,255,0.05)';
+                tabPercent.style.color      = '#aaa';
+                label.textContent = '얼마 할인 쿠폰을 보낼까요?';
+                unit.textContent  = '원 할인';
+                input.removeAttribute('max');
+                input.value       = 10000;
+            }
+        }
 
         function openCouponIssueModal(uid, name) {
             currentCouponTargetUid = uid;
             document.getElementById('coupon-target-info').innerHTML = `대상 회원: <strong>${name}</strong>`;
-            document.getElementById('coupon-discount-rate').value = 10;
+            // 모달 열 때 기본값으로 초기화
+            setDiscountType('percent');
+            document.getElementById('coupon-discount-value').value = 10;
+            document.getElementById('coupon-title-select').value = '생일 할인 쿠폰';
+            document.getElementById('coupon-title-custom').style.display = 'none';
+            document.querySelector('input[name="coupon-validity"][value="1"]').checked = true;
             document.getElementById('couponIssueModal').style.display = 'flex';
         }
 
@@ -1436,10 +1487,16 @@
 
         function issueAdminCoupon() {
             if (!currentCouponTargetUid) return;
-            const rate = parseInt(document.getElementById('coupon-discount-rate').value);
-            
-            if (isNaN(rate) || rate < 1 || rate > 100) {
-                alert('1~100 사이의 올바른 할인율을 입력해주세요.');
+
+            const value = parseInt(document.getElementById('coupon-discount-value').value);
+
+            // 유효성 검사
+            if (isNaN(value) || value < 1) {
+                alert('올바른 할인 값을 입력해주세요.');
+                return;
+            }
+            if (currentDiscountType === 'percent' && value > 100) {
+                alert('퍼센트 할인은 1~100 사이의 값을 입력해주세요.');
                 return;
             }
 
@@ -1456,21 +1513,27 @@
 
             const db = firebase.firestore();
             const couponData = {
-                userId: currentCouponTargetUid,
-                discountRate: rate,
-                name: `[관리자 선물] ${couponTitle}`, // 마이페이지 표시용 이름
-                discountAmount: 0, // % 할인인 경우 0 또는 특정 로직 처리 가능하나 요청서 기준 rate 저장
-                status: 'active',
-                isUsed: false,
-                title: couponTitle,
-                createdAt: firebase.firestore.Timestamp.now(),
-                expireAt: firebase.firestore.Timestamp.fromDate(expiryDate),
+                userId:       currentCouponTargetUid,
+                status:       'active',
+                isUsed:       false,
+                title:        couponTitle,
+                name:         `[관리자 선물] ${couponTitle}`,
+                // ── 할인 타입 (신규 통합 필드) ──────────────────────
+                discountType:   currentDiscountType,  // 'percent' | 'fixed'
+                discountValue:  value,                // 숫자값 (% 또는 원)
+                // ── 기존 호환성 유지 (mypage 표시에 사용) ────────────
+                discountRate:   currentDiscountType === 'percent' ? value : 0,
+                discountAmount: currentDiscountType === 'fixed'   ? value : 0,
+                // ── 날짜 필드 ────────────────────────────────────────
+                createdAt:  firebase.firestore.Timestamp.now(),
+                expireAt:   firebase.firestore.Timestamp.fromDate(expiryDate),
                 expiryDate: firebase.firestore.Timestamp.fromDate(expiryDate)
             };
 
             db.collection('members').doc(currentCouponTargetUid).collection('coupons').add(couponData)
                 .then(() => {
-                    alert('성공적으로 쿠폰이 발송되었습니다.');
+                    const typeLabel = currentDiscountType === 'percent' ? `${value}% 할인` : `${value.toLocaleString()}원 할인`;
+                    alert(`성공적으로 쿠폰이 발송되었습니다.\n(${couponTitle} / ${typeLabel} / ${validityMonths}개월)`);
                     closeCouponIssueModal();
                 })
                 .catch(err => {
