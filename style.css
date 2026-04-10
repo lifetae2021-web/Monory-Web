@@ -797,28 +797,32 @@ footer p {
 
 /* Rotation Floating Button (PC & Mobile) */
 .rotation-fab {
-    display: flex; /* 모든 기기에서 보이도록 수정 */
+    display: flex;
     position: fixed;
-    bottom: 30px; /* 요로 정밀 조정 */
+    bottom: 30px;
     left: 30px;
     background: #FFD700;
     color: #000;
-    width: 90px;
-    height: 90px;
+    width: 95px; /* 약간 더 크게 조정하여 세련미 확보 */
+    height: 95px;
     border-radius: 50%;
     text-decoration: none;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
-    font-weight: 800;
-    font-size: 0.8rem;
-    line-height: 1.3;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-    z-index: 1000; /* 헤더 등과 겹치지 않게 정밀 조정 */
+    font-weight: 900; /* 더 굵게 */
+    font-size: 0.9rem; /* 가독성 향상 */
+    line-height: 1.2;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4); /* 더 깊고 부드러운 그림자 */
+    z-index: 9999; /* 최상단 유지 */
     animation: fab-floating 3s infinite ease-in-out;
-    transition: transform 0.2s;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     border: 2px solid #000;
+}
+
+.rotation-fab:hover {
+    transform: scale(1.05); /* 마우스 호버 시 살짝 커지는 효과 */
 }
 
 .rotation-fab:active {
@@ -827,7 +831,7 @@ footer p {
 
 @keyframes fab-floating {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+    50% { transform: translateY(-8px); } /* 통통 튀는 느낌 강화 */
 }
 
 .booking-modal-container {
@@ -1857,12 +1861,12 @@ textarea.s2-input {
     background: #FFD700;
     color: #1a1a1a;
     border: 1px solid rgba(0,0,0,0.25);
-    padding: 2px 8px;
+    padding: 3px 10px; /* 텍스트가 답답하지 않게 좌우 패딩 정밀 조정 */
     border-radius: 20px;
-    font-size: 0.7rem;
-    font-weight: 800;
+    font-size: 0.72rem;
+    font-weight: 900;
     white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     display: none; 
     z-index: 1001;
     pointer-events: none;
