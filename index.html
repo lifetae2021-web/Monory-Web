@@ -45,14 +45,27 @@
                 <a href="#" onclick="openModal('registerModal'); return false;" class="auth-btn">회원가입</a>
             </div>
             <!-- 로그인 상태 -->
-            <div id="auth-loggedin" style="display:none; gap:10px; align-items:center;">
-                <img id="nav-profile-img" src="" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #FEE500;">
-                <span id="nav-username" style="font-size:0.9rem;font-weight:600;color:#1a1a1a;"></span>
-                <div class="coupon-badge-container">
-                    <div id="header-coupon-badge" class="coupon-alert-badge">쿠폰 있어요!</div>
-                    <a href="mypage.html" style="font-size:0.85rem;font-weight:600;color:#555;text-decoration:none;margin-left:5px;margin-right:5px;letter-spacing:0.5px;transition:color 0.2s;" onmouseover="this.style.color='#1a1a1a'" onmouseout="this.style.color='#555'">마이페이지</a>
+            <div id="auth-loggedin" style="display:none; align-items:center;">
+                <!-- PC 전용 헤더 -->
+                <div class="pc-only" style="align-items:center; gap:10px;">
+                    <img id="nav-profile-img" src="" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #FEE500;">
+                    <span id="nav-username" style="font-size:0.9rem;font-weight:600;color:#1a1a1a;"></span>
+                    <div class="coupon-badge-container">
+                        <div id="header-coupon-badge" class="coupon-alert-badge">쿠폰 있어요!</div>
+                        <a href="mypage.html" style="font-size:0.85rem;font-weight:600;color:#555;text-decoration:none;margin-left:5px;margin-right:5px;letter-spacing:0.5px;transition:color 0.2s;" onmouseover="this.style.color='#1a1a1a'" onmouseout="this.style.color='#555'">마이페이지</a>
+                    </div>
+                    <button onclick="kakaoLogout()" class="auth-btn" style="background:none;border:1px solid #ccc;cursor:pointer;">로그아웃</button>
                 </div>
-                <button onclick="kakaoLogout()" class="auth-btn" style="background:none;border:1px solid #ccc;cursor:pointer;">로그아웃</button>
+                
+                <!-- 모바일 전용 헤더 -->
+                <div class="mobile-only" style="align-items:center; gap:20px; margin-right: 15px;">
+                    <a href="index.html" style="font-size:1rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">HOME</a>
+                    <div class="coupon-badge-container">
+                        <div id="header-coupon-badge-mobile" class="coupon-alert-badge">쿠폰 있어요 !</div>
+                        <a href="mypage.html" style="font-size:1rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">마이페이지</a>
+                    </div>
+                    <a href="#" onclick="kakaoLogout(); return false;" style="font-size:1rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">로그아웃</a>
+                </div>
             </div>
         </div>
         <div class="menu-trigger" id="mobile-menu-trigger" onclick="toggleMobileMenu()">
@@ -1548,11 +1561,14 @@
               .where('status', '==', 'active')
               .onSnapshot(snapshot => {
                   const badge = document.getElementById('header-coupon-badge');
-                  if (!badge) return;
+                  const badgeMobile = document.getElementById('header-coupon-badge-mobile');
+                  
                   if (!snapshot.empty) {
-                      badge.style.display = 'block';
+                      if (badge) badge.style.display = 'block';
+                      if (badgeMobile) badgeMobile.style.display = 'block';
                   } else {
-                      badge.style.display = 'none';
+                      if (badge) badge.style.display = 'none';
+                      if (badgeMobile) badgeMobile.style.display = 'none';
                   }
               }, err => {
                   console.error('쿠폰 알림 체크 실패:', err);

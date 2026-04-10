@@ -290,18 +290,7 @@ h1, h2, h3, h4, h5 {
         justify-content: flex-end !important;
     }
 
-    /* 마이페이지 링크 스타일 조정 */
-    .auth-links a[href="mypage.html"] {
-        margin: 0 !important;
-        padding: 7px 12px !important;
-        font-size: 0.8rem !important;
-        border: 1px solid #ccc;
-        border-radius: 30px;
-        color: #444;
-        display: flex !important;
-        align-items: center;
-        background: none;
-    }
+
 
     /* 로그아웃 버튼 스타일 조정 */
     .auth-links .auth-btn {
@@ -1886,8 +1875,8 @@ textarea.s2-input {
     50% { transform: translateX(-50%) translateY(-6px); }
 }
 
-/* 모바일에서의 위치 및 크기 최적화 (900px 이하 공통) */
-@media (max-width: 900px) {
+/* 모바일에서의 위치 및 크기 최적화 (768px 초과 ~ 900px 이하) */
+@media (min-width: 769px) and (max-width: 900px) {
     .coupon-alert-badge {
         top: -24px;
         font-size: 0.65rem;
@@ -1895,4 +1884,24 @@ textarea.s2-input {
     }
 }
 
+/* 모바일 전용 수칙 (768px 이하) */
+@media (max-width: 768px) {
+    .coupon-alert-badge {
+        top: 25px; /* '마이페이지' 텍스트 아래로 이동 */
+        font-size: 0.65rem;
+        padding: 1px 8px;
+        animation: badge-bounce-mobile 2.5s infinite ease-in-out;
+    }
+    .coupon-alert-badge::after {
+        top: -6px;
+        bottom: auto;
+        border-width: 0 6px 6px;
+        border-color: transparent transparent #FEE500;
+    }
+}
+
+@keyframes badge-bounce-mobile {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(3px); }
+}
 
