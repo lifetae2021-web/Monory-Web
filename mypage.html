@@ -339,6 +339,20 @@
             document.getElementById('paymentSuccessModal').classList.remove('active');
         }
 
+        // ── 쿠폰 유효기간 추출 헬퍼 (header & body 100% 동일 로직) ────
+        function getExpireDate(data) {
+            if (data.expireAt && typeof data.expireAt.toDate === 'function') {
+                return data.expireAt.toDate();
+            }
+            if (data.expiryDate && typeof data.expiryDate.toDate === 'function') {
+                return data.expiryDate.toDate();
+            }
+            if (data.expiryDate) {
+                return new Date(data.expiryDate);
+            }
+            return null; // 유효기간 정보 없으면 null (무효)
+        }
+
         // 쿠폰 불러오기
         async function loadCoupons(user) {
             const listObj = document.getElementById('coupon-list');
@@ -353,15 +367,7 @@
 
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    // expireAt 또는 expiryDate 필드 모두 처리 (저장 형식에 관계없이)
-                    let expireDate = null;
-                    if (data.expireAt && typeof data.expireAt.toDate === 'function') {
-                        expireDate = data.expireAt.toDate();
-                    } else if (data.expiryDate && typeof data.expiryDate.toDate === 'function') {
-                        expireDate = data.expiryDate.toDate();
-                    } else if (data.expiryDate) {
-                        expireDate = new Date(data.expiryDate);
-                    }
+                    const expireDate = getExpireDate(data);
 
                     // 유효기간이 미래인 경우만 표시
                     if (expireDate && expireDate > now) {
@@ -382,6 +388,9 @@
                         `;
                     }
                 });
+
+                // 🔍 디버깅 로그 (콘솔에서 확인 가능)
+                console.log('유효 쿠폰 개수:', count);
 
                 if (html) {
                     listObj.innerHTML = html;
@@ -679,7 +688,7 @@
                 || window.innerWidth <= 768;
         }
 
-        // ── 헤더 쿠폰 알림 모니터링 ──────────────────────────────────
+        // ── 헤더 쿠폰 알림 모니터링 (loadCoupons와 100% 동일 로직) ────
         function checkHeaderCouponAlert(uid) {
             if (!uid || typeof firebase === 'undefined') return;
             const db = firebase.firestore();
@@ -689,28 +698,16 @@
                   const badge = document.getElementById('header-coupon-badge');
                   const badgeMobile = document.getElementById('header-coupon-badge-mobile');
 
-                  let hasValidCoupon = false;
+                  const now = new Date();
+                  const validCoupons = snapshot.docs.filter(doc => {
+                      const expireDate = getExpireDate(doc.data());
+                      return expireDate !== null && expireDate > now;
+                  });
 
-                  if (!snapshot.empty) {
-                      const now = new Date();
-                      hasValidCoupon = snapshot.docs.some(doc => {
-                          const data = doc.data();
-                          // expireAt 필드 우선 체크 (admin이 저장하는 주 필드)
-                          if (data.expireAt && typeof data.expireAt.toDate === 'function') {
-                              return data.expireAt.toDate() > now;
-                          }
-                          // expiryDate 필드 fallback
-                          if (data.expiryDate) {
-                              const expiry = typeof data.expiryDate.toDate === 'function'
-                                  ? data.expiryDate.toDate()
-                                  : new Date(data.expiryDate);
-                              return expiry > now;
-                          }
-                          return false; // 유효기간 정보 없으면 무효 처리
-                      });
-                  }
+                  // 🔍 디버깅 로그 (콘솔에서 확인 가능)
+                  console.log('유효 쿠폰 개수:', validCoupons.length);
 
-                  if (hasValidCoupon) {
+                  if (validCoupons.length > 0) {
                       if (badge) badge.style.display = 'flex';
                       if (badgeMobile) badgeMobile.style.display = 'flex';
                   } else {

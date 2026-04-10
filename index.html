@@ -1544,7 +1544,21 @@
             }
         }
 
-        // ── 헤더 쿠폰 알림 모니터링 ──────────────────────────────────
+        // ── 쿠폰 유효기간 추출 헬퍼 (mypage.html과 100% 동일 로직) ────
+        function getExpireDate(data) {
+            if (data.expireAt && typeof data.expireAt.toDate === 'function') {
+                return data.expireAt.toDate();
+            }
+            if (data.expiryDate && typeof data.expiryDate.toDate === 'function') {
+                return data.expiryDate.toDate();
+            }
+            if (data.expiryDate) {
+                return new Date(data.expiryDate);
+            }
+            return null; // 유효기간 정보 없으면 null (무효)
+        }
+
+        // ── 헤더 쿠폰 알림 모니터링 (mypage loadCoupons와 100% 동일 로직) ──
         function checkHeaderCouponAlert(uid) {
             if (!uid || typeof firebase === 'undefined') return;
             const db = firebase.firestore();
@@ -1554,28 +1568,16 @@
                   const badge = document.getElementById('header-coupon-badge');
                   const badgeMobile = document.getElementById('header-coupon-badge-mobile');
 
-                  let hasValidCoupon = false;
+                  const now = new Date();
+                  const validCoupons = snapshot.docs.filter(doc => {
+                      const expireDate = getExpireDate(doc.data());
+                      return expireDate !== null && expireDate > now;
+                  });
 
-                  if (!snapshot.empty) {
-                      const now = new Date();
-                      hasValidCoupon = snapshot.docs.some(doc => {
-                          const data = doc.data();
-                          // expireAt 필드 우선 체크 (admin이 저장하는 주 필드)
-                          if (data.expireAt && typeof data.expireAt.toDate === 'function') {
-                              return data.expireAt.toDate() > now;
-                          }
-                          // expiryDate 필드 fallback
-                          if (data.expiryDate) {
-                              const expiry = typeof data.expiryDate.toDate === 'function'
-                                  ? data.expiryDate.toDate()
-                                  : new Date(data.expiryDate);
-                              return expiry > now;
-                          }
-                          return false; // 유효기간 정보 없으면 무효 처리
-                      });
-                  }
+                  // 🔍 디버깅 로그 (콘솔에서 확인 가능)
+                  console.log('유효 쿠폰 개수:', validCoupons.length);
 
-                  if (hasValidCoupon) {
+                  if (validCoupons.length > 0) {
                       if (badge) badge.style.display = 'flex';
                       if (badgeMobile) badgeMobile.style.display = 'flex';
                   } else {
