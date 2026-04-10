@@ -898,17 +898,9 @@
                                     <div class="guest-info-text">* 기본 8인 / 1인 초과 시 10,000원 추가결제</div>
                                 </div>
 
-                                <div style="margin-top: 20px; margin-bottom: 20px;">
-                                  <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">쿠폰 적용</label>
-                                  <select id="couponSelect" onchange="calculatePrice()" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; background-color: #fff; font-size: 15px;">
-                                    <option value="0">사용 가능한 쿠폰을 선택하세요</option>
-                                    <option value="10000">신규 가입 감사 쿠폰 (-10,000원)</option>
-                                  </select>
-                                </div>
-
                                 <div class="option-group" id="coupon-group" style="display:none; margin-top:20px;">
                                     <label>쿠폰 적용</label>
-                                    <select id="booking-coupon" class="custom-select" style="margin-bottom: 0; padding: 12px; font-size: 0.95rem; background-color: #fff; border: 1px solid #ddd; color: #1a1a1a;">
+                                    <select id="booking-coupon" onchange="calculatePrice()" class="custom-select" style="margin-bottom: 0; padding: 12px; font-size: 0.95rem; background-color: #fff; border: 1px solid #ddd; color: #1a1a1a;">
                                         <option value="none">사용할 쿠폰을 선택하세요 (선택 안함)</option>
                                     </select>
                                 </div>
@@ -926,10 +918,7 @@
                                         <span>쿠폰 할인</span>
                                         <span id="summary-coupon-discount">-0원</span>
                                     </div>
-                                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; color: #e74c3c; font-weight: bold;">
-                                      <span>쿠폰 할인액</span>
-                                      <span id="couponDiscountDisplay">- 0원</span>
-                                    </div>
+
                                     <hr style="border-color: rgba(0,0,0,0.08); border-width: 1px; margin: 15px 0;">
                                     <div class="summary-row total">
                                         <span>최종 결제 금액</span>
@@ -1462,32 +1451,38 @@
             const guestCount = parseInt(document.getElementById('guest-count').value) || 8;
             
             const couponSelect = document.getElementById('booking-coupon');
-            let discountAmount = 0;
-            if (couponSelect && couponSelect.value !== 'none') {
-                discountAmount = parseInt(couponSelect.options[couponSelect.selectedIndex].dataset.discount || '0');
-            }
-
+            let discount = 0;
+            
             let pkgPrice = 0;
             if (pkg !== 'none') pkgPrice = isWeekend ? packagePrices[pkg].weekend : packagePrices[pkg].weekday;
 
             let extraPrice = 0;
             if (guestCount > basePersonCount) extraPrice = (guestCount - basePersonCount) * extraPersonPrice;
 
-            // 쿠폰 할인액 가져오기 (사용자 추가 항목)
-            const couponDiscount = parseInt(document.getElementById('couponSelect').value) || 0;
-            // 화면에 할인액 표시 업데이트
-            document.getElementById('couponDiscountDisplay').innerText = "- " + couponDiscount.toLocaleString() + "원";
+            const baseTotal = pkgPrice + extraPrice;
 
-            let total = pkgPrice + extraPrice - discountAmount - couponDiscount;
+            if (couponSelect && couponSelect.value !== 'none') {
+                const opt = couponSelect.options[couponSelect.selectedIndex];
+                const amount = parseInt(opt.dataset.amount || '0');
+                const rate = parseInt(opt.dataset.rate || '0');
+                
+                if (rate > 0) {
+                    discount = Math.floor(baseTotal * (rate / 100));
+                } else {
+                    discount = amount;
+                }
+            }
+
+            let total = baseTotal - discount;
             if (total < 0) total = 0;
 
             document.getElementById('summary-pkg-price').innerText   = pkgPrice.toLocaleString() + '원';
             document.getElementById('summary-extra-price').innerText = extraPrice.toLocaleString() + '원';
             
             const couponRow = document.getElementById('summary-coupon-row');
-            if (discountAmount > 0) {
+            if (discount > 0) {
                 couponRow.style.display = 'flex';
-                document.getElementById('summary-coupon-discount').innerText = '-' + discountAmount.toLocaleString() + '원';
+                document.getElementById('summary-coupon-discount').innerText = '-' + discount.toLocaleString() + '원';
             } else {
                 if (couponRow) couponRow.style.display = 'none';
             }
@@ -1519,8 +1514,18 @@
                     if (data.expireAt && data.expireAt.toDate() > now) {
                         const opt = document.createElement('option');
                         opt.value = doc.id;
-                        opt.dataset.discount = data.discountAmount;
-                        opt.text = `[${data.discountAmount.toLocaleString()}원 할인] ${data.name}`;
+                        
+                        // 데이터 저장
+                        const amount = data.discountAmount || 0;
+                        const rate = data.discountRate || 0;
+                        opt.dataset.amount = amount;
+                        opt.dataset.rate = rate;
+
+                        // 텍스트 정리
+                        let cleanName = (data.name || '').replace('[관리자 선물]', '').trim();
+                        let benefitText = rate > 0 ? `${rate}% 할인` : `${amount.toLocaleString()}원 할인`;
+                        
+                        opt.text = `${cleanName} (${benefitText})`;
                         selectEl.appendChild(opt);
                         count++;
                     }
