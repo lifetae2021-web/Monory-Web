@@ -286,6 +286,16 @@ h1, h2, h3, h4, h5 {
     display: none;
 }
 
+/* 모바일 공통 텍스트 링크 스타일 */
+.mobile-nav-link {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
 @media (max-width: 768px) {
     .pc-only {
         display: none !important;
@@ -293,7 +303,7 @@ h1, h2, h3, h4, h5 {
     .mobile-only {
         display: flex !important;
         align-items: center;
-        gap: 10px;
+        gap: 14px; /* 글자 겹침 방지용 간격 */
     }
 
     /* 프로필 이미지/이름 숨김 */
@@ -307,10 +317,14 @@ h1, h2, h3, h4, h5 {
         justify-content: flex-end !important;
     }
 
-    /* 모바일 링크: 버튼 스타일 제거, 순수 텍스트 링크로 */
+    /* 모바일 로그아웃 버튼: 텍스트 스타일로 변환 */
     .auth-links .auth-btn {
-        padding: 7px 10px !important;
-        font-size: 0.8rem !important;
+        padding: 0 !important;
+        font-size: 0.9rem !important;
+        border: none !important;
+        background: none !important;
+        color: #1a1a1a !important;
+        font-weight: 700 !important;
         white-space: nowrap;
     }
 }

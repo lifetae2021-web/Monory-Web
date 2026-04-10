@@ -199,14 +199,10 @@
                     <button onclick="kakaoLogout()" class="auth-btn" style="background:none;border:1px solid #ccc;cursor:pointer;">로그아웃</button>
                 </div>
                 
-                <!-- 모바일 전용 헤더 -->
-                <div class="mobile-only" style="align-items:center; gap:20px; margin-right: 15px;">
-                    <a href="index.html" style="font-size:1rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">HOME</a>
-                    <div class="coupon-badge-container">
-                        <div id="header-coupon-badge-mobile" class="coupon-alert-badge">쿠폰 있어요 !</div>
-                        <a href="mypage.html" style="font-size:1rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">마이페이지</a>
-                    </div>
-                    <a href="#" onclick="kakaoLogout(); return false;" style="font-size:1rem;font-weight:700;color:#1a1a1a;text-decoration:none;letter-spacing:0.5px;">로그아웃</a>
+                <!-- 모바일 전용 헤더: [HOME] - [로그아웃] -->
+                <div class="mobile-only">
+                    <a href="index.html" class="mobile-nav-link">HOME</a>
+                    <a href="#" onclick="kakaoLogout(); return false;" class="mobile-nav-link">로그아웃</a>
                 </div>
             </div>
         </div>
