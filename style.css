@@ -1391,11 +1391,24 @@ footer p {
     gap: 40px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 992px) {
     .booking-split-layout {
         grid-template-columns: 1fr;
-        gap: 20px;
+        gap: 30px;
     }
+}
+
+.booking-calendar-section {
+    display: flex;
+    flex-direction: column;
+}
+
+/* 좌측 섹션으로 이동된 시간제 선택 그룹 스타일 조정 */
+.booking-calendar-section #group-hourly-select {
+    width: 100%;
+    margin-top: 35px;
+    padding-top: 25px;
+    border-top: 1px dashed rgba(0,0,0,0.1);
 }
 
 .calendar-header {
