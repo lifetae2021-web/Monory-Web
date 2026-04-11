@@ -534,15 +534,26 @@
                     });
                     console.log('✅ 신규 회원 등록:', user.name);
 
-                    // 신규 가입 환영 쿠폰 자동 발급
+                    // 신규 가입 환영 쿠폰 자동 발급 (고정 금액 1만원, 무제한)
+                    const unlimitedExpiry = firebase.firestore.Timestamp.fromDate(new Date('2099-12-31T23:59:59'));
                     docRef.collection('coupons').doc('WELCOME_10K').set({
-                        couponId: 'WELCOME_10K',
-                        name: '신규 가입 환영 1만원 할인 쿠폰',
-                        discountAmount: 10000,
-                        isUsed: false,
-                        status: 'active',
-                        issuedAt: now,
-                        expireAt: new firebase.firestore.Timestamp(now.seconds + (30 * 24 * 60 * 60), 0)
+                        couponId:       'WELCOME_10K',
+                        title:          '신규 가입 감사 쿠폰 (10,000원)',
+                        name:           '신규 가입 감사 쿠폰 (10,000원)',
+                        // ── 할인 타입 (admin 발급 쿠폰과 동일 구조) ──
+                        discountType:   'fixed',      // 고정 금액 할인
+                        discountValue:  10000,         // 10,000원
+                        discountAmount: 10000,         // 기존 호환성
+                        discountRate:   0,             // 기존 호환성
+                        // ── 상태 ──────────────────────────────────────
+                        isUsed:         false,
+                        status:         'active',
+                        isUnlimited:    true,          // 무제한 표시용 플래그
+                        // ── 날짜 (2099 = 무제한) ──────────────────────
+                        issuedAt:       now,
+                        createdAt:      now,
+                        expireAt:       unlimitedExpiry,
+                        expiryDate:     unlimitedExpiry
                     });
                 } else {
                     docRef.update({ lastLoginAt: now });
@@ -1581,9 +1592,10 @@
             return null;
         }
 
-        // 2099년 이상이면 무제한으로 간주
+        // 2099년 이상이거나 웰컴 쿠폰이면 무제한으로 간주
         function isUnlimitedCoupon(data) {
             if (data.isUnlimited) return true;
+            if (data.couponId === 'WELCOME_10K') return true; // 구형 웰컴 쿠폰 호환
             const expireDate = getExpireDate(data);
             return expireDate && expireDate.getFullYear() >= 2099;
         }

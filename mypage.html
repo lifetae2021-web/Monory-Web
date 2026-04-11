@@ -353,9 +353,10 @@
             return null; // 유효기간 정보 없으면 null (무효)
         }
 
-        // 2099년 이상이면 무제한으로 간주
+        // 2099년 이상이거나 웰컴 쿠폰이면 무제한으로 간주
         function isUnlimitedCoupon(data) {
             if (data.isUnlimited) return true;
+            if (data.couponId === 'WELCOME_10K') return true; // 구형 웰컴 쿠폰 호환
             const expireDate = getExpireDate(data);
             return expireDate && expireDate.getFullYear() >= 2099;
         }
