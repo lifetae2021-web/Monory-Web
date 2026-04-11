@@ -103,14 +103,83 @@
 
         /* Review & Coupon Styles */
         .coupon-card {
-            background: linear-gradient(135deg, #2c2c2c 0%, #1a1a1a 100%);
+            background: linear-gradient(145deg, #262626 0%, #1a1a1a 100%);
+            border: 1px solid #333;
             border-left: 5px solid var(--accent-gold);
-            padding: 20px;
-            border-radius: 12px;
-            width: calc(50% - 10px);
-            min-width: 250px;
-            text-align: center;
+            padding: 18px 22px;
+            border-radius: 14px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.4);
             position: relative;
+            overflow: hidden;
+        }
+        .coupon-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .coupon-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .coupon-title {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: var(--accent-gold);
+            margin: 0 0 8px 0;
+            line-height: 1.3;
+            word-break: keep-all;
+        }
+        .coupon-expiry {
+            font-size: 0.85rem;
+            color: #bbb;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .coupon-btn {
+            flex-shrink: 0;
+            background: #FFD700;
+            color: #000;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 22px;
+            font-size: 0.9rem;
+            font-weight: 800;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(255,215,0,0.3);
+        }
+        .coupon-btn:hover {
+            background: #ffec8b;
+            transform: scale(1.05);
+            box-shadow: 0 6px 18px rgba(255,215,0,0.5);
+        }
+
+        /* Mobile Coupon Styles */
+        @media (max-width: 768px) {
+            .coupon-card {
+                flex-direction: column;
+                text-align: center;
+                padding: 24px 20px;
+                gap: 18px;
+            }
+            .coupon-info {
+                width: 100%;
+            }
+            .coupon-title {
+                font-size: 1.2rem;
+            }
+            .coupon-btn {
+                width: 100%;
+                padding: 12px;
+                font-size: 0.95rem;
+            }
         }
         
         /* Modal Styles */
@@ -398,48 +467,18 @@
 
                         count++;
                         html += `
-                            <div class="coupon-card" style="
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                gap: 12px;
-                                padding: 16px 18px;
-                                text-align: left;
-                            ">
+                            <div class="coupon-card">
                                 <!-- 왼쪽: 쿠폰 정보 -->
-                                <div style="flex: 1; min-width: 0;">
-                                    <p style="
-                                        font-size: 1.1rem;
-                                        font-weight: bold;
-                                        color: var(--accent-gold);
-                                        margin: 0 0 6px 0;
-                                        white-space: nowrap;
-                                        overflow: hidden;
-                                        text-overflow: ellipsis;
-                                    ">${discountText} 쿠폰</p>
-                                    <span style="font-size: 0.75rem; color: #aaa;">
-                                        🗓 ${expireLabel}
-                                    </span>
+                                <div class="coupon-info">
+                                    <p class="coupon-title">${discountText} 쿠폰</p>
+                                    <div class="coupon-expiry">
+                                        <span>🗓 ${expireLabel}</span>
+                                    </div>
                                 </div>
                                 <!-- 오른쪽: 사용하기 버튼 -->
                                 <button
+                                    class="coupon-btn"
                                     onclick="window.location.href='index.html?openModal=booking#reservation';"
-                                    style="
-                                        flex-shrink: 0;
-                                        background: #FFD700;
-                                        color: #000;
-                                        border: none;
-                                        border-radius: 20px;
-                                        padding: 8px 16px;
-                                        font-size: 0.82rem;
-                                        font-weight: 800;
-                                        cursor: pointer;
-                                        white-space: nowrap;
-                                        transition: transform 0.15s, box-shadow 0.15s;
-                                        box-shadow: 0 2px 8px rgba(255,215,0,0.3);
-                                    "
-                                    onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 14px rgba(255,215,0,0.5)';"
-                                    onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 8px rgba(255,215,0,0.3)';"
                                 >
                                     지금 바로 사용하기
                                 </button>
@@ -840,7 +879,7 @@
     </script>
 
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.47 (2026-04-11)
+        v1.3.51 (2026-04-11)
     </div>
 </body>
 </html>
