@@ -382,6 +382,18 @@
             try { updateNavbarUser(JSON.parse(saved)); }
             catch(e) { localStorage.removeItem('monory_user'); }
         }
+
+        // ── 4) 외부 링크 파라미터 처리 (쿠폰에서 예약하기 등) ──────────
+        if (params.get('openModal') === 'true') {
+            const reservationEl = document.getElementById('reservation');
+            if (reservationEl) {
+                reservationEl.scrollIntoView({ behavior: 'smooth' });
+            }
+            // 스크롤 완료 후(또는 즉시) 모달 오픈
+            setTimeout(() => {
+                if (typeof openModal === 'function') openModal('bookingModal');
+            }, 500);
+        }
     });
 
 
@@ -1676,7 +1688,7 @@
         </ul>
     </div>
     <!-- Version Tag -->
-        v1.3.54 (2026-04-11)
+        v1.3.55 (2026-04-11)
     </div>
 </body>
 
