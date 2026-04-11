@@ -58,6 +58,10 @@
                 <a href="#" class="nav-link"><i class="fa-solid fa-gear"></i> 시스템 설정</a>
             </li>
         </ul>
+        <!-- Version Display -->
+        <div style="position: absolute; bottom: 10px; left: 20px; font-size: 10px; color: #666666; font-family: 'Outfit', sans-serif;">
+            v1.3.56 (2026-04-11)
+        </div>
     </aside>
 
     <!-- Main Content -->
@@ -647,7 +651,7 @@
                 
                 const newSnapshotObj = {
                     ...newData,
-                    version: "1.3.55",
+                    version: "1.3.56",
                     nextVersion: nextVersion,
                     timestamp: timestamp
                 };
@@ -1351,10 +1355,6 @@
             });
         });
     </script>
-
-        v1.3.55 (2026-04-11)
-    </div>
-
     <!-- 🎫 쿠폰 발송 모달 -->
     <div id="couponIssueModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:10000; align-items:center; justify-content:center; backdrop-filter:blur(5px);">
         <div style="background:var(--bg-secondary); border:1px solid var(--border-color); padding:30px; border-radius:16px; width:90%; max-width:420px; position:relative; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
