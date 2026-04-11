@@ -1966,3 +1966,39 @@ textarea.s2-input {
 
 
 
+
+/* ============================
+   시간제 예약 (Hourly) 스타일
+   ============================ */
+.hourly-picker-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+    background: rgba(0,0,0,0.03);
+    padding: 15px;
+    border-radius: 12px;
+}
+.hourly-block {
+    flex: 0 0 calc(16.66% - 8px);
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: 0.2s;
+    color: #333;
+}
+.hourly-block:hover { border-color: var(--accent-gold); }
+.hourly-block.selected { background: var(--accent-gold); color: #fff; border-color: var(--accent-gold); }
+.hourly-block.range { background: rgba(212,175,55,0.15); border-color: var(--accent-gold); }
+
+@media (max-width: 600px) {
+    .hourly-block {
+        flex: 0 0 calc(25% - 8px);
+    }
+}
