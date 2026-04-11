@@ -931,6 +931,16 @@
                                     </select>
                                 </div>
 
+                                <div class="option-group" style="margin-top:20px; background: rgba(212, 175, 55, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed rgba(212, 175, 55, 0.4);">
+                                    <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; user-select: none;">
+                                        <input type="checkbox" id="review-promise" onchange="calculatePrice()" style="width: 20px; height: 20px; margin-top: 2px; cursor: pointer; accent-color: var(--accent-gold);">
+                                        <div style="flex: 1;">
+                                            <span style="font-weight: 700; color: var(--accent-gold); font-size: 0.95rem;">[포토 리뷰 작성 약속 시 10,000원 즉시 할인]</span>
+                                            <p style="font-size: 0.78rem; color: #666; margin-top: 4px; line-height: 1.4;">이용 후 3일 내 사진 3장 이상의 후기를 약속합니다. (미이행 시 차후 이용 제한)</p>
+                                        </div>
+                                    </label>
+                                </div>
+
                                 <div class="price-summary-box">
                                     <div class="summary-row">
                                         <span>패키지 적용가</span>
@@ -1183,6 +1193,8 @@
                 discount: parseInt(couponSelect.options[couponSelect.selectedIndex].dataset.discount || '0')
             } : null;
 
+            const reviewPromiseVal = document.getElementById('review-promise')?.checked || false;
+
             // ★ 모바일 리다이렉트 대비: 결제 정보를 sessionStorage에 미리 저장
             const pendingBooking = {
                 bookingType:  currentBookingType,
@@ -1196,6 +1208,7 @@
                 packageName:  pkgLabels[pkg],
                 totalAmount:  totalAmount,
                 usedCoupon:   usedCoupon,
+                reviewPromise: reviewPromiseVal,
                 isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false,
                 merchantUid:  merchantUid
             };
@@ -1244,6 +1257,7 @@
                         packageName:  pkgLabels[pkg],
                         totalAmount:  totalAmount,
                         usedCoupon:   usedCoupon, // 결제성공시 쿠폰 처리용 데이터 추가
+                        reviewPromise: reviewPromiseVal,
                         isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false
                     });
                     closeModal('bookingModal');
@@ -1279,6 +1293,7 @@
                     packageName: data.packageName,
                     totalAmount: data.totalAmount,
                     usedCoupon:  data.usedCoupon || null,
+                    reviewPromise: data.reviewPromise || false,
                     isWeekend:   data.isWeekend,
                     impUid:      data.impUid,
                     merchantUid: data.merchantUid,
@@ -1503,7 +1518,9 @@
             const guestCount = parseInt(document.getElementById('guest-count').value) || 8;
             
             const couponSelect = document.getElementById('booking-coupon');
+            const reviewPromiseCheckbox = document.getElementById('review-promise');
             let discount = 0;
+            let reviewDiscount = 0;
             
             let pkgPrice = 0;
             if (pkg !== 'none') pkgPrice = isWeekend ? packagePrices[pkg].weekend : packagePrices[pkg].weekday;
@@ -1513,6 +1530,12 @@
 
             const baseTotal = pkgPrice + extraPrice;
 
+            // 1. 리뷰 약속 할인 (10,000원)
+            if (reviewPromiseCheckbox && reviewPromiseCheckbox.checked) {
+                reviewDiscount = 10000;
+            }
+
+            // 2. 쿠폰 할인 적용
             if (couponSelect && couponSelect.value !== 'none') {
                 const opt = couponSelect.options[couponSelect.selectedIndex];
                 const amount = parseInt(opt.dataset.amount || '0');
@@ -1525,21 +1548,33 @@
                 }
             }
 
-            let total = baseTotal - discount;
+            let total = baseTotal - discount - reviewDiscount;
             if (total < 0) total = 0;
 
             document.getElementById('summary-pkg-price').innerText   = pkgPrice.toLocaleString() + '원';
             document.getElementById('summary-extra-price').innerText = extraPrice.toLocaleString() + '원';
             
             const couponRow = document.getElementById('summary-coupon-row');
-            if (discount > 0) {
-                couponRow.style.display = 'flex';
-                document.getElementById('summary-coupon-discount').innerText = '-' + discount.toLocaleString() + '원';
+            if (discount > 0 || reviewDiscount > 0) {
+                if (couponRow) {
+                    couponRow.style.display = 'flex';
+                    let labelText = '';
+                    if (discount > 0) labelText += `-${discount.toLocaleString()}원(쿠폰)`;
+                    if (reviewDiscount > 0) {
+                        if (labelText) labelText += ' ';
+                        labelText += `-${reviewDiscount.toLocaleString()}원(리뷰약속)`;
+                    }
+                    const discountEl = document.getElementById('summary-coupon-discount');
+                    if (discountEl) discountEl.innerText = labelText;
+                }
             } else {
                 if (couponRow) couponRow.style.display = 'none';
             }
+
+            const totalEl = document.getElementById('summary-total-price') || document.getElementById('summary-total-amount');
+            if (totalEl) totalEl.innerText = total.toLocaleString() + '원';
             
-            document.getElementById('summary-total-price').innerText = total.toLocaleString() + '원';
+            totalPrice = total;
         }
         
         // ── 보유 쿠폰 불러오기 ──────────────────────────────────────
@@ -1688,7 +1723,7 @@
         </ul>
     </div>
     <!-- Version Tag -->
-        v1.3.60 (2026-04-11)
+        v1.3.61 (2026-04-11)
     </div>
 </body>
 
