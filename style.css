@@ -1579,6 +1579,7 @@ footer p {
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.5px;
+    white-space: nowrap;
 }
 
 /* cache-bust: 20260404192005 */
@@ -1753,6 +1754,7 @@ textarea.s2-input {
     color: var(--accent-gold) !important;
     font-size: 1.1rem !important;
     font-weight: 700 !important;
+    white-space: nowrap;
 }
 
 /* 결제 버튼 */

@@ -1090,7 +1090,7 @@
             if (!totalAmount || totalAmount <= 0) { alert('결제 금액이 계산되지 않았습니다.'); return; }
 
             // 2단계 요약바 채우기
-            const pkgLabels = { day:'데이 패키지', night:'나이트 패키지', allnight:'올나잇 패키지' };
+            const pkgLabels = { day:'데이', night:'나이트', allnight:'올나잇' };
             document.getElementById('s2-sum-date').textContent    = document.getElementById('selected-date-display').innerText;
             document.getElementById('s2-sum-pkg').textContent     = pkgLabels[pkg] || pkg;
             document.getElementById('s2-sum-guests').textContent  = document.getElementById('guest-count').value + '명';
@@ -1450,8 +1450,11 @@
                         dayDiv.classList.add('selected');
                         selectedDateObj = cellDate;
                         isWeekend = (cellDate.getDay() === 0 || cellDate.getDay() === 5 || cellDate.getDay() === 6);
-                        document.getElementById('selected-date-display').innerText =
-                            `${year}년 ${month + 1}월 ${i}일 (${['일','월','화','수','목','금','토'][cellDate.getDay()]})`;
+                        const yy = String(year).slice(-2);
+                        const mm = String(month + 1).padStart(2, '0');
+                        const dd = String(i).padStart(2, '0');
+                        const dayName = ['일', '월', '화', '수', '목', '금', '토'][cellDate.getDay()];
+                        document.getElementById('selected-date-display').innerText = `${yy}.${mm}.${dd} (${dayName})`;
                         checkAndDisablePackages(toDateKey(year, month, i));
                     });
                 }
@@ -1675,7 +1678,7 @@
     </div>
     <!-- Version Tag -->
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.51 (2026-04-11)
+        v1.3.52 (2026-04-11)
     </div>
 </body>
 
