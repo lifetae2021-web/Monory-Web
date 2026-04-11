@@ -24,6 +24,8 @@
     <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-functions-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         .my-container {
             max-width: 800px;
@@ -554,21 +556,22 @@
                     let canReview = false;
                     let canCancel = false;
                     let statusHtml = '';
-                    if (data.status === 'paid') {
-                        if (isPast) {
-                            statusHtml = '<span class="res-status completed">이용 완료 <i class="fa-solid fa-check"></i></span>';
-                            canReview = true;
-                        } else {
-                            statusHtml = '<span class="res-status paid">예약 완료</span>';
-                            canCancel = true;
-                        }
-                    }
-                    else if (data.status === 'cancelled') statusHtml = '<span class="res-status cancelled">취소됨</span>';
-                    else if (data.status === 'completed') {
+                    
+                    // 'completed' 상태이거나, 'paid' 상태이면서 과거 일자인 경우 이용 완료로 간주
+                    if (data.status === 'completed' || (data.status === 'paid' && isPast)) {
                         statusHtml = '<span class="res-status completed">이용 완료 <i class="fa-solid fa-check"></i></span>';
                         canReview = true;
+                    } 
+                    else if (data.status === 'paid' && !isPast) {
+                        statusHtml = '<span class="res-status paid">예약 완료</span>';
+                        canCancel = true;
                     }
-                    else statusHtml = `<span class="res-status">${data.status || '대기'}</span>`;
+                    else if (data.status === 'cancelled') {
+                        statusHtml = '<span class="res-status cancelled">취소됨</span>';
+                    }
+                    else {
+                        statusHtml = `<span class="res-status">${data.status || '대기'}</span>`;
+                    }
 
                     const guests = data.guestCount ? (data.guestCount + '명') : '미상';
                     const pkgName = data.packageName || '-';
@@ -588,11 +591,15 @@
                                 <div class="res-label">예약자명:</div><div>${data.guestName || '-'}</div>
                                 <div class="res-label">결제 금액:</div><div style="font-weight:600; color:var(--accent-gold);">${amountStr}</div>
                             </div>
-                            ${canReview ? `
+                            ${canReview && !data.hasReview ? `
                                 <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; text-align:right;">
-                                    <button onclick="openReviewModal('${data.guestName}', '${pkgName}')" style="background:transparent; border:1px solid var(--accent-gold); color:var(--accent-gold); padding:8px 16px; border-radius:6px; cursor:pointer; font-size:0.85rem; font-weight:500;"><i class="fa-solid fa-pen-to-square"></i> 포토 리뷰 작성</button>
+                                    <button onclick="openReviewModal('${data.id}', '${data.guestName}', '${pkgName}')" style="background:var(--accent-gold); border:none; color:#111; padding:10px 20px; border-radius:8px; cursor:pointer; font-size:0.9rem; font-weight:700; transition:0.3s; box-shadow:0 4px 15px rgba(212,175,55,0.2);" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';"><i class="fa-solid fa-pen-to-square"></i> 리뷰 작성하고 5,000원 쿠폰 받기</button>
                                 </div>
-                            ` : ''}
+                            ` : (canReview && data.hasReview ? `
+                                <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; text-align:right; color:#888; font-size:0.85rem;">
+                                    <i class="fa-solid fa-circle-check"></i> 리뷰 작성이 완료되었습니다.
+                                </div>
+                            ` : '')}
                             ${canCancel ? `
                                 <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; text-align:right;">
                                     <button id="btn-cancel-${data.id}" onclick="requestCancellation('${data.id}')" style="background:transparent; border:1px solid #F44336; color:#F44336; padding:8px 16px; border-radius:6px; cursor:pointer; font-size:0.85rem; font-weight:500; transition:0.2s;" onmouseover="this.style.background='#F44336'; this.style.color='#fff';" onmouseout="this.style.background='transparent'; this.style.color='#F44336';"><i class="fa-solid fa-ban"></i> 예약 취소</button>
@@ -662,18 +669,52 @@
 
         // ── 리뷰 모달 로직 ──────────────────────────────────────
         let activeRating = 5;
+        let targetResId = null;
 
-        function openReviewModal(rName, rPkg) {
+        function openReviewModal(resId, rName, rPkg) {
+            targetResId = resId;
             document.getElementById('reviewModal').classList.add('active');
-            // reset rating
             setRating(5);
             document.getElementById('review-content').value = '';
             document.getElementById('review-photo').value = '';
+            document.getElementById('photo-preview').innerHTML = '';
+            updateCharCount();
         }
 
         function closeReviewModal() {
             document.getElementById('reviewModal').classList.remove('active');
+            targetResId = null;
         }
+
+        function updateCharCount() {
+            const content = document.getElementById('review-content').value;
+            const countEl = document.getElementById('char-count');
+            countEl.innerText = `${content.length} / 10자 이상`;
+            if (content.length >= 10) countEl.style.color = '#4CAF50';
+            else countEl.style.color = '#888';
+        }
+
+        // 사진 미리보기 로직
+        document.getElementById('review-photo')?.addEventListener('change', function(e) {
+            const preview = document.getElementById('photo-preview');
+            preview.innerHTML = '';
+            const files = Array.from(e.target.files).slice(0, 3);
+            
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(ex) {
+                    const img = document.createElement('img');
+                    img.src = ex.target.result;
+                    img.style.cssText = 'width:80px; height:80px; border-radius:8px; object-fit:cover; border:1px solid #444;';
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            if (e.target.files.length > 3) {
+                alert('사진은 최대 3장까지만 업로드 가능합니다. 상위 3장만 선택되었습니다.');
+            }
+        });
 
         function setRating(val) {
             activeRating = val;
@@ -689,52 +730,107 @@
             if (!userStr) return;
             const user = JSON.parse(userStr);
             
-            const content = document.getElementById('review-content').value;
-            const photoFile = document.getElementById('review-photo').files[0];
+            const content = document.getElementById('review-content').value.trim();
+            const photoFiles = Array.from(document.getElementById('review-photo').files).slice(0, 3);
             const btn = document.getElementById('btn-submit-review');
 
-            if (!content) { alert('리뷰 내용을 작성해주세요!'); return; }
-            if (!photoFile) { alert('포토 리뷰를 위해 사진을 1장 첨부해주세요.'); return; }
+            if (content.length < 10) { 
+                Swal.fire({ icon: 'warning', title: '내용 부족', text: '리뷰를 최소 10자 이상 작성해 주세요.', confirmButtonColor: '#D4AF37' });
+                return; 
+            }
+            if (photoFiles.length === 0) { 
+                Swal.fire({ icon: 'warning', title: '사진 필수', text: '쿠폰 발급을 위해 최소 1장의 사진을 첨부해 주세요.', confirmButtonColor: '#D4AF37' });
+                return; 
+            }
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 업로드 중...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 소중한 후기 저장 중...';
 
             try {
-                // 1. Firebase Storage 업로드
-                const storageRef = firebase.storage().ref();
-                const fileRef = storageRef.child(`reviews/${Date.now()}_${photoFile.name}`);
-                await fileRef.put(photoFile);
-                const photoUrl = await fileRef.getDownloadURL();
-
-                // 2. Firestore 저장
                 const db = firebase.firestore();
+                const storageRef = firebase.storage().ref();
+                const photoUrls = [];
+
+                // 1. 다중 이미지 업로드
+                for (const file of photoFiles) {
+                    const fileRef = storageRef.child(`reviews/${Date.now()}_${file.name}`);
+                    await fileRef.put(file);
+                    const url = await fileRef.getDownloadURL();
+                    photoUrls.push(url);
+                }
+
+                // 2. Firestore 리뷰 저장
                 await db.collection('reviews').add({
+                    resId: targetResId,
                     authorId: user.kakaoId,
                     authorName: user.name,
                     authorProfile: user.profileImage,
                     rating: activeRating,
                     content: content,
-                    photoUrl: photoUrl,
+                    photoUrls: photoUrls,
                     createdAt: firebase.firestore.Timestamp.now()
                 });
 
-                alert('소중한 포토 리뷰가 등록되었습니다! 메인 페이지에서 확인 가능합니다.');
+                // 3. 해당 예약 상태 업데이트 (리뷰 작성 완료됨을 표시할 수 있음 - 선택사항)
+                if (targetResId) {
+                    await db.collection('reservations').doc(targetResId).update({ hasReview: true });
+                }
+
+                // 4. 자동 쿠폰 발급
+                await issueReviewCoupon(user);
+
                 closeReviewModal();
+                loadReservations(user);
+                loadCoupons(user);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '리뷰 작성 완료! 🎁',
+                    html: '감사합니다! <b>5,000원 할인 쿠폰</b>이<br>내 쿠폰함으로 발급되었습니다.',
+                    confirmButtonText: '확인',
+                    confirmButtonColor: '#D4AF37'
+                });
+
             } catch(e) {
                 console.error(e);
-                alert('리뷰 등록 중 오류 발생 (Storage 에러일 수 있음): ' + e.message);
+                Swal.fire({ icon: 'error', title: '오류 발생', text: '리뷰 등록 중 문제가 발생했습니다: ' + e.message });
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '리뷰 등록하기';
+                btn.innerHTML = '리뷰 등록하고 쿠폰 받기';
+            }
+        }
+
+        async function issueReviewCoupon(user) {
+            const db = firebase.firestore();
+            try {
+                const couponData = {
+                    title: '리뷰 감사 쿠폰 (5,000원)',
+                    discountType: 'fixed',
+                    discountValue: 5000,
+                    status: 'active',
+                    isUnlimited: true,
+                    expireAt: firebase.firestore.Timestamp.fromDate(new Date('2099-12-31')),
+                    createdAt: firebase.firestore.Timestamp.now(),
+                    issuedBy: 'system_review_reward'
+                };
+                
+                await db.collection('members').doc(String(user.kakaoId)).collection('coupons').add(couponData);
+                console.log('✅ 리뷰 보상 쿠폰 발급 완료');
+            } catch(e) {
+                console.error('❌ 쿠폰 발급 실패:', e);
+                throw e;
             }
         }
     </script>
 
     <!-- Review Modal -->
     <div id="reviewModal" class="modal-overlay" onclick="if(event.target===this) closeReviewModal()">
-        <div class="modal-content">
+        <div class="modal-content" style="max-width: 550px;">
             <button class="modal-close" onclick="closeReviewModal()">&times;</button>
-            <h2 style="font-family:var(--font-heading); color:var(--accent-gold); margin-bottom: 20px;">공간은 어떠셨나요? <i class="fa-solid fa-camera-retro"></i></h2>
+            <h2 style="font-family:var(--font-heading); color:var(--accent-gold); margin-bottom: 10px;">공간은 어떠셨나요? <i class="fa-solid fa-camera-retro"></i></h2>
+            <p style="color:#FFD700; background:rgba(255,215,0,0.1); padding:10px; border-radius:8px; font-size:0.9rem; text-align:center; margin-bottom:20px; border:1px dashed var(--accent-gold);">
+                <i class="fa-solid fa-gift"></i> <b>사진 리뷰를 남겨주시면 즉시 5,000원 할인 쿠폰이 발급됩니다!</b>
+            </p>
             
             <div style="margin-bottom: 20px; text-align: center;">
                 <p style="color:var(--text-secondary); margin-bottom: 10px;">별점 평가</p>
@@ -747,14 +843,16 @@
                 </div>
             </div>
 
-            <textarea id="review-content" class="review-textarea" placeholder="모노리에서의 특별한 경험을 들려주세요. (최소 10자 이상)"></textarea>
+            <textarea id="review-content" class="review-textarea" placeholder="모노리에서의 특별한 경험을 들려주세요. (최소 10자 이상 작성 시 쿠폰 발급)" oninput="updateCharCount()"></textarea>
+            <p id="char-count" style="text-align:right; font-size:0.8rem; color:#888; margin-top:-10px; margin-bottom:15px;">0 / 10자 이상</p>
             
             <div style="margin-bottom: 20px;">
-                <label style="display:block; margin-bottom:8px; color:var(--text-secondary); font-size:0.9rem;">사진 첨부 (필수)</label>
-                <input type="file" id="review-photo" accept="image/*" style="width: 100%; color: white;">
+                <label style="display:block; margin-bottom:8px; color:var(--text-secondary); font-size:0.9rem;">사진 첨부 (최대 3장, 쿠폰 획득 필수)</label>
+                <input type="file" id="review-photo" accept="image/*" multiple style="width: 100%; color: white;">
+                <div id="photo-preview" style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;"></div>
             </div>
 
-            <button id="btn-submit-review" class="btn-submit" onclick="submitReview()">리뷰 등록하기</button>
+            <button id="btn-submit-review" class="btn-submit" onclick="submitReview()">리뷰 등록하고 쿠폰 받기</button>
         </div>
     </div>
 
@@ -879,7 +977,7 @@
     </script>
 
     <div style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
-        v1.3.58 (2026-04-11)
+        v1.3.60 (2026-04-11)
     </div>
 </body>
 </html>
