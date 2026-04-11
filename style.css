@@ -1720,13 +1720,14 @@ textarea.s2-input {
 /* 2단계 요약 박스 */
 .s2-summary-bar {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
     border-radius: 12px;
-    padding: 16px 20px;
+    padding: 16px 18px;
     margin-bottom: 20px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
+    justify-content: space-between;
 }
 
 .s2-summary-bar .s2-sum-item {
@@ -1734,7 +1735,40 @@ textarea.s2-input {
     flex-direction: column;
     gap: 2px;
     flex: 1;
-    min-width: 80px;
+    min-width: 0; /* Allow shrinking below text content size if needed */
+}
+
+/* 1번: 날짜 - 너비 대폭 할당 (YY.MM.DD 요일 한 줄 유지) */
+.s2-summary-bar .s2-sum-item:first-child {
+    flex: 1.5;
+    min-width: 105px;
+}
+.s2-summary-bar .s2-sum-item:first-child span:last-child {
+    white-space: nowrap;
+}
+
+/* 3번: 인원 - 너비 최소화 (공간 절약) */
+.s2-summary-bar .s2-sum-item:nth-child(3) {
+    flex: 0.6;
+    min-width: 45px;
+}
+
+/* 초소형 모바일 (400px 내외) 대응: 겹침 방지 */
+@media (max-width: 420px) {
+    .s2-summary-bar {
+        gap: 5px;
+        padding: 14px 10px;
+    }
+    .s2-summary-bar .s2-sum-item span:first-child {
+        font-size: 0.65rem;
+        letter-spacing: -0.2px;
+    }
+    .s2-summary-bar .s2-sum-item span:last-child {
+        font-size: 0.8rem;
+    }
+    .s2-summary-bar .s2-sum-price {
+        font-size: 0.95rem !important;
+    }
 }
 
 .s2-summary-bar .s2-sum-item span:first-child {
