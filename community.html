@@ -100,11 +100,11 @@
 
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <div class="member-tabs">
-                <button class="tab-btn active" onclick="switchTab('notice')" id="tab-notice">공지사항</button>
-                <button class="tab-btn" onclick="switchTab('qna')" id="tab-qna">문의사항</button>
+                <button class="tab-btn active" onclick="switchTab('notices')" id="tab-notices">공지사항</button>
+                <button class="tab-btn" onclick="switchTab('inquiries')" id="tab-inquiries">문의사항</button>
             </div>
             
-            <button class="btn-write" id="btn-open-write" onclick="openWriteModal()"><i class="fa-solid fa-pen"></i> 글쓰기</button>
+            <button class="btn-write" id="btn-open-write" onclick="openWriteModal()" style="display:none;"><i class="fa-solid fa-pen"></i> 글쓰기</button>
         </div>
 
         <div id="posts-container" style="min-height: 300px;">
@@ -114,19 +114,18 @@
         <div style="text-align: center; margin-top: 60px;">
             <button onclick="window.location.href='index.html'" style="background: none; color: #aaa; border: 1px solid #555; padding: 10px 24px; font-size: 0.9rem; border-radius: 8px; cursor: pointer;">메인으로 가기</button>
         </div>
+        
+        <!-- Version Display -->
+        <div style="text-align: center; margin-top: 40px; font-size: 0.8rem; color: #555;">
+            v1.3.58 (2026-04-11)
+        </div>
     </div>
 
     <!-- Write Modal -->
     <div id="writeModal" class="modal-overlay" onclick="if(event.target===this) closeWriteModal()">
         <div class="modal-content">
             <button class="modal-close" onclick="closeWriteModal()">&times;</button>
-            <h2 style="color:var(--accent-gold); margin-bottom: 20px;">게시글 작성</h2>
-            
-            <div id="isAdminNotice" style="display:none; margin-bottom:15px;">
-                <label style="display:flex; align-items:center; gap:8px; color:#ddd; cursor:pointer;">
-                    <input type="checkbox" id="write-is-notice"> 이 글을 [공지사항]으로 등록합니다.
-                </label>
-            </div>
+            <h2 id="modal-title" style="color:var(--accent-gold); margin-bottom: 20px;">게시글 작성</h2>
             
             <input type="text" id="write-title" class="comm-input" placeholder="제목을 입력하세요">
             <textarea id="write-content" class="comm-input" style="height: 200px; resize:none;" placeholder="내용을 작성해 주세요."></textarea>
@@ -154,9 +153,9 @@
     </div>
 
     <script>
-        let currentTab = 'notice';
+        let currentTab = 'notices'; // notices | inquiries
         let currentUser = null;
-        let currentUserRole = 'user'; // admin 여부 체크
+        let currentUserRole = 'user'; 
         let postsListener = null;
         let targetPostId = null;
 
@@ -164,10 +163,11 @@
             const userStr = localStorage.getItem('monory_user');
             if (userStr) {
                 currentUser = JSON.parse(userStr);
-                checkUserRole();
+                checkUserRole().then(() => {
+                    updateWriteButtonVisibility();
+                });
             } else {
-                // 비로그인
-                document.getElementById('btn-open-write').style.display = 'none';
+                updateWriteButtonVisibility();
             }
 
             const checkFirebase = setInterval(() => {
@@ -182,12 +182,34 @@
             if(!currentUser) return;
             const db = firebase.firestore();
             try {
+                // Kakao ID를 문서 ID로 사용하거나 uid를 사용함 (이전 코드에서는 String(currentUser.kakaoId))
                 const doc = await db.collection('members').doc(String(currentUser.kakaoId)).get();
                 if(doc.exists) {
-                    const role = doc.data().role || 'user';
-                    currentUserRole = role;
+                    currentUserRole = doc.data().role || 'user';
                 }
-            }catch(e) {}
+            }catch(e) {
+                console.error("Role check failed:", e);
+            }
+        }
+
+        function updateWriteButtonVisibility() {
+            const btn = document.getElementById('btn-open-write');
+            if (!currentUser) {
+                btn.style.display = 'none';
+                return;
+            }
+
+            if (currentTab === 'notices') {
+                // 공지사항 탭: 어드민만 노출
+                if (currentUserRole === 'super_admin' || currentUserRole === 'admin' || currentUserRole === 'general_admin') {
+                    btn.style.display = 'flex';
+                } else {
+                    btn.style.display = 'none';
+                }
+            } else {
+                // 문의사항 탭: 로그인한 유저 누구나 노출
+                btn.style.display = 'flex';
+            }
         }
 
         function switchTab(tab) {
@@ -195,21 +217,11 @@
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('tab-' + tab).classList.add('active');
             
-            // 공지사항 탭에서는 공지사항 작성 체크박스 노출
-            if(tab === 'notice') {
-                if(currentUserRole === 'super_admin' || currentUserRole === 'general_admin') {
-                    document.getElementById('isAdminNotice').style.display = 'block';
-                }
-                document.getElementById('qnaPasswordSection').style.display = 'none';
-            } else {
-                document.getElementById('isAdminNotice').style.display = 'none';
-                document.getElementById('qnaPasswordSection').style.display = 'block';
-            }
-            
+            updateWriteButtonVisibility();
             loadPosts(tab);
         }
 
-        function loadPosts(category) {
+        function loadPosts(collectionName) {
             const container = document.getElementById('posts-container');
             const db = firebase.firestore();
             
@@ -217,12 +229,11 @@
 
             container.innerHTML = `<div style="text-align: center; padding: 50px; color:#888;"><i class="fa-solid fa-spinner fa-spin"></i> 불러오는 중...</div>`;
 
-            postsListener = db.collection('community_posts')
-                .where('category', '==', category)
+            postsListener = db.collection(collectionName)
                 .orderBy('createdAt', 'desc')
                 .onSnapshot((snapshot) => {
                     if (snapshot.empty) {
-                        container.innerHTML = `<div style="text-align: center; padding: 50px; background: rgba(255,255,255,0.02); border-radius:12px; color:#aaa;">등록된 게시글이 없습니다.</div>`;
+                        container.innerHTML = `<div style="text-align: center; padding: 50px; background: rgba(255,255,255,0.02); border-radius:12px; color:#aaa;">작성된 글이 없습니다.</div>`;
                         return;
                     }
 
@@ -230,15 +241,15 @@
                     snapshot.forEach(doc => {
                         const data = doc.data();
                         const dateStr = data.createdAt ? data.createdAt.toDate().toLocaleDateString() : '';
-                        const isNotice = data.category === 'notice';
+                        const isNotice = collectionName === 'notices';
                         const badge = isNotice ? `<span class="badge-notice">공지</span> ` : '';
-                        const lockIcon = category === 'qna' ? `<i class="fa-solid fa-lock" style="font-size:0.8rem; margin-right:6px; color:var(--accent-gold);"></i> ` : '';
+                        const lockIcon = collectionName === 'inquiries' ? `<i class="fa-solid fa-lock" style="font-size:0.8rem; margin-right:6px; color:var(--accent-gold);"></i> ` : '';
                         
                         const div = document.createElement('div');
                         div.className = 'post-card';
                         div.id = 'post-' + doc.id;
                         div.innerHTML = `
-                            <div class="post-header" onclick="handlePostClick('${doc.id}', '${category}')">
+                            <div class="post-header" onclick="handlePostClick('${doc.id}', '${collectionName}')">
                                 <div class="post-title">${badge}${lockIcon}${data.title}</div>
                                 <div class="post-meta">
                                     <span><i class="fa-solid fa-user" style="font-size:0.8rem; margin-right:4px;"></i>${data.authorName}</span>
@@ -252,15 +263,19 @@
                     });
                 }, (error) => {
                     console.error("게시글 불러오기 실패:", error);
-                    container.innerHTML = `<div style="text-align: center; padding: 50px; color:#F44336;">데이터를 불러올 수 없습니다.</div>`;
+                    if (error.code === 'permission-denied') {
+                        container.innerHTML = `<div style="text-align: center; padding: 50px; color:#F44336;">접근 권한이 없습니다. 관리자에게 문의하세요.</div>`;
+                    } else {
+                        container.innerHTML = `<div style="text-align: center; padding: 50px; color:#F44336;">데이터를 불러올 수 없습니다.</div>`;
+                    }
                 });
         }
 
-        function handlePostClick(postId, category) {
-            const isAdmin = (currentUserRole === 'super_admin' || currentUserRole === 'general_admin');
+        function handlePostClick(postId, collectionName) {
+            const isAdmin = (currentUserRole === 'super_admin' || currentUserRole === 'admin' || currentUserRole === 'general_admin');
             
-            if (category === 'notice' || isAdmin) {
-                togglePostContent(postId);
+            if (collectionName === 'notices' || isAdmin) {
+                togglePostContent(postId, collectionName);
             } else {
                 // 문의사항이면서 관리자가 아닌 경우 비밀번호 확인
                 targetPostId = postId;
@@ -268,7 +283,7 @@
             }
         }
 
-        async function togglePostContent(postId) {
+        async function togglePostContent(postId, collectionName) {
             const postCard = document.getElementById('post-' + postId);
             const contentDiv = document.getElementById('content-' + postId);
             
@@ -286,7 +301,7 @@
             // 데이터 로드
             try {
                 const db = firebase.firestore();
-                const doc = await db.collection('community_posts').doc(postId).get();
+                const doc = await db.collection(collectionName).doc(postId).get();
                 if (doc.exists) {
                     contentDiv.innerHTML = doc.data().content;
                     postCard.classList.add('open');
@@ -321,12 +336,12 @@
 
             try {
                 const db = firebase.firestore();
-                const doc = await db.collection('community_posts').doc(targetPostId).get();
+                const doc = await db.collection('inquiries').doc(targetPostId).get();
                 if (doc.exists) {
                     const data = doc.data();
                     if (data.password === inputPass) {
                         closePasswordModal();
-                        togglePostContent(targetPostId);
+                        togglePostContent(targetPostId, 'inquiries');
                     } else {
                         alert('비밀번호가 일치하지 않습니다.');
                     }
@@ -345,19 +360,17 @@
                 alert('로그인 후 이용할 수 있습니다.');
                 return;
             }
+            
             document.getElementById('writeModal').classList.add('active');
             document.getElementById('write-title').value = '';
             document.getElementById('write-content').value = '';
             document.getElementById('write-password').value = '';
             
-            // 현재 탭에 따른 초기화
-            if(currentTab === 'notice') {
-                if(currentUserRole === 'super_admin' || currentUserRole === 'general_admin') {
-                    document.getElementById('isAdminNotice').style.display = 'block';
-                }
+            if (currentTab === 'notices') {
+                document.getElementById('modal-title').textContent = '공지사항 작성';
                 document.getElementById('qnaPasswordSection').style.display = 'none';
             } else {
-                document.getElementById('isAdminNotice').style.display = 'none';
+                document.getElementById('modal-title').textContent = '문의사항 작성';
                 document.getElementById('qnaPasswordSection').style.display = 'block';
             }
         }
@@ -370,17 +383,13 @@
             const title = document.getElementById('write-title').value.trim();
             const content = document.getElementById('write-content').value.trim();
             const password = document.getElementById('write-password').value.trim();
-            const isNoticeObj = document.getElementById('write-is-notice');
-            let category = currentTab; // 기본적으로 현재 탭 카테고리
 
-            if (isNoticeObj && isNoticeObj.checked && currentTab === 'notice') {
-                if (currentUserRole !== 'super_admin' && currentUserRole !== 'general_admin') {
+            if (currentTab === 'notices') {
+                if (currentUserRole !== 'super_admin' && currentUserRole !== 'admin' && currentUserRole !== 'general_admin') {
                     alert('공지사항 작성 권한이 없습니다.');
                     return;
                 }
-                category = 'notice';
-            } else if (currentTab === 'qna') {
-                category = 'qna';
+            } else if (currentTab === 'inquiries') {
                 if (password.length !== 4) {
                     alert('비밀번호 4자리를 설정해주세요.');
                     return;
@@ -397,7 +406,6 @@
             try {
                 const db = firebase.firestore();
                 const postData = {
-                    category: category,
                     title: title,
                     content: content,
                     authorId: currentUser.kakaoId,
@@ -405,11 +413,11 @@
                     createdAt: firebase.firestore.Timestamp.now()
                 };
 
-                if (category === 'qna') {
+                if (currentTab === 'inquiries') {
                     postData.password = password;
                 }
 
-                await db.collection('community_posts').add(postData);
+                await db.collection(currentTab).add(postData);
                 
                 closeWriteModal();
                 loadPosts(currentTab);

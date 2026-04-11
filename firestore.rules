@@ -15,26 +15,27 @@ service cloud.firestore {
     }
 
     function isGeneralAdmin() {
-      return isSuperAdmin() || get(/databases/$(database)/documents/members/$(request.auth.uid)).data.role == 'general_admin';
+      return isSuperAdmin() || get(/databases/$(database)/documents/members/$(request.auth.uid)).data.role == 'admin' || get(/databases/$(database)/documents/members/$(request.auth.uid)).data.role == 'general_admin';
     }
 
     // members 컬렉션 규칙
     match /members/{userId} {
-      // 본인이거나 모든 관리자는 읽기 가능
-      allow read: if true; // 현재는 외부 시스템 연동을 위해 읽기를 열어둠 (필요에 따라 제어 가능)
-      
-      // 본인의 정보는 생성/수정 가능 (초기 가입 시) 단, role은 조작 불가
-      // 관리자는 자유롭게 수정 가능
+      allow read: if true;
       allow create: if true;
-      
-      // 권한 수정 규칙 로직
-      allow update: if 
-        // 1. 최고 관리자는 모든 내용을자유롭게 변경 가능
-        isFirebaseAuthAdmin() || 
-        // 2. 일반 접속자는 role(권한) 필드를 스스로 조작할 수 없어야 함
-        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
-        
+      allow update: if isFirebaseAuthAdmin() || (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
       allow delete: if isFirebaseAuthAdmin();
+    }
+
+    // community (notices, inquiries) 규칙
+    match /notices/{docId} {
+      allow read: if true;
+      allow write: if isGeneralAdmin();
+    }
+    
+    match /inquiries/{docId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if isGeneralAdmin() || (request.auth != null && request.auth.uid == resource.data.authorId);
     }
 
     // reservations 컬렉션 규칙
