@@ -1219,6 +1219,31 @@
             payBtn.disabled = true;
             payBtn.textContent = '결제 진행 중...';
 
+            // 0원 결제 처리: 결제 모듈 생략하고 즉시 저장
+            if (totalAmount === 0) {
+                console.log('💰 0원 결제: 즉시 저장 프로세스 시작');
+                saveReservationToFirestore({
+                    impUid:       'FREE-' + merchantUid,
+                    merchantUid:  merchantUid,
+                    bookingType:  currentBookingType,
+                    companyName:  company,
+                    guestName:    name,
+                    phone:        phone,
+                    requests:     requests,
+                    date:         document.getElementById('selected-date-display').innerText,
+                    guestCount:   guestCount,
+                    packageKey:   pkg,
+                    packageName:  pkgLabels[pkg],
+                    totalAmount:  0,
+                    usedCoupon:   usedCoupon,
+                    reviewPromise: reviewPromiseVal,
+                    isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false
+                });
+                closeModal('bookingModal');
+                window.location.href = 'payment-success.html?imp_uid=FREE-' + merchantUid;
+                return;
+            }
+
             // PortOne SDK 초기화
             if (typeof IMP === 'undefined') {
                 alert('결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
@@ -1302,6 +1327,7 @@
                 }).then(ref => {
                     console.log('✅ 예약 저장 완료:', ref.id);
                     // 쿠폰 사용 상태 변경
+                    if (data.usedCoupon && data.usedCoupon.id) {
                         db.collection('members').doc(String(user.kakaoId)).collection('coupons').doc(data.usedCoupon.id)
                           .update({ 
                             status: 'used', 
@@ -1309,6 +1335,7 @@
                             usedAt: firebase.firestore.Timestamp.now() 
                           })
                           .catch(e => console.error('쿠폰 상태 업데이트 실패', e));
+                    }
                 })
                   .catch(e  => console.error('예약 저장 실패:', e));
             } catch(e) { console.error('Firestore 오류:', e); }
