@@ -2097,3 +2097,89 @@ textarea.s2-input {
         gap: 10px;
     }
 }
+
+/* ============================
+   시간제 요금 안내 가이드
+   ============================ */
+.hourly-price-guide {
+    margin-top: 25px;
+    background: #fdfbf4; /* 연한 베이지 톤 */
+    border: 1px solid #e9e4d0;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+.hourly-price-guide h4 {
+    font-size: 0.95rem;
+    color: #555;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-body);
+}
+.hourly-price-guide h4 small {
+    font-weight: 400;
+    opacity: 0.7;
+    font-size: 0.75rem;
+}
+.price-guide-table {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.pg-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #f0f0f0;
+}
+.pg-time {
+    font-size: 0.88rem;
+    color: #666;
+    font-weight: 500;
+}
+.pg-price {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: #1a1a1a;
+    font-size: 0.95rem;
+}
+/* Prime 시간대 강조 */
+.pg-prime {
+    background: rgba(212, 175, 55, 0.08);
+    border-color: rgba(212, 175, 55, 0.3);
+}
+.pg-prime .pg-time {
+    color: var(--accent-gold);
+    font-weight: 700;
+}
+.pg-prime .pg-price {
+    color: var(--accent-gold);
+}
+.pg-note {
+    margin-top: 12px;
+    font-size: 0.75rem;
+    color: #999;
+    text-align: right;
+    letter-spacing: -0.2px;
+}
+
+@media (max-width: 600px) {
+    .hourly-price-guide {
+        padding: 14px;
+        margin-top: 20px;
+    }
+    .pg-row {
+        padding: 8px 12px;
+    }
+    .pg-time {
+        font-size: 0.8rem;
+    }
+    .pg-price {
+        font-size: 0.88rem;
+    }
+}

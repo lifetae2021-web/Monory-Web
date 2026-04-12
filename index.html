@@ -761,7 +761,7 @@
     </script>
 
     <!-- Version Tag -->
-    <div id="version-display" data-version="1.3.66"
+    <div id="version-display" data-version="1.3.67"
         style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
     </div>
     
@@ -921,6 +921,26 @@
                                     <!-- 스마트 추천 배너 -->
                                     <div id="hourly-recommend" class="recommend-banner">
                                         <!-- JS에서 동적 삽입 -->
+                                    </div>
+
+                                    <!-- 시간제 요금 안내 테이블 추가 -->
+                                    <div class="hourly-price-guide">
+                                        <h4><i class="fa-solid fa-circle-info"></i> 시간제 요금 안내 <small>(1시간 기준)</small></h4>
+                                        <div class="price-guide-table">
+                                            <div class="pg-row">
+                                                <span class="pg-time">10:00 ~ 18:00</span>
+                                                <span class="pg-price">15,000원</span>
+                                            </div>
+                                            <div class="pg-row pg-prime">
+                                                <span class="pg-time">18:00 ~ 24:00 (Prime)</span>
+                                                <span class="pg-price">25,000원</span>
+                                            </div>
+                                            <div class="pg-row">
+                                                <span class="pg-time">00:00 ~ 09:00</span>
+                                                <span class="pg-price">15,000원</span>
+                                            </div>
+                                        </div>
+                                        <p class="pg-note">* 금/토/일(주말)은 전 시간대 30,000원 고정입니다.</p>
                                     </div>
                                 </div>
                             </div>
