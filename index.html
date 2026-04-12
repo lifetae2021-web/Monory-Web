@@ -761,7 +761,7 @@
     </script>
 
     <!-- Version Tag -->
-    <div id="version-display" data-version="1.3.65"
+    <div id="version-display" data-version="1.3.66"
         style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;">
     </div>
     
@@ -1729,6 +1729,12 @@
                     const nightPrice = isWeekend ? packagePrices.night.weekend : packagePrices.night.weekday;
                     const allnightPrice = isWeekend ? packagePrices.allnight.weekend : packagePrices.allnight.weekday;
 
+                    const pkgInfo = {
+                        allnight: { name: '올나잇 패키지', duration: 15 },
+                        night:    { name: '나이트 패키지', duration: 6 },
+                        day:      { name: '데이 패키지', duration: 7 }
+                    };
+
                     let recommendation = null;
                     if (basePrice > allnightPrice) {
                         recommendation = { key: 'allnight', name: '올나잇 패키지', diff: basePrice - allnightPrice };
@@ -1739,11 +1745,15 @@
                     }
 
                     if (recommendation && recommendEl) {
+                        const info = pkgInfo[recommendation.key];
+                        const extraHours = info.duration - duration;
+                        const extraMsg = extraHours > 0 ? ` 저렴하고, <strong>${extraHours}시간 더</strong> 이용 가능합니다.` : ` 저렴합니다.`;
+
                         recommendEl.innerHTML = `
                             <div class="msg">
                                 <i class="fa-solid fa-lightbulb" style="margin-right:4px;"></i> 잠시만요! 
-                                현재 선택하신 시간은 <strong>'${recommendation.name}'</strong>를 이용하시는 것이 
-                                <strong>${recommendation.diff.toLocaleString()}원</strong> 더 저렴합니다.
+                                현재 선택하신 시간은 <strong>'${info.name}'</strong>를 이용하시는 것이 
+                                <strong>${recommendation.diff.toLocaleString()}원</strong>${extraMsg}
                             </div>
                             <div class="btn-apply" onclick="applyRecommendedPackage('${recommendation.key}')">패키지로 변경하기</div>
                         `;
