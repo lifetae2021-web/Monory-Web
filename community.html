@@ -89,6 +89,16 @@
         .modal-close { position: absolute; right: 20px; top: 20px; background: none; border: none; color: #aaa; font-size: 1.5rem; cursor: pointer; }
         .comm-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); color: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .comm-input:focus { outline: none; border-color: var(--accent-gold); }
+
+        /* Action Buttons */
+        .post-actions {
+            display: flex; gap: 15px; margin-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;
+        }
+        .action-btn {
+            background: none; border: none; font-size: 0.82rem; cursor: pointer; color: #777; transition: 0.2s; display: flex; align-items: center; gap: 5px;
+        }
+        .action-btn:hover { color: var(--accent-gold); }
+        .action-btn.delete:hover { color: #ff5252; }
     </style>
 </head>
 <body>
@@ -117,7 +127,7 @@
         
         <!-- Version Display -->
         <div style="text-align: center; margin-top: 40px; font-size: 0.8rem; color: #555;">
-            v1.3.65 (2026-04-12)
+            v1.3.72 (2026-04-13)
         </div>
     </div>
 
@@ -158,6 +168,8 @@
         let currentUserRole = 'user'; 
         let postsListener = null;
         let targetPostId = null;
+        let pendingAction = 'view'; // view | edit | delete
+        let isEditMode = false;
 
         document.addEventListener("DOMContentLoaded", () => {
             const userStr = localStorage.getItem('monory_user');
@@ -244,15 +256,27 @@
                         const isNotice = collectionName === 'notices';
                         const badge = isNotice ? `<span class="badge-notice">공지</span> ` : '';
                         const lockIcon = collectionName === 'inquiries' ? `<i class="fa-solid fa-lock" style="font-size:0.8rem; margin-right:6px; color:var(--accent-gold);"></i> ` : '';
+                        const authorDisplay = collectionName === 'inquiries' ? '익명' : data.authorName;
                         
                         const div = document.createElement('div');
                         div.className = 'post-card';
                         div.id = 'post-' + doc.id;
+
+                        let actionButtons = '';
+                        if (collectionName === 'inquiries') {
+                            actionButtons = `
+                                <div class="post-actions">
+                                    <button class="action-btn" onclick="requestInquiryAction('${doc.id}', 'edit')"><i class="fa-solid fa-pen-to-square"></i> 수정</button>
+                                    <button class="action-btn delete" onclick="requestInquiryAction('${doc.id}', 'delete')"><i class="fa-solid fa-trash-can"></i> 삭제</button>
+                                </div>
+                            `;
+                        }
+
                         div.innerHTML = `
                             <div class="post-header" onclick="handlePostClick('${doc.id}', '${collectionName}')">
                                 <div class="post-title">${badge}${lockIcon}${data.title}</div>
                                 <div class="post-meta">
-                                    <span><i class="fa-solid fa-user" style="font-size:0.8rem; margin-right:4px;"></i>${data.authorName}</span>
+                                    <span><i class="fa-solid fa-user" style="font-size:0.8rem; margin-right:4px;"></i>${authorDisplay}</span>
                                     <span>${dateStr}</span>
                                     <i class="fa-solid fa-chevron-down" style="font-size:0.8rem; margin-left:10px;"></i>
                                 </div>
@@ -260,6 +284,12 @@
                             <div class="post-content" id="content-${doc.id}"></div>
                         `;
                         container.appendChild(div);
+
+                        // Content section inside div need buttons if it's inquiry
+                        const contentDiv = div.querySelector('.post-content');
+                        div.addEventListener('contentLoaded', (e) => {
+                            if(actionButtons) contentDiv.innerHTML += actionButtons;
+                        });
                     });
                 }, (error) => {
                     console.error("게시글 불러오기 실패:", error);
@@ -279,8 +309,16 @@
             } else {
                 // 문의사항이면서 관리자가 아닌 경우 비밀번호 확인
                 targetPostId = postId;
+                pendingAction = 'view';
                 openPasswordModal();
             }
+        }
+
+        function requestInquiryAction(postId, action) {
+            event.stopPropagation();
+            targetPostId = postId;
+            pendingAction = action;
+            openPasswordModal();
         }
 
         async function togglePostContent(postId, collectionName) {
@@ -305,6 +343,8 @@
                 if (doc.exists) {
                     contentDiv.innerHTML = doc.data().content;
                     postCard.classList.add('open');
+                    // 트리거 버튼 추가 제어
+                    postCard.dispatchEvent(new CustomEvent('contentLoaded'));
                 }
             } catch (e) {
                 console.error('글 내용 불러오기 실패:', e);
@@ -335,13 +375,20 @@
             btn.innerHTML = '확인 중...';
 
             try {
-                const db = firebase.firestore();
                 const doc = await db.collection('inquiries').doc(targetPostId).get();
                 if (doc.exists) {
                     const data = doc.data();
                     if (data.password === inputPass) {
                         closePasswordModal();
-                        togglePostContent(targetPostId, 'inquiries');
+                        if (pendingAction === 'view') {
+                            togglePostContent(targetPostId, 'inquiries');
+                        } else if (pendingAction === 'edit') {
+                            openEditModal(targetPostId, data);
+                        } else if (pendingAction === 'delete') {
+                            if(confirm('정말로 이 글을 삭제하시겠습니까?')) {
+                                deletePost(targetPostId);
+                            }
+                        }
                     } else {
                         alert('비밀번호가 일치하지 않습니다.');
                     }
@@ -360,7 +407,7 @@
                 alert('로그인 후 이용할 수 있습니다.');
                 return;
             }
-            
+            isEditMode = false;
             document.getElementById('writeModal').classList.add('active');
             document.getElementById('write-title').value = '';
             document.getElementById('write-content').value = '';
@@ -373,6 +420,20 @@
                 document.getElementById('modal-title').textContent = '문의사항 작성';
                 document.getElementById('qnaPasswordSection').style.display = 'block';
             }
+            document.getElementById('btn-submit-post').textContent = '등록하기';
+        }
+
+        function openEditModal(postId, data) {
+            isEditMode = true;
+            targetPostId = postId;
+            document.getElementById('writeModal').classList.add('active');
+            document.getElementById('write-title').value = data.title;
+            document.getElementById('write-content').value = data.content;
+            document.getElementById('write-password').value = data.password;
+            
+            document.getElementById('modal-title').textContent = '문의사항 수정';
+            document.getElementById('qnaPasswordSection').style.display = 'block';
+            document.getElementById('btn-submit-post').textContent = '수정 완료';
         }
 
         function closeWriteModal() {
@@ -417,16 +478,39 @@
                     postData.password = password;
                 }
 
-                await db.collection(currentTab).add(postData);
+                if (isEditMode && targetPostId) {
+                    await db.collection(currentTab).doc(targetPostId).update({
+                        title: title,
+                        content: content,
+                        password: password,
+                        updatedAt: firebase.firestore.Timestamp.now()
+                    });
+                    alert('게시글이 수정되었습니다.');
+                } else {
+                    await db.collection(currentTab).add(postData);
+                    alert('게시글이 등록되었습니다.');
+                }
                 
                 closeWriteModal();
                 loadPosts(currentTab);
             } catch(e) {
-                console.error('글 작성 실패:', e);
-                alert('글 작성을 실패했습니다: ' + e.message);
+                console.error('글 작성/수정 실패:', e);
+                alert('처리에 실패했습니다: ' + e.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '등록하기';
+                btn.innerHTML = isEditMode ? '수정 완료' : '등록하기';
+            }
+        }
+
+        async function deletePost(postId) {
+            try {
+                const db = firebase.firestore();
+                await db.collection('inquiries').doc(postId).delete();
+                alert('게시글이 삭제되었습니다.');
+                loadPosts('inquiries');
+            } catch (e) {
+                console.error('삭제 실패:', e);
+                alert('삭제에 실패했습니다.');
             }
         }
     </script>
