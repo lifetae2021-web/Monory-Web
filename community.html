@@ -127,7 +127,7 @@
         
         <!-- Version Display -->
         <div style="text-align: center; margin-top: 40px; font-size: 0.8rem; color: #555;">
-            v1.3.72 (2026-04-13)
+            v1.3.73 (2026-04-13)
         </div>
     </div>
 
@@ -292,7 +292,7 @@
                         });
                     });
                 }, (error) => {
-                    console.error("게시글 불러오기 실패:", error);
+                    console.error("게시글 불러오기 실패 [Code:" + (error.code || 'unknown') + "]:", error.message, error);
                     if (error.code === 'permission-denied') {
                         container.innerHTML = `<div style="text-align: center; padding: 50px; color:#F44336;">접근 권한이 없습니다. 관리자에게 문의하세요.</div>`;
                     } else {
@@ -375,6 +375,8 @@
             btn.innerHTML = '확인 중...';
 
             try {
+                if (typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded');
+                const db = firebase.firestore();
                 const doc = await db.collection('inquiries').doc(targetPostId).get();
                 if (doc.exists) {
                     const data = doc.data();
@@ -394,8 +396,8 @@
                     }
                 }
             } catch (e) {
-                console.error('비밀번호 확인 실패:', e);
-                alert('연결 오류가 발생했습니다.');
+                console.error('비밀번호 확인 실패 [Code:' + (e.code || 'unknown') + ']:', e.message, e);
+                alert('연결 오류가 발생했습니다: ' + e.message);
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '확인';
@@ -465,6 +467,7 @@
             btn.innerHTML = '등록 중...';
 
             try {
+                if (typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded');
                 const db = firebase.firestore();
                 const postData = {
                     title: title,
@@ -494,7 +497,7 @@
                 closeWriteModal();
                 loadPosts(currentTab);
             } catch(e) {
-                console.error('글 작성/수정 실패:', e);
+                console.error('글 작성/수정 실패 [Code:' + (e.code || 'unknown') + ']:', e.message, e);
                 alert('처리에 실패했습니다: ' + e.message);
             } finally {
                 btn.disabled = false;
@@ -504,13 +507,14 @@
 
         async function deletePost(postId) {
             try {
+                if (typeof firebase === 'undefined') throw new Error('Firebase SDK not loaded');
                 const db = firebase.firestore();
                 await db.collection('inquiries').doc(postId).delete();
                 alert('게시글이 삭제되었습니다.');
                 loadPosts('inquiries');
             } catch (e) {
-                console.error('삭제 실패:', e);
-                alert('삭제에 실패했습니다.');
+                console.error('삭제 실패 [Code:' + (e.code || 'unknown') + ']:', e.message, e);
+                alert('삭제에 실패했습니다: ' + e.message);
             }
         }
     </script>
