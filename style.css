@@ -804,17 +804,17 @@ footer p {
     background: linear-gradient(135deg, var(--accent-gold), #b8962f);
     color: #000;
     width: auto;           /* 텍스트 폭에 맞게 자동 */
-    min-width: 120px;      /* 최소 너비 보장 */
-    padding: 15px 22px;    /* 텍스트가 숨쉬는 패딩 */
+    min-width: auto;      /* 최소 너비 제한 해제 */
+    padding: 8px 16px;     /* 더 간결한 패딩 */
     border-radius: 22px;   /* 더 둥글고 세련된 모서리 */
     text-decoration: none;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: center;
     align-items: center;
     text-align: center;
     font-family: var(--font-heading); /* 명확한 폰트 적용 */
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     line-height: 1.3;
     box-shadow: 0 12px 35px rgba(212, 175, 55, 0.4); /* 골드 글로우 강화 */
     z-index: 9999;
