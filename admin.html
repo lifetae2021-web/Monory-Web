@@ -823,7 +823,8 @@
                 
                 const auth = firebase.auth();
                 auth.onAuthStateChanged((user) => {
-                    if (!user && !hasKakaoAdmin) {
+                    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                    if (!user && !hasKakaoAdmin && !isLocal) {
                         // 로그인 안된 경우
                         window.location.href = 'login.html';
                     } else {
@@ -831,8 +832,12 @@
                         document.body.style.transition = 'opacity 0.3s ease';
                         document.body.style.opacity = '1';
 
-                        // 이메일 로그인자는 최고 관리자로 취급
-                        if (user && user.email) {
+                        // 로컬 개발 환경용 더미 데이터 설정
+                        if (isLocal && !user && !hasKakaoAdmin) {
+                            window.currentAdminRole = 'super_admin';
+                            const titleEl = document.querySelector('.admin-profile span');
+                            if (titleEl) titleEl.innerHTML = '로컬 개발자 <i class="fa-solid fa-crown" style="color:var(--accent-gold); margin-left:4px; font-size:0.8rem;"></i>';
+                        } else if (user && user.email) {
                             window.currentAdminRole = 'super_admin';
                             const titleEl = document.querySelector('.admin-profile span');
                             if (titleEl) titleEl.innerHTML = '최고 관리자 <i class="fa-solid fa-crown" style="color:var(--accent-gold); margin-left:4px; font-size:0.8rem;"></i>';

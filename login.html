@@ -136,6 +136,12 @@
             </svg>
             카카오 계정으로 관리자 로그인
         </button>
+        
+        <div id="local-bypass-wrap" style="display:none; margin-top: 15px; text-align: center;">
+            <button type="button" class="login-btn" id="btn-local-bypass" style="background: rgba(255,255,255,0.05); color: #fff; font-size: 0.85rem; border: 1px dashed var(--accent-gold); width: 100%;">
+                <i class="fa-solid fa-code"></i> 로컬 테스트 접속 (인증 우회)
+            </button>
+        </div>
     </div>
 
     <!-- Firebase Auth & Firestore 설정 -->
@@ -149,6 +155,25 @@
             setTimeout(() => {
                 const auth = firebase.auth();
                 
+                // 로컬 개발 환경 검사 및 로컬 버튼 노출
+                const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                if (isLocal) {
+                    const bypassWrap = document.getElementById('local-bypass-wrap');
+                    if (bypassWrap) bypassWrap.style.display = 'block';
+                    
+                    const bypassBtn = document.getElementById('btn-local-bypass');
+                    if (bypassBtn) {
+                        bypassBtn.addEventListener('click', () => {
+                            sessionStorage.setItem('monory_admin_session', JSON.stringify({
+                                kakaoId: 'local_dev',
+                                role: 'super_admin',
+                                name: '로컬 개발자'
+                            }));
+                            window.location.href = 'admin.html';
+                        });
+                    }
+                }
+
                 // 이미 이메일 관리자 인증이 되어 있거나 카카오 관리자 세션이 있다면 대시보드로 이동
                 auth.onAuthStateChanged((user) => {
                     const hasAuth = !!user;
