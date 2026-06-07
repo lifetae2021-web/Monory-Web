@@ -74,7 +74,8 @@
         </div>
     </nav>
 
-    <header id="home" class="hero-section">
+    <header id="home" class="hero-section" style="background: none;">
+        <div id="hero-slideshow" style="position: absolute; inset: 0; z-index: 0; pointer-events: none;"></div>
         <div class="hero-overlay"></div>
         <div class="hero-content">
             <h1 class="fade-in-up"
@@ -809,14 +810,40 @@
                             document.getElementById('display-banner').style.display = 'flex';
                         }
 
-                        // 메인 히어로 이미지 실시간 반영
-                        if (data.heroImageUrl) {
-                            const heroSection = document.getElementById('home');
-                            if (heroSection) {
-                                heroSection.style.backgroundImage = `url('${data.heroImageUrl}')`;
-                                heroSection.style.backgroundSize = 'cover';
-                                heroSection.style.backgroundPosition = 'center center';
-                                heroSection.style.backgroundRepeat = 'no-repeat';
+                        // 메인 히어로 이미지 슬라이드쇼 실시간 반영
+                        let imageUrls = [];
+                        if (data.heroImageUrls && Array.isArray(data.heroImageUrls) && data.heroImageUrls.length > 0) {
+                            imageUrls = data.heroImageUrls.filter(url => !!url);
+                        } else if (data.heroImageUrl) {
+                            imageUrls = [data.heroImageUrl];
+                        } else {
+                            imageUrls = ['assets/hero.png'];
+                        }
+
+                        // 기존 슬라이드쇼 타이머 해제
+                        if (window._heroSlideshowTimer) {
+                            clearInterval(window._heroSlideshowTimer);
+                            window._heroSlideshowTimer = null;
+                        }
+
+                        const slideshowContainer = document.getElementById('hero-slideshow');
+                        if (slideshowContainer) {
+                            slideshowContainer.innerHTML = '';
+                            imageUrls.forEach((url, index) => {
+                                const slide = document.createElement('div');
+                                slide.className = 'hero-slide' + (index === 0 ? ' active' : '');
+                                slide.style.backgroundImage = `url('${url}')`;
+                                slideshowContainer.appendChild(slide);
+                            });
+
+                            if (imageUrls.length > 1) {
+                                let currentSlideIndex = 0;
+                                const slides = slideshowContainer.querySelectorAll('.hero-slide');
+                                window._heroSlideshowTimer = setInterval(() => {
+                                    if (slides[currentSlideIndex]) slides[currentSlideIndex].classList.remove('active');
+                                    currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+                                    if (slides[currentSlideIndex]) slides[currentSlideIndex].classList.add('active');
+                                }, 5000); // 5초마다 회전
                             }
                         }
 

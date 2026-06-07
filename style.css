@@ -377,6 +377,21 @@ h1, h2, h3, h4, h5 {
     background: url('assets/hero.png') no-repeat center center/cover;
 }
 
+.hero-slide {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 1.5s ease-in-out;
+    z-index: 0;
+}
+
+.hero-slide.active {
+    opacity: 1;
+}
+
 .hero-overlay {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
