@@ -31,12 +31,12 @@
         </div>
         <ul class="nav-menu">
             <li class="nav-item">
-                <a href="#" class="nav-link" onclick="showSection('dashboard')">
+                <a href="#" class="nav-link active" onclick="showSection('dashboard')" id="nav-dashboard">
                     <i class="fa-solid fa-border-all"></i> 대시보드
                 </a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link" onclick="showSection('reservations')">
+                <a href="#" class="nav-link" onclick="showSection('reservations')" id="nav-reservations">
                     <i class="fa-regular fa-calendar-check"></i> 예약 관리
                 </a>
             </li>
@@ -49,7 +49,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="#" class="nav-link" onclick="showSection('events')"><i class="fa-solid fa-users-viewfinder"></i> 키링크 이벤트</a>
+                <a href="#" class="nav-link" onclick="showSection('events')" id="nav-events"><i class="fa-solid fa-users-viewfinder"></i> 키링크 이벤트</a>
             </li>
             <li class="nav-item">
                 <a href="#" class="nav-link" onclick="showSection('cms')" id="nav-cms"><i class="fa-solid fa-pen-to-square"></i> 콘텐츠 편집 (CMS)</a>
@@ -898,10 +898,14 @@
                 if (mainContent) mainContent.style.display = 'block';
             }
 
-            // Active 클래스
+            // 선택한 탭 상태를 브라우저 세션에 저장
+            sessionStorage.setItem('admin_current_section', name);
+
+            // Active 클래스 갱신 (네비게이션 ID 기준)
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-            if(event && event.target) {
-                event.target.closest('.nav-link')?.classList.add('active');
+            const activeNav = document.getElementById('nav-' + name);
+            if (activeNav) {
+                activeNav.classList.add('active');
             }
         }
 
@@ -2843,5 +2847,8 @@
             if (typeof firebase !== 'undefined') {
                 initNotificationListener();
             }
+            // 직전에 열어둔 탭 복구 (기본값: dashboard)
+            const lastSection = sessionStorage.getItem('admin_current_section') || 'dashboard';
+            showSection(lastSection);
         });
     </script>
