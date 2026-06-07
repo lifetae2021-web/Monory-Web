@@ -97,9 +97,9 @@
         <div class="container">
             <div class="about-grid">
                 <div class="about-text slide-in-left">
-                    <h2 class="section-badge">ABOUT US</h2>
-                    <h3 class="section-title">새로운 연결의 시작<br>커뮤니티 허브</h3>
-                    <p class="section-description">
+                    <h2 class="section-badge" id="display-about-badge">ABOUT US</h2>
+                    <h3 class="section-title" id="display-about-title">새로운 연결의 시작<br>커뮤니티 허브</h3>
+                    <p class="section-description" id="display-about-description">
                         <span style="color: #FFD700; font-weight: bold;">모노리</span>는 단순한 파티룸을 넘어<br class="mobile-br">
                         다양한 사람을 만날 수 있는<br class="mobile-br"><br class="pc-br">
                         <span style="color: #FFD700; font-weight: bold;">로테이션 소개팅, 파티 이벤트</span>가 열리는<br class="mobile-br">
@@ -113,34 +113,34 @@
                             style="background: rgba(255,255,255,0.03); padding: 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
                             <i class="fa-solid fa-wine-glass"
                                 style="font-size: 2rem; color: var(--accent-gold); margin-bottom: 16px; display: block;"></i>
-                            <h4 style="margin-bottom: 8px;">프리미엄 라운지</h4>
-                            <p style="font-size: 0.85rem; color: var(--text-secondary);">고급 바 테이블과 프라이빗 룸</p>
+                            <h4 id="display-fac1-title" style="margin-bottom: 8px;">프리미엄 라운지</h4>
+                            <p id="display-fac1-desc" style="font-size: 0.85rem; color: var(--text-secondary);">고급 바 테이블과 프라이빗 룸</p>
                         </div>
                         <div class="fac-card"
                             style="background: rgba(255,255,255,0.03); padding: 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
                             <i class="fa-solid fa-video"
                                 style="font-size: 2rem; color: var(--accent-gold); margin-bottom: 16px; display: block;"></i>
-                            <h4 style="margin-bottom: 8px;">시네마 스크린</h4>
-                            <p style="font-size: 0.85rem; color: var(--text-secondary);">120인치 빔프로젝터</p>
+                            <h4 id="display-fac2-title" style="margin-bottom: 8px;">시네마 스크린</h4>
+                            <p id="display-fac2-desc" style="font-size: 0.85rem; color: var(--text-secondary);">120인치 빔프로젝터</p>
                         </div>
                         <div class="fac-card"
                             style="background: rgba(255,255,255,0.03); padding: 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
                             <i class="fa-solid fa-music"
                                 style="font-size: 2rem; color: var(--accent-gold); margin-bottom: 16px; display: block;"></i>
-                            <h4 style="margin-bottom: 8px;">하이엔드 오디오</h4>
-                            <p style="font-size: 0.85rem; color: var(--text-secondary);">사운드 빵빵한 스피커 세팅</p>
+                            <h4 id="display-fac3-title" style="margin-bottom: 8px;">하이엔드 오디오</h4>
+                            <p id="display-fac3-desc" style="font-size: 0.85rem; color: var(--text-secondary);">사운드 빵빵한 스피커 세팅</p>
                         </div>
                         <div class="fac-card"
                             style="background: rgba(255,255,255,0.03); padding: 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
                             <i class="fa-solid fa-camera-retro"
                                 style="font-size: 2rem; color: var(--accent-gold); margin-bottom: 16px; display: block;"></i>
-                            <h4 style="margin-bottom: 8px;">감성 무드 조명</h4>
-                            <p style="font-size: 0.85rem; color: var(--text-secondary);">깊이 있는 색감의 스마트 조명</p>
+                            <h4 id="display-fac4-title" style="margin-bottom: 8px;">감성 무드 조명</h4>
+                            <p id="display-fac4-desc" style="font-size: 0.85rem; color: var(--text-secondary);">깊이 있는 색감의 스마트 조명</p>
                         </div>
                     </div>
                 </div>
                 <div class="about-image slide-in-right">
-                    <img src="assets/about.png" alt="Keylink Networking Event at Monory">
+                    <img id="display-about-img" src="assets/about.png" alt="Keylink Networking Event at Monory">
                 </div>
             </div>
         </div>
@@ -818,6 +818,56 @@
                                 heroSection.style.backgroundPosition = 'center center';
                                 heroSection.style.backgroundRepeat = 'no-repeat';
                             }
+                        }
+
+                        // ABOUT US 실시간 반영
+                        if (data.aboutBadge) {
+                            const badgeEl = document.getElementById('display-about-badge');
+                            if (badgeEl) badgeEl.innerText = data.aboutBadge;
+                        }
+                        if (data.aboutTitle) {
+                            const titleEl = document.getElementById('display-about-title');
+                            if (titleEl) titleEl.innerHTML = data.aboutTitle;
+                        }
+                        if (data.aboutDescription) {
+                            const descEl = document.getElementById('display-about-description');
+                            if (descEl) descEl.innerHTML = data.aboutDescription.replace(/\n/g, '<br>');
+                        }
+                        if (data.fac1Title) {
+                            const facEl = document.getElementById('display-fac1-title');
+                            if (facEl) facEl.innerText = data.fac1Title;
+                        }
+                        if (data.fac1Desc) {
+                            const facEl = document.getElementById('display-fac1-desc');
+                            if (facEl) facEl.innerText = data.fac1Desc;
+                        }
+                        if (data.fac2Title) {
+                            const facEl = document.getElementById('display-fac2-title');
+                            if (facEl) facEl.innerText = data.fac2Title;
+                        }
+                        if (data.fac2Desc) {
+                            const facEl = document.getElementById('display-fac2-desc');
+                            if (facEl) facEl.innerText = data.fac2Desc;
+                        }
+                        if (data.fac3Title) {
+                            const facEl = document.getElementById('display-fac3-title');
+                            if (facEl) facEl.innerText = data.fac3Title;
+                        }
+                        if (data.fac3Desc) {
+                            const facEl = document.getElementById('display-fac3-desc');
+                            if (facEl) facEl.innerText = data.fac3Desc;
+                        }
+                        if (data.fac4Title) {
+                            const facEl = document.getElementById('display-fac4-title');
+                            if (facEl) facEl.innerText = data.fac4Title;
+                        }
+                        if (data.fac4Desc) {
+                            const facEl = document.getElementById('display-fac4-desc');
+                            if (facEl) facEl.innerText = data.fac4Desc;
+                        }
+                        if (data.aboutImageUrl) {
+                            const aboutImg = document.getElementById('display-about-img');
+                            if (aboutImg) aboutImg.src = data.aboutImageUrl;
                         }
                     }
                 });

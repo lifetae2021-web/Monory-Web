@@ -621,6 +621,128 @@
                         </div>
                     </form>
                 </div>
+
+                <!-- Section 3: ABOUT US Settings -->
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px;">
+                        <h2 class="panel-title"><i class="fa-solid fa-address-card" style="color: var(--accent-gold); margin-right: 8px;"></i>ABOUT US 섹션 설정</h2>
+                    </div>
+                    <form id="about-form">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                            <!-- Left Side: Texts -->
+                            <div>
+                                <div class="edit-form-group">
+                                    <label class="edit-label">ABOUT US 배지 텍스트</label>
+                                    <input type="text" id="input-about-badge" class="edit-input" placeholder="예: ABOUT US">
+                                </div>
+                                <div class="edit-form-group">
+                                    <label class="edit-label">소개 제목 (br태그 사용 가능)</label>
+                                    <input type="text" id="input-about-title" class="edit-input" placeholder="예: 새로운 연결의 시작&lt;br&gt;커뮤니티 허브">
+                                </div>
+                                <div class="edit-form-group">
+                                    <label class="edit-label">소개 상세설명 (br태그 사용 가능)</label>
+                                    <textarea id="input-about-description" class="edit-textarea" style="height: 150px;" placeholder="소개글을 작성해 주세요. HTML 태그를 사용해 강조할 수 있습니다."></textarea>
+                                </div>
+                                
+                                <h3 style="margin: 20px 0 10px 0; font-size: 1.1rem; color: var(--accent-gold); border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 5px;">4개 서비스 카드 설정</h3>
+                                
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <div>
+                                        <div class="edit-form-group" style="margin-bottom: 10px;">
+                                            <label class="edit-label" style="font-size: 0.8rem;">1. 프리미엄 라운지 제목</label>
+                                            <input type="text" id="input-fac1-title" class="edit-input" placeholder="프리미엄 라운지">
+                                        </div>
+                                        <div class="edit-form-group">
+                                            <label class="edit-label" style="font-size: 0.8rem;">1. 프리미엄 라운지 설명</label>
+                                            <input type="text" id="input-fac1-desc" class="edit-input" placeholder="고급 바 테이블과 프라이빗 룸">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="edit-form-group" style="margin-bottom: 10px;">
+                                            <label class="edit-label" style="font-size: 0.8rem;">2. 시네마 스크린 제목</label>
+                                            <input type="text" id="input-fac2-title" class="edit-input" placeholder="시네마 스크린">
+                                        </div>
+                                        <div class="edit-form-group">
+                                            <label class="edit-label" style="font-size: 0.8rem;">2. 시네마 스크린 설명</label>
+                                            <input type="text" id="input-fac2-desc" class="edit-input" placeholder="120인치 빔프로젝터">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="edit-form-group" style="margin-bottom: 10px;">
+                                            <label class="edit-label" style="font-size: 0.8rem;">3. 하이엔드 오디오 제목</label>
+                                            <input type="text" id="input-fac3-title" class="edit-input" placeholder="하이엔드 오디오">
+                                        </div>
+                                        <div class="edit-form-group">
+                                            <label class="edit-label" style="font-size: 0.8rem;">3. 하이엔드 오디오 설명</label>
+                                            <input type="text" id="input-fac3-desc" class="edit-input" placeholder="사운드 빵빵한 스피커 세팅">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="edit-form-group" style="margin-bottom: 10px;">
+                                            <label class="edit-label" style="font-size: 0.8rem;">4. 감성 무드 조명 제목</label>
+                                            <input type="text" id="input-fac4-title" class="edit-input" placeholder="감성 무드 조명">
+                                        </div>
+                                        <div class="edit-form-group">
+                                            <label class="edit-label" style="font-size: 0.8rem;">4. 감성 무드 조명 설명</label>
+                                            <input type="text" id="input-fac4-desc" class="edit-input" placeholder="깊이 있는 색감의 스마트 조명">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Right Side: Image Upload -->
+                            <div style="border-left: 1px solid var(--border-color); padding-left: 30px; display: flex; flex-direction: column; justify-content: space-between;">
+                                <div>
+                                    <label class="edit-label">ABOUT US 우측 대표 이미지</label>
+                                    <div style="margin-bottom: 15px;">
+                                        <img id="about-img-preview" src="assets/about.png" alt="About Image Preview" style="width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border-color);">
+                                        <div style="margin-top: 5px; font-size: 0.8rem; color: var(--text-secondary); word-break: break-all;" id="about-img-current-url">기본 이미지 (assets/about.png)</div>
+                                    </div>
+                                    
+                                    <!-- Drag & Drop Zone -->
+                                    <div id="about-dropzone" 
+                                         style="border: 2px dashed rgba(212,175,55,0.35); background: rgba(212,175,55,0.03); border-radius: 8px; padding: 30px; text-align: center; cursor: pointer; transition: 0.2s;"
+                                         ondragover="aboutDropzoneOver(event)"
+                                         ondragleave="aboutDropzoneLeave(event)"
+                                         ondrop="aboutDropzoneDrop(event)"
+                                         onclick="document.getElementById('about-file-input').click()">
+                                        <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--accent-gold); margin-bottom: 10px;"></i>
+                                        <p style="margin: 0; font-size: 0.9rem; font-weight: bold;">이미지 파일을 드래그하여 놓거나 클릭하여 선택</p>
+                                        <p style="margin: 5px 0 0 0; font-size: 0.75rem; color: var(--text-secondary);">10MB 이하 JPG, PNG, WebP 등</p>
+                                        <input type="file" id="about-file-input" style="display:none;" accept="image/*" onchange="aboutFileSelected(event)">
+                                    </div>
+                                    
+                                    <!-- Selected File Info -->
+                                    <div id="about-file-info" style="display: none; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); padding: 10px 15px; border-radius: 6px; margin-top: 15px;">
+                                        <div style="display: flex; align-items: center; gap: 10px; overflow: hidden; white-space: nowrap;">
+                                            <i class="fa-solid fa-file-image" style="color: var(--accent-gold); flex-shrink: 0;"></i>
+                                            <span id="about-file-name" style="font-size: 0.85rem; text-overflow: ellipsis; overflow: hidden;">-</span>
+                                            <span id="about-file-size" style="font-size: 0.75rem; color: var(--text-secondary); flex-shrink: 0;">-</span>
+                                        </div>
+                                        <button type="button" onclick="aboutClearFile()" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1rem;"><i class="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                    
+                                    <!-- Progress Bar -->
+                                    <div id="about-progress-wrap" style="display:none; margin-top: 15px;">
+                                        <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:5px;">
+                                            <span>업로드 중...</span>
+                                            <span id="about-progress-pct">0%</span>
+                                        </div>
+                                        <div style="height:5px; background:rgba(255,255,255,0.07); border-radius:10px; overflow:hidden;">
+                                            <div id="about-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--accent-gold),#f3e5ab); border-radius:10px; transition:width 0.2s;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div style="margin-top: 30px;">
+                                    <button id="about-save-btn" type="submit" class="save-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                        <i class="fa-solid fa-check"></i> ABOUT US 전체 저장 및 즉시 반영
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
             
             <div id="version-badge" style="margin-top:20px; background: rgba(10,10,12,0.9); border: 1px solid var(--accent-gold); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; color: var(--accent-gold); display:inline-block;">
@@ -830,14 +952,41 @@
                         if (data.priceNight) document.getElementById('input-price-night').value = data.priceNight;
                         if (data.bannerToggle) document.getElementById('input-banner-toggle').value = data.bannerToggle;
 
+                        // ABOUT US 데이터
+                        document.getElementById('input-about-badge').value = data.aboutBadge || "ABOUT US";
+                        document.getElementById('input-about-title').value = data.aboutTitle || "새로운 연결의 시작<br>커뮤니티 허브";
+                        document.getElementById('input-about-description').value = data.aboutDescription || `모노리는 단순한 파티룸을 넘어
+다양한 사람을 만날 수 있는
+로테이션 소개팅, 파티 이벤트가 열리는
+핵심 커뮤니티 허브입니다.
+
+감각적인 인테리어, 최신식 시설, 그리고 편안한 분위기가 어우러진
+이 공간에서 새로운 사람들과의 영감 넘치는 네트워킹을 경험해보세요.`;
+                        document.getElementById('input-fac1-title').value = data.fac1Title || "프리미엄 라운지";
+                        document.getElementById('input-fac1-desc').value = data.fac1Desc || "고급 바 테이블과 프라이빗 룸";
+                        document.getElementById('input-fac2-title').value = data.fac2Title || "시네마 스크린";
+                        document.getElementById('input-fac2-desc').value = data.fac2Desc || "120인치 빔프로젝터";
+                        document.getElementById('input-fac3-title').value = data.fac3Title || "하이엔드 오디오";
+                        document.getElementById('input-fac3-desc').value = data.fac3Desc || "사운드 빵빵한 스피커 세팅";
+                        document.getElementById('input-fac4-title').value = data.fac4Title || "감성 무드 조명";
+                        document.getElementById('input-fac4-desc').value = data.fac4Desc || "깊이 있는 색감의 스마트 조명";
+
                         // 히어로 이미지 URL 미리보기 업데이트
                         if (data.heroImageUrl) {
                             const preview = document.getElementById('hero-img-preview');
                             const urlLabel = document.getElementById('hero-img-current-url');
                             if (preview) preview.src = data.heroImageUrl;
                             if (urlLabel) urlLabel.textContent = data.heroImageUrl;
-                            // 전역 변수에도 저장 (업로드 시 포함용)
                             window._currentHeroImageUrl = data.heroImageUrl;
+                        }
+
+                        // 어바웃 이미지 URL 미리보기 업데이트
+                        if (data.aboutImageUrl) {
+                            const preview = document.getElementById('about-img-preview');
+                            const urlLabel = document.getElementById('about-img-current-url');
+                            if (preview) preview.src = data.aboutImageUrl;
+                            if (urlLabel) urlLabel.textContent = data.aboutImageUrl;
+                            window._currentAboutImageUrl = data.aboutImageUrl;
                         }
                     }
                 } else {
@@ -870,7 +1019,19 @@
                     priceDay: document.getElementById('input-price-day').value,
                     priceNight: document.getElementById('input-price-night').value,
                     bannerToggle: document.getElementById('input-banner-toggle').value,
-                    heroImageUrl: window._currentHeroImageUrl || ''
+                    heroImageUrl: window._currentHeroImageUrl || '',
+                    aboutBadge: document.getElementById('input-about-badge').value,
+                    aboutTitle: document.getElementById('input-about-title').value,
+                    aboutDescription: document.getElementById('input-about-description').value,
+                    fac1Title: document.getElementById('input-fac1-title').value,
+                    fac1Desc: document.getElementById('input-fac1-desc').value,
+                    fac2Title: document.getElementById('input-fac2-title').value,
+                    fac2Desc: document.getElementById('input-fac2-desc').value,
+                    fac3Title: document.getElementById('input-fac3-title').value,
+                    fac3Desc: document.getElementById('input-fac3-desc').value,
+                    fac4Title: document.getElementById('input-fac4-title').value,
+                    fac4Desc: document.getElementById('input-fac4-desc').value,
+                    aboutImageUrl: window._currentAboutImageUrl || ''
                 };
             }
 
@@ -880,7 +1041,7 @@
                 
                 const newSnapshotObj = {
                     ...newData,
-                    version: "1.3.73",
+                    version: "1.3.82",
                     nextVersion: nextVersion,
                     timestamp: timestamp
                 };
@@ -905,6 +1066,11 @@
                 saveWithVersionControl(getFullFormData(), '예약 패키지 설정이 저장되었으며, 즉시 반영되었습니다.');
             });
 
+            document.getElementById('about-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                aboutUploadAndSave();
+            });
+
             document.getElementById('btn-revert').addEventListener('click', () => {
                 const selectedId = document.getElementById('input-history-select').value;
                 if(!selectedId) return alert('돌아갈 과거 버전을 선택해주세요.');
@@ -921,6 +1087,18 @@
                             if (data.priceNight) document.getElementById('input-price-night').value = data.priceNight;
                             if (data.bannerToggle) document.getElementById('input-banner-toggle').value = data.bannerToggle;
 
+                            if (data.aboutBadge) document.getElementById('input-about-badge').value = data.aboutBadge;
+                            if (data.aboutTitle) document.getElementById('input-about-title').value = data.aboutTitle;
+                            if (data.aboutDescription) document.getElementById('input-about-description').value = data.aboutDescription;
+                            if (data.fac1Title) document.getElementById('input-fac1-title').value = data.fac1Title;
+                            if (data.fac1Desc) document.getElementById('input-fac1-desc').value = data.fac1Desc;
+                            if (data.fac2Title) document.getElementById('input-fac2-title').value = data.fac2Title;
+                            if (data.fac2Desc) document.getElementById('input-fac2-desc').value = data.fac2Desc;
+                            if (data.fac3Title) document.getElementById('input-fac3-title').value = data.fac3Title;
+                            if (data.fac3Desc) document.getElementById('input-fac3-desc').value = data.fac3Desc;
+                            if (data.fac4Title) document.getElementById('input-fac4-title').value = data.fac4Title;
+                            if (data.fac4Desc) document.getElementById('input-fac4-desc').value = data.fac4Desc;
+
                             // 이미지 URL도 rollback
                             if (data.heroImageUrl) {
                                 window._currentHeroImageUrl = data.heroImageUrl;
@@ -928,6 +1106,14 @@
                                 const urlLabel = document.getElementById('hero-img-current-url');
                                 if (preview) preview.src = data.heroImageUrl;
                                 if (urlLabel) urlLabel.textContent = data.heroImageUrl;
+                            }
+
+                            if (data.aboutImageUrl) {
+                                window._currentAboutImageUrl = data.aboutImageUrl;
+                                const preview = document.getElementById('about-img-preview');
+                                const urlLabel = document.getElementById('about-img-current-url');
+                                if (preview) preview.src = data.aboutImageUrl;
+                                if (urlLabel) urlLabel.textContent = data.aboutImageUrl;
                             }
                             
                             saveWithVersionControl(getFullFormData(), `과거 ${selectedId} 버전 복구(Rollback) 성공! 홈페이지에 즉각 반영됩니다.`);
@@ -1449,6 +1635,218 @@
                             saveBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 이미지 저장 및 즉시 반영';
                             document.getElementById('hero-progress-wrap').style.display = 'none';
                         });
+                    });
+                }
+            );
+        }
+
+        // ============================
+        // ABOUT US 이미지 업로드 관련 전역 함수
+        // ============================
+        let _aboutSelectedFile = null;
+        window._currentAboutImageUrl = 'assets/about.png';
+
+        function aboutDropzoneOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const dz = document.getElementById('about-dropzone');
+            if (dz) {
+                dz.style.borderColor = 'var(--accent-gold)';
+                dz.style.background = 'rgba(212,175,55,0.08)';
+            }
+        }
+
+        function aboutDropzoneLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const dz = document.getElementById('about-dropzone');
+            if (dz) {
+                dz.style.borderColor = 'rgba(212,175,55,0.35)';
+                dz.style.background = 'rgba(212,175,55,0.03)';
+            }
+        }
+
+        function aboutDropzoneDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            aboutDropzoneLeave(e);
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                aboutSetFile(file);
+            } else {
+                alert('이미지 파일만 업로드할 수 있습니다. (JPG, PNG, WebP 등)');
+            }
+        }
+
+        function aboutFileSelected(e) {
+            const file = e.target.files[0];
+            if (file) aboutSetFile(file);
+        }
+
+        function aboutSetFile(file) {
+            if (file.name.toLowerCase().endsWith('.heic')) {
+                alert('[업로드 제한] 아이폰 HEIC 형식의 파일은 웹브라우저에서 직접 표시할 수 없습니다.\nJPG 또는 PNG 이미지 파일로 변환한 뒤 업로드해 주세요.');
+                return;
+            }
+
+            // 파일 크기 검사 (10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('파일 크기가 10MB를 초과합니다.\n이미지를 압축 후 다시 시도해주세요.');
+                return;
+            }
+
+            _aboutSelectedFile = file;
+
+            // 파일 정보 표시
+            document.getElementById('about-file-name').textContent = file.name;
+            document.getElementById('about-file-size').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+            const fileInfoEl = document.getElementById('about-file-info');
+            if (fileInfoEl) fileInfoEl.style.display = 'flex';
+
+            // 로컬 미리보기
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const preview = document.getElementById('about-img-preview');
+                if (preview) {
+                    preview.style.opacity = '0.6';
+                    preview.src = ev.target.result;
+                    setTimeout(() => { preview.style.opacity = '1'; }, 100);
+                }
+                const urlLabel = document.getElementById('about-img-current-url');
+                if (urlLabel) urlLabel.textContent = '[새 이미지 선택됨 — 아래 저장 버튼을 눌러주세요]';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function aboutClearFile() {
+            _aboutSelectedFile = null;
+            document.getElementById('about-file-input').value = '';
+            document.getElementById('about-file-info').style.display = 'none';
+            document.getElementById('about-file-name').textContent = '-';
+            document.getElementById('about-file-size').textContent = '-';
+
+            // 미리보기 원복
+            const preview = document.getElementById('about-img-preview');
+            if (preview) preview.src = window._currentAboutImageUrl || 'assets/about.png';
+            const urlLabel = document.getElementById('about-img-current-url');
+            if (urlLabel) urlLabel.textContent = window._currentAboutImageUrl || '기본 이미지 (assets/about.png)';
+        }
+
+        async function aboutUploadAndSave() {
+            if (typeof firebase === 'undefined') {
+                alert('Firebase가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+
+            const saveBtn = document.getElementById('about-save-btn');
+            saveBtn.disabled = true;
+            saveBtn.style.opacity = '0.5';
+            saveBtn.style.pointerEvents = 'none';
+
+            // 1. 이미지가 선택되지 않은 경우 ➡️ 텍스트 필드만 업데이트
+            if (!_aboutSelectedFile) {
+                saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
+                try {
+                    saveWithVersionControl(getFullFormData(), 'ABOUT US 정보가 성공적으로 저장 및 즉시 반영되었습니다.');
+                    setTimeout(() => {
+                        saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> 저장 완료!';
+                        saveBtn.style.background = 'rgba(74,222,128,0.2)';
+                        saveBtn.style.borderColor = '#4ade80';
+                        saveBtn.style.color = '#4ade80';
+                        
+                        setTimeout(() => {
+                            saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> ABOUT US 전체 저장 및 즉시 반영';
+                            saveBtn.style.background = '';
+                            saveBtn.style.borderColor = '';
+                            saveBtn.style.color = '';
+                            saveBtn.style.opacity = '1';
+                            saveBtn.style.pointerEvents = 'auto';
+                            saveBtn.disabled = false;
+                        }, 3000);
+                    }, 500);
+                } catch (err) {
+                    alert('저장 실패: ' + err.message);
+                    saveBtn.disabled = false;
+                    saveBtn.style.opacity = '1';
+                    saveBtn.style.pointerEvents = 'auto';
+                    saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> ABOUT US 전체 저장 및 즉시 반영';
+                }
+                return;
+            }
+
+            // 2. 새로운 이미지가 선택된 경우 ➡️ 압축 및 스토리지 업로드 진행 후 저장
+            const storage = firebase.storage();
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 이미지 압축 및 최적화 중...';
+
+            let fileToUpload = _aboutSelectedFile;
+            try {
+                // 대표 이미지이므로 최대 1600px로 클라이언트 압축
+                fileToUpload = await compressImage(_aboutSelectedFile, 1600, 0.85);
+            } catch (e) {
+                console.error("About image compression failed: ", e);
+            }
+
+            const ext = fileToUpload.name.split('.').pop();
+            const storageFileName = `about_images/about_${Date.now()}.${ext}`;
+            const storageRef = storage.ref(storageFileName);
+
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 업로드 중...';
+
+            document.getElementById('about-progress-wrap').style.display = 'block';
+            document.getElementById('about-progress-bar').style.width = '0%';
+            document.getElementById('about-progress-pct').textContent = '0%';
+
+            const uploadTask = storageRef.put(fileToUpload);
+
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                    document.getElementById('about-progress-bar').style.width = pct + '%';
+                    document.getElementById('about-progress-pct').textContent = pct + '%';
+                },
+                (error) => {
+                    document.getElementById('about-progress-wrap').style.display = 'none';
+                    saveBtn.disabled = false;
+                    saveBtn.style.opacity = '1';
+                    saveBtn.style.pointerEvents = 'auto';
+                    saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> ABOUT US 전체 저장 및 즉시 반영';
+                    alert('업로드 실패: ' + error.message);
+                },
+                () => {
+                    uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                        window._currentAboutImageUrl = downloadURL;
+                        
+                        // 로컬 UI 업데이트
+                        const urlLabel = document.getElementById('about-img-current-url');
+                        if (urlLabel) urlLabel.textContent = downloadURL;
+                        _aboutSelectedFile = null;
+                        document.getElementById('about-file-input').value = '';
+                        document.getElementById('about-file-info').style.display = 'none';
+                        document.getElementById('about-progress-wrap').style.display = 'none';
+
+                        // DB 저장 진행
+                        saveWithVersionControl(getFullFormData(), 'ABOUT US 이미지 및 텍스트 정보가 성공적으로 저장 및 즉시 반영되었습니다.');
+                        
+                        saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> 저장 완료!';
+                        saveBtn.style.background = 'rgba(74,222,128,0.2)';
+                        saveBtn.style.borderColor = '#4ade80';
+                        saveBtn.style.color = '#4ade80';
+
+                        setTimeout(() => {
+                            saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> ABOUT US 전체 저장 및 즉시 반영';
+                            saveBtn.style.background = '';
+                            saveBtn.style.borderColor = '';
+                            saveBtn.style.color = '';
+                            saveBtn.style.opacity = '1';
+                            saveBtn.style.pointerEvents = 'auto';
+                            saveBtn.disabled = false;
+                        }, 3000);
+                    }).catch(err => {
+                        alert('URL 획득 에러: ' + err.message);
+                        saveBtn.disabled = false;
+                        saveBtn.style.opacity = '1';
+                        saveBtn.style.pointerEvents = 'auto';
+                        saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> ABOUT US 전체 저장 및 즉시 반영';
                     });
                 }
             );
