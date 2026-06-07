@@ -1037,12 +1037,32 @@
         }
 
         function gallerySetFiles(files) {
-            const oversized = files.filter(f => f.size > 10 * 1024 * 1024);
+            const heicFiles = files.filter(f => f.name.toLowerCase().endsWith('.heic'));
+            if (heicFiles.length > 0) {
+                alert(`[업로드 제한] 아이폰 HEIC 형식의 파일은 웹브라우저에서 직접 표시할 수 없습니다:\n${heicFiles.map(f=>f.name).join(', ')}\n\nJPG 또는 PNG 이미지 파일로 변환한 뒤 업로드해 주세요.`);
+            }
+            const nonHeicFiles = files.filter(f => !f.name.toLowerCase().endsWith('.heic'));
+            const oversized = nonHeicFiles.filter(f => f.size > 10 * 1024 * 1024);
             if (oversized.length > 0) {
                 alert(`${oversized.map(f=>f.name).join(', ')}\n위 파일이 10MB를 초과합니다. 제외됩니다.`);
             }
-            _gallerySelectedFiles = files.filter(f => f.size <= 10 * 1024 * 1024);
-            if (_gallerySelectedFiles.length === 0) return;
+            _gallerySelectedFiles = nonHeicFiles.filter(f => f.size <= 10 * 1024 * 1024);
+            if (_gallerySelectedFiles.length === 0) {
+                // 미리보기 및 업로드 버튼 상태 초기화
+                const previewEl = document.getElementById('gallery-file-preview');
+                if (previewEl) {
+                    previewEl.style.display = 'none';
+                    previewEl.innerHTML = '';
+                }
+                const btn = document.getElementById('gallery-upload-btn');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.4';
+                    btn.style.pointerEvents = 'none';
+                    btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 사진 추가';
+                }
+                return;
+            }
 
             // 미리보기 렌더
             const previewEl = document.getElementById('gallery-file-preview');
@@ -1249,6 +1269,11 @@
         }
 
         function heroSetFile(file) {
+            if (file.name.toLowerCase().endsWith('.heic')) {
+                alert('[업로드 제한] 아이폰 HEIC 형식의 파일은 웹브라우저에서 직접 표시할 수 없습니다.\nJPG 또는 PNG 이미지 파일로 변환한 뒤 업로드해 주세요.');
+                return;
+            }
+
             // 파일 크기 검사 (10MB)
             if (file.size > 10 * 1024 * 1024) {
                 alert('파일 크기가 10MB를 초과합니다.\n이미지를 압축 후 다시 시도해주세요.');
