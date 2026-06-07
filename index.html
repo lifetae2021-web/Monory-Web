@@ -799,9 +799,18 @@
                         if (data.description) document.getElementById('display-description').innerText = data.description.replace(/\n/g, '\n');
 
                         // Set Pricing Info
-                        if (data.priceDay) document.getElementById('opt-day').innerText = `데이 패키지 (10-17시) - ${parseInt(data.priceDay).toLocaleString()}원`;
-                        if (data.priceNight) document.getElementById('opt-night').innerText = `나이트 패키지 (18-24시) - ${parseInt(data.priceNight).toLocaleString()}원`;
-                        if (data.discountInfo) document.getElementById('opt-keylink').innerText = `🔑 소개팅 참여자 특별 ${data.discountInfo}% 할인 패키지`;
+                        const optDay = document.getElementById('opt-day');
+                        if (optDay && data.priceDay) {
+                            optDay.innerText = `데이 패키지 (10-17시) - ${parseInt(data.priceDay).toLocaleString()}원`;
+                        }
+                        const optNight = document.getElementById('opt-night');
+                        if (optNight && data.priceNight) {
+                            optNight.innerText = `나이트 패키지 (18-24시) - ${parseInt(data.priceNight).toLocaleString()}원`;
+                        }
+                        const optKeylink = document.getElementById('opt-keylink');
+                        if (optKeylink && data.discountInfo) {
+                            optKeylink.innerText = `🔑 소개팅 참여자 특별 ${data.discountInfo}% 할인 패키지`;
+                        }
 
                         // Set Banner Visibility
                         if (data.bannerToggle === 'hide') {
@@ -1189,8 +1198,8 @@
                                     <label>이용 패키지 선택</label>
                                     <select id="booking-package" class="custom-select" style="margin-bottom: 0; padding: 12px; font-size: 0.95rem; background-color: #fff; border: 1px solid #ddd; color: #1a1a1a;">
                                         <option value="none">패키지를 선택하세요</option>
-                                        <option value="day">데이 패키지 (10:00~17:00)</option>
-                                        <option value="night">나이트 패키지 (18:00~24:00)</option>
+                                        <option id="opt-day" value="day">데이 패키지 (10:00~17:00)</option>
+                                        <option id="opt-night" value="night">나이트 패키지 (18:00~24:00)</option>
                                         <option value="allnight">올나잇 패키지 (18:00~익일 09:00)</option>
                                     </select>
                                 </div>

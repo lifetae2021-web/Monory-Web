@@ -68,6 +68,11 @@ service cloud.firestore {
     match /monory_config/{configId} {
       allow read: if true;
       allow write: if isFirebaseAuthAdmin() || isGeneralAdmin();
+
+      match /{allChildren=**} {
+        allow read: if true;
+        allow write: if isFirebaseAuthAdmin() || isGeneralAdmin();
+      }
     }
 
     // 공간 갤러리 사진 규칙
