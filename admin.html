@@ -382,6 +382,182 @@
                 </div>
             </div>
 
+            <!-- ============================
+                 메인 이미지 편집 패널
+                 ============================ -->
+            <div class="edit-grid" style="margin-bottom: 30px;">
+                <div class="panel" style="grid-column: 1 / -1; border-color: rgba(212, 175, 55, 0.25);">
+                    <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+                        <h2 class="panel-title">
+                            <i class="fa-solid fa-image" style="color: var(--accent-gold); margin-right: 8px;"></i>
+                            메인 페이지 히어로 이미지 수정
+                        </h2>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary); background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.2); padding: 4px 12px; border-radius: 20px;">
+                            <i class="fa-solid fa-bolt" style="color: var(--accent-gold);"></i> 저장 즉시 홈페이지 반영
+                        </span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
+
+                        <!-- 좌측: 현재 이미지 미리보기 -->
+                        <div>
+                            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase;">현재 적용된 이미지</p>
+                            <div style="position: relative; width: 100%; padding-top: 56.25%; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color);">
+                                <img id="hero-img-preview"
+                                    src="assets/hero.png"
+                                    alt="현재 히어로 이미지"
+                                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.4s;"
+                                >
+                                <div id="hero-img-preview-overlay" style="position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: #fff; font-size: 0.9rem;">
+                                    <i class="fa-solid fa-magnifying-glass" style="font-size: 1.5rem;"></i>
+                                    미리보기
+                                </div>
+                            </div>
+                            <p id="hero-img-current-url" style="margin-top: 10px; font-size: 0.72rem; color: var(--text-secondary); word-break: break-all; opacity: 0.6;">기본 이미지 (assets/hero.png)</p>
+                        </div>
+
+                        <!-- 우측: 업로드 영역 -->
+                        <div>
+                            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 10px; letter-spacing: 1px; text-transform: uppercase;">새 이미지 업로드</p>
+
+                            <!-- 드래그 앤 드롭 영역 -->
+                            <div id="hero-dropzone"
+                                style="border: 2px dashed rgba(212,175,55,0.35); border-radius: 10px; padding: 36px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(212,175,55,0.03); position: relative;"
+                                onclick="document.getElementById('hero-file-input').click()"
+                                ondragover="heroDropzoneOver(event)"
+                                ondragleave="heroDropzoneLeave(event)"
+                                ondrop="heroDropzoneDrop(event)"
+                            >
+                                <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.5rem; color: rgba(212,175,55,0.5); margin-bottom: 14px; display: block;"></i>
+                                <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">
+                                    이미지를 여기에 드래그하거나<br>
+                                    <span style="color: var(--accent-gold); font-weight: 600;">클릭하여 파일 선택</span>
+                                </p>
+                                <p style="color: rgba(255,255,255,0.25); font-size: 0.75rem; margin-top: 10px;">JPG, PNG, WebP · 최대 10MB · 권장 비율 16:9</p>
+                                <input type="file" id="hero-file-input" accept="image/*" style="display:none;" onchange="heroFileSelected(event)">
+                            </div>
+
+                            <!-- 선택한 파일 정보 -->
+                            <div id="hero-file-info" style="display:none; margin-top: 14px; padding: 12px 16px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border-color); display: none; align-items: center; gap: 12px;">
+                                <i class="fa-solid fa-file-image" style="color: var(--accent-gold); font-size: 1.2rem; flex-shrink: 0;"></i>
+                                <div style="flex: 1; min-width: 0;">
+                                    <p id="hero-file-name" style="font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">-</p>
+                                    <p id="hero-file-size" style="font-size: 0.75rem; color: var(--text-secondary);">-</p>
+                                </div>
+                                <button onclick="heroClearFile()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; font-size: 1rem;" title="취소">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+
+                            <!-- 업로드 진행률 -->
+                            <div id="hero-progress-wrap" style="display:none; margin-top: 16px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                                    <span style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin" style="margin-right: 6px;"></i>업로드 중...</span>
+                                    <span id="hero-progress-pct" style="font-size: 0.8rem; color: var(--accent-gold); font-weight: 600;">0%</span>
+                                </div>
+                                <div style="height: 6px; background: rgba(255,255,255,0.07); border-radius: 10px; overflow: hidden;">
+                                    <div id="hero-progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-gold), #f3e5ab); border-radius: 10px; transition: width 0.2s;"></div>
+                                </div>
+                            </div>
+
+                            <!-- 저장 버튼 -->
+                            <button id="hero-save-btn" type="button" class="save-btn" onclick="heroUploadAndSave()"
+                                style="width: 100%; margin-top: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 0.4; pointer-events: none; transition: opacity 0.3s;"
+                                disabled
+                            >
+                                <i class="fa-solid fa-cloud-arrow-up"></i> 이미지 저장 및 즉시 반영
+                            </button>
+
+                            <!-- 안내 메시지 -->
+                            <p style="font-size: 0.75rem; color: rgba(255,255,255,0.3); text-align: center; margin-top: 10px; line-height: 1.5;">
+                                <i class="fa-solid fa-circle-info" style="margin-right: 4px;"></i>
+                                저장 시 버전 관리에도 자동 포함됩니다
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================
+                 공간 사진 갤러리 관리 패널
+                 ============================ -->
+            <div class="edit-grid" style="margin-bottom: 30px;">
+                <div class="panel" style="grid-column: 1 / -1; border-color: rgba(212, 175, 55, 0.25);">
+                    <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+                        <h2 class="panel-title">
+                            <i class="fa-solid fa-images" style="color: var(--accent-gold); margin-right: 8px;"></i>
+                            공간 사진 갤러리 관리
+                        </h2>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary); background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.2); padding: 4px 12px; border-radius: 20px;">
+                            <i class="fa-solid fa-bolt" style="color: var(--accent-gold);"></i> 저장 즉시 홈페이지 반영
+                        </span>
+                    </div>
+
+                    <!-- 현재 등록된 사진 목록 -->
+                    <div style="margin-bottom: 24px;">
+                        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase;">현재 등록된 공간 사진</p>
+                        <div id="gallery-admin-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; min-height: 80px;">
+                            <div style="grid-column:1/-1; padding: 30px; text-align:center; color: var(--text-secondary); font-size:0.9rem;">
+                                <i class="fa-solid fa-circle-notch fa-spin" style="margin-right:6px;"></i> 불러오는 중...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 새 사진 업로드 -->
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 24px;">
+                        <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase;">새 공간 사진 추가</p>
+                        <div style="display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start;">
+                            <div>
+                                <!-- 드래그 앤 드롭 영역 -->
+                                <div id="gallery-dropzone"
+                                    style="border: 2px dashed rgba(212,175,55,0.35); border-radius: 10px; padding: 28px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: rgba(212,175,55,0.03);"
+                                    onclick="document.getElementById('gallery-file-input').click()"
+                                    ondragover="galleryDropzoneOver(event)"
+                                    ondragleave="galleryDropzoneLeave(event)"
+                                    ondrop="galleryDropzoneDrop(event)"
+                                >
+                                    <i class="fa-solid fa-plus" style="font-size: 1.8rem; color: rgba(212,175,55,0.5); margin-bottom: 10px; display: block;"></i>
+                                    <p style="color: var(--text-secondary); font-size: 0.88rem; line-height: 1.6;">
+                                        이미지 드래그 또는 <span style="color: var(--accent-gold); font-weight: 600;">클릭하여 선택</span><br>
+                                        <span style="font-size: 0.75rem; color: rgba(255,255,255,0.2);">여러 장 동시 선택 가능 · 최대 10MB/장</span>
+                                    </p>
+                                    <input type="file" id="gallery-file-input" accept="image/*" multiple style="display:none;" onchange="galleryFilesSelected(event)">
+                                </div>
+
+                                <!-- 선택된 파일 미리보기 -->
+                                <div id="gallery-file-preview" style="display:none; margin-top: 14px; display: none; flex-wrap: wrap; gap: 10px;"></div>
+                            </div>
+
+                            <div style="display: flex; flex-direction: column; gap: 12px; min-width: 180px;">
+                                <!-- 캡션 입력 -->
+                                <div>
+                                    <label class="edit-label">사진 캡션 (선택)</label>
+                                    <input type="text" id="gallery-caption-input" class="edit-input" placeholder="예: 메인 라운지" style="margin-bottom:0;">
+                                </div>
+                                <!-- 업로드 버튼 -->
+                                <button id="gallery-upload-btn" type="button" onclick="galleryUploadAll()"
+                                    class="save-btn"
+                                    style="display:flex; align-items:center; justify-content:center; gap:8px; opacity:0.4; pointer-events:none; transition:opacity 0.3s;"
+                                    disabled
+                                >
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> 사진 추가
+                                </button>
+                                <!-- 진행률 -->
+                                <div id="gallery-progress-wrap" style="display:none;">
+                                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                                        <span style="font-size:0.78rem; color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin" style="margin-right:5px;"></i>업로드 중...</span>
+                                        <span id="gallery-progress-pct" style="font-size:0.78rem; color:var(--accent-gold); font-weight:600;">0%</span>
+                                    </div>
+                                    <div style="height:5px; background:rgba(255,255,255,0.07); border-radius:10px; overflow:hidden;">
+                                        <div id="gallery-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--accent-gold),#f3e5ab); border-radius:10px; transition:width 0.2s;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="edit-grid">
                 <!-- Section 1: Main Homepage Content -->
                 <div class="panel">
@@ -498,6 +674,7 @@
     <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-storage-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
 
     <script>
@@ -607,6 +784,23 @@
             const db = firebase.firestore();
             const configRef = db.collection("monory_config").doc("settings");
             const historyRef = configRef.collection("history");
+
+            // ── 갤러리 사진 실시간 구독 (CMS 탭 진입 시 바로 시작) ──
+            if (_galleryUnsubscribe) _galleryUnsubscribe();
+            _galleryUnsubscribe = db.collection('gallery_photos')
+                .onSnapshot(snapshot => {
+                    _galleryAdminPhotos = [];
+                    snapshot.forEach(doc => {
+                        _galleryAdminPhotos.push({ id: doc.id, ...doc.data() });
+                    });
+                    // order 기준 JS 정렬 (Firestore 인덱스 불필요)
+                    _galleryAdminPhotos.sort((a, b) => (a.order || 0) - (b.order || 0));
+                    renderGalleryAdminList();
+                }, err => {
+                    console.warn('갤러리 로드 오류:', err);
+                    const container = document.getElementById('gallery-admin-list');
+                    if (container) container.innerHTML = '<div style="grid-column:1/-1;padding:20px;color:#ef4444;text-align:center;"><i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>갤러리 로드 오류: ' + err.message + '</div>';
+                });
             
             configRef.onSnapshot((doc) => {
                 if (doc.exists) {
@@ -624,6 +818,16 @@
                         if (data.priceDay) document.getElementById('input-price-day').value = data.priceDay;
                         if (data.priceNight) document.getElementById('input-price-night').value = data.priceNight;
                         if (data.bannerToggle) document.getElementById('input-banner-toggle').value = data.bannerToggle;
+
+                        // 히어로 이미지 URL 미리보기 업데이트
+                        if (data.heroImageUrl) {
+                            const preview = document.getElementById('hero-img-preview');
+                            const urlLabel = document.getElementById('hero-img-current-url');
+                            if (preview) preview.src = data.heroImageUrl;
+                            if (urlLabel) urlLabel.textContent = data.heroImageUrl;
+                            // 전역 변수에도 저장 (업로드 시 포함용)
+                            window._currentHeroImageUrl = data.heroImageUrl;
+                        }
                     }
                 } else {
                     const badge = document.getElementById('version-badge');
@@ -654,7 +858,8 @@
                     discountInfo: document.getElementById('input-discount').value,
                     priceDay: document.getElementById('input-price-day').value,
                     priceNight: document.getElementById('input-price-night').value,
-                    bannerToggle: document.getElementById('input-banner-toggle').value
+                    bannerToggle: document.getElementById('input-banner-toggle').value,
+                    heroImageUrl: window._currentHeroImageUrl || ''
                 };
             }
 
@@ -681,12 +886,12 @@
 
             document.getElementById('content-form').addEventListener('submit', (e) => {
                 e.preventDefault();
-                saveWithVersionControl(getFullFormData(), '메인 홈 문구가 저장 및 배포되었습니다.');
+                saveWithVersionControl(getFullFormData(), '메인 홈 문구가 저장되었으며, 즉시 반영되었습니다.');
             });
 
             document.getElementById('package-form').addEventListener('submit', (e) => {
                 e.preventDefault();
-                saveWithVersionControl(getFullFormData(), '예약 패키지 설정이 저장 및 배포되었습니다.');
+                saveWithVersionControl(getFullFormData(), '예약 패키지 설정이 저장되었으며, 즉시 반영되었습니다.');
             });
 
             document.getElementById('btn-revert').addEventListener('click', () => {
@@ -704,6 +909,15 @@
                             if (data.priceDay) document.getElementById('input-price-day').value = data.priceDay;
                             if (data.priceNight) document.getElementById('input-price-night').value = data.priceNight;
                             if (data.bannerToggle) document.getElementById('input-banner-toggle').value = data.bannerToggle;
+
+                            // 이미지 URL도 rollback
+                            if (data.heroImageUrl) {
+                                window._currentHeroImageUrl = data.heroImageUrl;
+                                const preview = document.getElementById('hero-img-preview');
+                                const urlLabel = document.getElementById('hero-img-current-url');
+                                if (preview) preview.src = data.heroImageUrl;
+                                if (urlLabel) urlLabel.textContent = data.heroImageUrl;
+                            }
                             
                             saveWithVersionControl(getFullFormData(), `과거 ${selectedId} 버전 복구(Rollback) 성공! 홈페이지에 즉각 반영됩니다.`);
                         }
@@ -716,6 +930,493 @@
         let membersUnsubscribe = null;
         let allMembersData = [];
         let currentMemberFilter = 'all';
+
+        // ============================
+        // 공간 사진 갤러리 관리 함수
+        // ============================
+        let _gallerySelectedFiles = [];
+        let _galleryAdminPhotos = [];
+        let _galleryUnsubscribe = null;
+
+        function renderGalleryAdminList() {
+            const container = document.getElementById('gallery-admin-list');
+            if (!container) return;
+
+            if (_galleryAdminPhotos.length === 0) {
+                container.innerHTML = '<div style="grid-column:1/-1; padding:30px; text-align:center; color:var(--text-secondary); font-size:0.88rem;"><i class="fa-regular fa-images" style="font-size:2rem; display:block; margin-bottom:10px; opacity:0.3;"></i>등록된 사진이 없습니다.<br>아래에서 사진을 추가해 보세요.</div>';
+                return;
+            }
+
+            container.innerHTML = _galleryAdminPhotos.map((p, i) => `
+                <div style="position:relative; border-radius:8px; overflow:hidden; border:1px solid var(--border-color); background:#0a0a0c; group;">
+                    <div style="padding-top:75%; position:relative;">
+                        <img src="${p.url}" alt="${p.caption || ''}"
+                            style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;">
+                    </div>
+                    <!-- 오버레이 -->
+                    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.6);opacity:0;transition:opacity 0.2s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px;"
+                        onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">
+                        ${i > 0 ? `<button onclick="galleryMovePhoto('${p.id}', ${p.order}, 'up')" title="앞으로" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:0.75rem;width:80px;"><i class="fa-solid fa-arrow-left"></i> 앞으로</button>` : ''}
+                        ${i < _galleryAdminPhotos.length - 1 ? `<button onclick="galleryMovePhoto('${p.id}', ${p.order}, 'down')" title="뒤로" style="background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:0.75rem;width:80px;"><i class="fa-solid fa-arrow-right"></i> 뒤로</button>` : ''}
+                        <button onclick="galleryDeletePhoto('${p.id}', '${p.url}')" style="background:rgba(239,68,68,0.7);border:none;color:#fff;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:0.75rem;width:80px;"><i class="fa-solid fa-trash"></i> 삭제</button>
+                    </div>
+                    <!-- 순서 번호 -->
+                    <div style="position:absolute;top:6px;left:6px;background:rgba(0,0,0,0.7);color:var(--accent-gold);border-radius:4px;padding:2px 7px;font-size:0.72rem;font-weight:700;">${i + 1}</div>
+                    ${p.caption ? `<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.75);color:#fff;padding:6px 8px;font-size:0.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.caption}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function galleryMovePhoto(docId, currentOrder, direction) {
+            if (typeof firebase === 'undefined') return;
+            const db = firebase.firestore();
+            const idx = _galleryAdminPhotos.findIndex(p => p.id === docId);
+            if (idx < 0) return;
+
+            const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+            if (swapIdx < 0 || swapIdx >= _galleryAdminPhotos.length) return;
+
+            const a = _galleryAdminPhotos[idx];
+            const b = _galleryAdminPhotos[swapIdx];
+
+            const batch = db.batch();
+            batch.update(db.collection('gallery_photos').doc(a.id), { order: b.order });
+            batch.update(db.collection('gallery_photos').doc(b.id), { order: a.order });
+            batch.commit().catch(e => alert('순서 변경 오류: ' + e.message));
+        }
+
+        function galleryDeletePhoto(docId, url) {
+            if (!confirm('이 사진을 갤러리에서 삭제하시겠습니까?\n(Storage에서도 삭제됩니다)')) return;
+            if (typeof firebase === 'undefined') return;
+            const db = firebase.firestore();
+
+            // Firestore 삭제
+            db.collection('gallery_photos').doc(docId).delete().then(() => {
+                // Storage 삭제 (URL에서 경로 추출)
+                try {
+                    const storage = firebase.storage();
+                    const ref = storage.refFromURL(url);
+                    ref.delete().catch(() => {}); // Storage 삭제 실패해도 무시
+                } catch(e) {}
+            }).catch(e => alert('삭제 오류: ' + e.message));
+        }
+
+        function galleryDropzoneOver(e) {
+            e.preventDefault(); e.stopPropagation();
+            const dz = document.getElementById('gallery-dropzone');
+            dz.style.borderColor = 'var(--accent-gold)';
+            dz.style.background = 'rgba(212,175,55,0.08)';
+        }
+        function galleryDropzoneLeave(e) {
+            e.preventDefault(); e.stopPropagation();
+            const dz = document.getElementById('gallery-dropzone');
+            dz.style.borderColor = 'rgba(212,175,55,0.35)';
+            dz.style.background = 'rgba(212,175,55,0.03)';
+        }
+        function galleryDropzoneDrop(e) {
+            e.preventDefault(); e.stopPropagation();
+            galleryDropzoneLeave(e);
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+            if (files.length === 0) { alert('이미지 파일만 업로드할 수 있습니다.'); return; }
+            gallerySetFiles(files);
+        }
+        function galleryFilesSelected(e) {
+            const files = Array.from(e.target.files);
+            if (files.length) gallerySetFiles(files);
+        }
+
+        function gallerySetFiles(files) {
+            const oversized = files.filter(f => f.size > 10 * 1024 * 1024);
+            if (oversized.length > 0) {
+                alert(`${oversized.map(f=>f.name).join(', ')}\n위 파일이 10MB를 초과합니다. 제외됩니다.`);
+            }
+            _gallerySelectedFiles = files.filter(f => f.size <= 10 * 1024 * 1024);
+            if (_gallerySelectedFiles.length === 0) return;
+
+            // 미리보기 렌더
+            const previewEl = document.getElementById('gallery-file-preview');
+            previewEl.style.display = 'flex';
+            previewEl.innerHTML = _gallerySelectedFiles.map((f, i) => {
+                const url = URL.createObjectURL(f);
+                return `<div style="position:relative;width:70px;height:70px;border-radius:6px;overflow:hidden;border:1px solid var(--border-color);">
+                    <img src="${url}" style="width:100%;height:100%;object-fit:cover;">
+                    <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#fff;opacity:0;"
+                        onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'">${f.name.substring(0,10)}...</div>
+                </div>`;
+            }).join('');
+
+            // 버튼 활성화
+            const btn = document.getElementById('gallery-upload-btn');
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+            btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> ${_gallerySelectedFiles.length}장 추가`;
+        }
+
+        async function galleryUploadAll() {
+            if (_gallerySelectedFiles.length === 0) return;
+            if (typeof firebase === 'undefined') { alert('Firebase 로드 중입니다.'); return; }
+
+            const storage = firebase.storage();
+            const db = firebase.firestore();
+            const caption = document.getElementById('gallery-caption-input').value.trim();
+
+            // 현재 마지막 order 값
+            const baseOrder = _galleryAdminPhotos.length > 0
+                ? Math.max(..._galleryAdminPhotos.map(p => p.order || 0)) + 1
+                : 0;
+
+            const btn = document.getElementById('gallery-upload-btn');
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+
+            document.getElementById('gallery-progress-wrap').style.display = 'block';
+
+            const total = _gallerySelectedFiles.length;
+            let done = 0;
+
+            for (let i = 0; i < total; i++) {
+                const file = _gallerySelectedFiles[i];
+                
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> (${i + 1}/${total}) 이미지 최적화 중...`;
+                
+                let fileToUpload = file;
+                try {
+                    fileToUpload = await compressImage(file, 1600, 0.8);
+                } catch(e) {
+                    console.error("Gallery compression failed: ", e);
+                }
+
+                const ext = fileToUpload.name.split('.').pop();
+                const path = `gallery_photos/photo_${Date.now()}_${i}.${ext}`;
+                const ref = storage.ref(path);
+
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> (${i + 1}/${total}) 업로드 중...`;
+
+                await new Promise((resolve, reject) => {
+                    const task = ref.put(fileToUpload);
+                    task.on('state_changed',
+                        (snap) => {
+                            const filePct = (snap.bytesTransferred / snap.totalBytes) * 100;
+                            const totalPct = Math.round(((done + filePct / 100) / total) * 100);
+                            document.getElementById('gallery-progress-bar').style.width = totalPct + '%';
+                            document.getElementById('gallery-progress-pct').textContent = totalPct + '%';
+                        },
+                        (err) => { alert('업로드 실패: ' + err.message); reject(err); },
+                        async () => {
+                            const url = await task.snapshot.ref.getDownloadURL();
+                            await db.collection('gallery_photos').add({
+                                url: url,
+                                caption: caption,
+                                order: baseOrder + i,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                            done++;
+                            resolve();
+                        }
+                    );
+                });
+            }
+
+            // 완료 처리
+            document.getElementById('gallery-progress-wrap').style.display = 'none';
+            document.getElementById('gallery-file-preview').style.display = 'none';
+            document.getElementById('gallery-file-preview').innerHTML = '';
+            document.getElementById('gallery-file-input').value = '';
+            document.getElementById('gallery-caption-input').value = '';
+            _gallerySelectedFiles = [];
+
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> 추가 완료!';
+            btn.style.background = 'rgba(74,222,128,0.2)';
+            btn.style.borderColor = '#4ade80';
+            btn.style.color = '#4ade80';
+
+            alert(`공간 사진 ${total}장이 갤러리에 추가되었습니다!\n홈페이지에 즉시 반영됩니다.`);
+
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 사진 추가';
+                btn.style.background = '';
+                btn.style.borderColor = '';
+                btn.style.color = '';
+                btn.style.opacity = '0.4';
+                btn.style.pointerEvents = 'none';
+                btn.disabled = true;
+            }, 3000);
+        }
+
+        // ============================
+        // 이미지 압축 및 최적화 유틸 함수
+        // ============================
+        function compressImage(file, maxWidth = 1920, quality = 0.8) {
+            return new Promise((resolve) => {
+                if (!file || !file.type.startsWith('image/')) {
+                    resolve(file);
+                    return;
+                }
+                // 500KB 미만은 굳이 압축하지 않고 그대로 사용
+                if (file.size < 500 * 1024) {
+                    resolve(file);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob((blob) => {
+                            if (blob) {
+                                // .jpg 확장자로 새로운 File 객체 생성
+                                const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now()
+                                });
+                                resolve(compressedFile);
+                            } else {
+                                resolve(file);
+                            }
+                        }, 'image/jpeg', quality);
+                    };
+                    img.onerror = () => resolve(file);
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => resolve(file);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // ============================
+        // 히어로 이미지 업로드 관련 전역 함수
+        // ============================
+        let _heroSelectedFile = null;
+
+
+        function heroDropzoneOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const dz = document.getElementById('hero-dropzone');
+            dz.style.borderColor = 'var(--accent-gold)';
+            dz.style.background = 'rgba(212,175,55,0.08)';
+        }
+
+        function heroDropzoneLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const dz = document.getElementById('hero-dropzone');
+            dz.style.borderColor = 'rgba(212,175,55,0.35)';
+            dz.style.background = 'rgba(212,175,55,0.03)';
+        }
+
+        function heroDropzoneDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            heroDropzoneLeave(e);
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                heroSetFile(file);
+            } else {
+                alert('이미지 파일만 업로드할 수 있습니다. (JPG, PNG, WebP 등)');
+            }
+        }
+
+        function heroFileSelected(e) {
+            const file = e.target.files[0];
+            if (file) heroSetFile(file);
+        }
+
+        function heroSetFile(file) {
+            // 파일 크기 검사 (10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('파일 크기가 10MB를 초과합니다.\n이미지를 압축 후 다시 시도해주세요.');
+                return;
+            }
+
+            _heroSelectedFile = file;
+
+            // 파일 정보 표시
+            document.getElementById('hero-file-name').textContent = file.name;
+            document.getElementById('hero-file-size').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+            const fileInfoEl = document.getElementById('hero-file-info');
+            fileInfoEl.style.display = 'flex';
+
+            // 로컈 미리보기
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const preview = document.getElementById('hero-img-preview');
+                if (preview) {
+                    preview.style.opacity = '0.6';
+                    preview.src = ev.target.result;
+                    setTimeout(() => { preview.style.opacity = '1'; }, 100);
+                }
+                const urlLabel = document.getElementById('hero-img-current-url');
+                if (urlLabel) urlLabel.textContent = '[새 이미지 선택됨 — 아래 저장 버튼을 눌러주세요]';
+            };
+            reader.readAsDataURL(file);
+
+            // 저장 버튼 활성화
+            const saveBtn = document.getElementById('hero-save-btn');
+            saveBtn.disabled = false;
+            saveBtn.style.opacity = '1';
+            saveBtn.style.pointerEvents = 'auto';
+        }
+
+        function heroClearFile() {
+            _heroSelectedFile = null;
+            document.getElementById('hero-file-input').value = '';
+            document.getElementById('hero-file-info').style.display = 'none';
+            document.getElementById('hero-file-name').textContent = '-';
+            document.getElementById('hero-file-size').textContent = '-';
+
+            // 미리보기 원복
+            const preview = document.getElementById('hero-img-preview');
+            if (preview) preview.src = window._currentHeroImageUrl || 'assets/hero.png';
+            const urlLabel = document.getElementById('hero-img-current-url');
+            if (urlLabel) urlLabel.textContent = window._currentHeroImageUrl || '기본 이미지 (assets/hero.png)';
+
+            // 저장 버튼 비활성화
+            const saveBtn = document.getElementById('hero-save-btn');
+            saveBtn.disabled = true;
+            saveBtn.style.opacity = '0.4';
+            saveBtn.style.pointerEvents = 'none';
+        }
+
+        async function heroUploadAndSave() {
+            if (!_heroSelectedFile) return;
+            if (typeof firebase === 'undefined') {
+                alert('Firebase가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+
+            const storage = firebase.storage();
+            const db = firebase.firestore();
+
+            // UI: 업로드 중 상태
+            const saveBtn = document.getElementById('hero-save-btn');
+            saveBtn.disabled = true;
+            saveBtn.style.opacity = '0.5';
+            saveBtn.style.pointerEvents = 'none';
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 이미지 압축 및 최적화 중...';
+
+            let fileToUpload = _heroSelectedFile;
+            try {
+                fileToUpload = await compressImage(_heroSelectedFile, 1920, 0.8);
+            } catch (e) {
+                console.error("Hero image compression failed: ", e);
+            }
+
+            // 파일명: 중복 막기 위해 타임스탬프 + 원본 파일명 (압축 시 확장자 .jpg)
+            const ext = fileToUpload.name.split('.').pop();
+            const storageFileName = `hero_images/hero_${Date.now()}.${ext}`;
+            const storageRef = storage.ref(storageFileName);
+
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 업로드 중...';
+
+            document.getElementById('hero-progress-wrap').style.display = 'block';
+            document.getElementById('hero-progress-bar').style.width = '0%';
+            document.getElementById('hero-progress-pct').textContent = '0%';
+
+            const uploadTask = storageRef.put(fileToUpload);
+
+            uploadTask.on('state_changed',
+                (snapshot) => {
+                    const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+                    document.getElementById('hero-progress-bar').style.width = pct + '%';
+                    document.getElementById('hero-progress-pct').textContent = pct + '%';
+                },
+                (error) => {
+                    // 업로드 오류
+                    document.getElementById('hero-progress-wrap').style.display = 'none';
+                    saveBtn.disabled = false;
+                    saveBtn.style.opacity = '1';
+                    saveBtn.style.pointerEvents = 'auto';
+                    saveBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 이미지 저장 및 즉시 반영';
+                    alert('업로드 실패: ' + error.message + '\n\n[Firebase Storage 보안 규칙 확인] Firebase Console → Storage → Rules에서 \"allow write: if request.auth != null;\" 확인');
+                },
+                () => {
+                    // 업로드 성공 → 다운로드 URL 획득
+                    uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+                        // Firestore 저장 (버전 관리 포함)
+                        const configRef = db.collection('monory_config').doc('settings');
+                        const historyRef = configRef.collection('history');
+                        const nextVersion = (window.currentActiveVersion || 0) + 1;
+                        const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+
+                        // 전체 폼 데이터 + heroImageUrl
+                        const newData = {
+                            slogan: document.getElementById('input-slogan').value,
+                            brand: document.getElementById('input-brand').value,
+                            description: document.getElementById('input-description').value,
+                            discountInfo: document.getElementById('input-discount').value,
+                            priceDay: document.getElementById('input-price-day').value,
+                            priceNight: document.getElementById('input-price-night').value,
+                            bannerToggle: document.getElementById('input-banner-toggle').value,
+                            heroImageUrl: downloadURL
+                        };
+
+                        historyRef.doc('v' + nextVersion).set({
+                            ...newData,
+                            version: nextVersion,
+                            timestamp: timestamp
+                        }).then(() => {
+                            return configRef.set({
+                                ...newData,
+                                currentVersion: nextVersion
+                            }, { merge: true });
+                        }).then(() => {
+                            // 성공 UI 업데이트
+                            window._currentHeroImageUrl = downloadURL;
+                            document.getElementById('hero-progress-wrap').style.display = 'none';
+                            document.getElementById('hero-progress-bar').style.width = '100%';
+
+                            saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> 저장 완료!';
+                            saveBtn.style.background = 'rgba(74,222,128,0.2)';
+                            saveBtn.style.borderColor = '#4ade80';
+                            saveBtn.style.color = '#4ade80';
+
+                            const urlLabel = document.getElementById('hero-img-current-url');
+                            if (urlLabel) urlLabel.textContent = downloadURL;
+
+                            // 파일 선택 상태 초기화
+                            _heroSelectedFile = null;
+                            document.getElementById('hero-file-input').value = '';
+                            document.getElementById('hero-file-info').style.display = 'none';
+
+                            alert(`[버전 v${nextVersion}] 메인 이미지가 저장되었습니다.\n홈페이지에 즉시 반영됩니다.`);
+
+                            setTimeout(() => {
+                                saveBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 이미지 저장 및 즉시 반영';
+                                saveBtn.style.background = '';
+                                saveBtn.style.borderColor = '';
+                                saveBtn.style.color = '';
+                                saveBtn.style.opacity = '0.4';
+                                saveBtn.style.pointerEvents = 'none';
+                                saveBtn.disabled = true;
+                            }, 3000);
+                        }).catch(err => {
+                            alert('Firestore 저장 오류: ' + err.message);
+                            saveBtn.disabled = false;
+                            saveBtn.style.opacity = '1';
+                            saveBtn.style.pointerEvents = 'auto';
+                            saveBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> 이미지 저장 및 즉시 반영';
+                            document.getElementById('hero-progress-wrap').style.display = 'none';
+                        });
+                    });
+                }
+            );
+        }
 
         function filterMembers(type) {
             currentMemberFilter = type;

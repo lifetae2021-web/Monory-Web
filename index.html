@@ -153,12 +153,136 @@
                 <h3 class="section-title">공간 사진</h3>
                 <p class="section-description centered">모노리만의 특색 있는 공간들을 미리 둘러보세요.</p>
             </div>
-            <div
-                style="height: 400px; display: flex; align-items: center; justify-content: center; border: 1px dashed var(--border-color); border-radius: 12px; background: rgba(0,0,0,0.2);">
-                <p style="color: var(--text-secondary);"><i class="fa-regular fa-images"></i> 갤러리 이미지 준비 중...</p>
+
+            <!-- 갤러리 그리드 -->
+            <div id="gallery-grid" style="
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 12px;
+                border-radius: 12px;
+                overflow: hidden;
+            ">
+                <!-- Firestore에서 동적으로 삽입 -->
+                <div style="grid-column: 1/-1; height: 300px; display:flex; align-items:center; justify-content:center; color: var(--text-secondary);">
+                    <i class="fa-solid fa-circle-notch fa-spin" style="margin-right:8px;"></i> 사진을 불러오는 중...
+                </div>
             </div>
         </div>
     </section>
+
+    <!-- 갤러리 라이트박스 -->
+    <div id="gallery-lightbox" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.92); align-items:center; justify-content:center;" onclick="closeLightbox()">
+        <button onclick="lightboxPrev(event)" style="position:absolute; left:20px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.1); border:none; color:#fff; width:50px; height:50px; border-radius:50%; font-size:1.3rem; cursor:pointer; z-index:2; transition:0.2s;" onmouseover="this.style.background='rgba(212,175,55,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <img id="lightbox-img" src="" alt="" style="max-width:88vw; max-height:88vh; object-fit:contain; border-radius:8px; pointer-events:none; box-shadow:0 20px 60px rgba(0,0,0,0.8);">
+        <button onclick="lightboxNext(event)" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.1); border:none; color:#fff; width:50px; height:50px; border-radius:50%; font-size:1.3rem; cursor:pointer; z-index:2; transition:0.2s;" onmouseover="this.style.background='rgba(212,175,55,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+        <button onclick="closeLightbox()" style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.1); border:none; color:#fff; width:44px; height:44px; border-radius:50%; font-size:1.1rem; cursor:pointer; z-index:2;">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div id="lightbox-counter" style="position:absolute; bottom:20px; left:50%; transform:translateX(-50%); color:rgba(255,255,255,0.5); font-size:0.85rem;"></div>
+    </div>
+
+    <script>
+    // 갤러리 라이트박스 로직
+    let _galleryPhotos = [];
+    let _lightboxIndex = 0;
+
+    function openLightbox(index) {
+        _lightboxIndex = index;
+        const lb = document.getElementById('gallery-lightbox');
+        lb.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        updateLightboxImg();
+    }
+
+    function closeLightbox() {
+        document.getElementById('gallery-lightbox').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function updateLightboxImg() {
+        const img = document.getElementById('lightbox-img');
+        const counter = document.getElementById('lightbox-counter');
+        img.src = _galleryPhotos[_lightboxIndex].url;
+        img.alt = _galleryPhotos[_lightboxIndex].caption || '';
+        counter.textContent = `${_lightboxIndex + 1} / ${_galleryPhotos.length}`;
+    }
+
+    function lightboxPrev(e) {
+        e.stopPropagation();
+        _lightboxIndex = (_lightboxIndex - 1 + _galleryPhotos.length) % _galleryPhotos.length;
+        updateLightboxImg();
+    }
+
+    function lightboxNext(e) {
+        e.stopPropagation();
+        _lightboxIndex = (_lightboxIndex + 1) % _galleryPhotos.length;
+        updateLightboxImg();
+    }
+
+    // 키보드 내비게이션
+    document.addEventListener('keydown', (e) => {
+        const lb = document.getElementById('gallery-lightbox');
+        if (lb.style.display === 'none') return;
+        if (e.key === 'ArrowLeft') lightboxPrev(e);
+        if (e.key === 'ArrowRight') lightboxNext(e);
+        if (e.key === 'Escape') closeLightbox();
+    });
+
+    function renderGallery(photos) {
+        _galleryPhotos = photos;
+        const grid = document.getElementById('gallery-grid');
+        if (!grid) return;
+
+        if (photos.length === 0) {
+            grid.innerHTML = '<div style="grid-column:1/-1; height:250px; display:flex; align-items:center; justify-content:center; color:var(--text-secondary); flex-direction:column; gap:12px;"><i class="fa-regular fa-images" style="font-size:2.5rem; opacity:0.3;"></i><p>등록된 공간 사진이 없습니다.</p></div>';
+            return;
+        }
+
+        // 1장: 전체 폭 / 2장: 절반씩 / 3장 이상: 3열 그리드
+        let colStyle = 'repeat(3, 1fr)';
+        if (photos.length === 1) colStyle = '1fr';
+        else if (photos.length === 2) colStyle = 'repeat(2, 1fr)';
+        grid.style.gridTemplateColumns = colStyle;
+
+        grid.innerHTML = photos.map((p, i) => `
+            <div onclick="openLightbox(${i})" style="
+                position: relative;
+                padding-top: ${photos.length === 1 ? '45%' : '66.66%'};
+                overflow: hidden;
+                cursor: pointer;
+                background: #0a0a0c;
+                border-radius: ${photos.length <= 3 ? '10px' : '4px'};
+            ">
+                <img src="${p.url}" alt="${p.caption || '공간 사진 ' + (i+1)}"
+                    loading="lazy"
+                    style="
+                        position: absolute; top:0; left:0;
+                        width:100%; height:100%;
+                        object-fit: cover;
+                        transition: transform 0.4s ease, filter 0.3s;
+                    "
+                    onmouseover="this.style.transform='scale(1.05)'; this.style.filter='brightness(1.1)'"
+                    onmouseout="this.style.transform='scale(1)'; this.style.filter='brightness(1)'"
+                >
+                ${p.caption ? `
+                <div style="
+                    position: absolute; bottom:0; left:0; right:0;
+                    background: linear-gradient(transparent, rgba(0,0,0,0.7));
+                    padding: 20px 16px 12px;
+                    color: #fff;
+                    font-size: 0.85rem;
+                    opacity: 0;
+                    transition: opacity 0.3s;
+                    pointer-events: none;
+                " class="gallery-caption">${p.caption}</div>` : ''}
+            </div>
+        `).join('');
+    }
+    </script>
 
     <section id="reservation" class="reservation-section" style="padding: 100px 0;">
         <div class="container">
@@ -297,6 +421,7 @@
 
     <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-storage-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
 
     <!-- ============================================================
@@ -683,7 +808,30 @@
                         } else {
                             document.getElementById('display-banner').style.display = 'flex';
                         }
+
+                        // 메인 히어로 이미지 실시간 반영
+                        if (data.heroImageUrl) {
+                            const heroSection = document.getElementById('home');
+                            if (heroSection) {
+                                heroSection.style.backgroundImage = `url('${data.heroImageUrl}')`;
+                                heroSection.style.backgroundSize = 'cover';
+                                heroSection.style.backgroundPosition = 'center center';
+                                heroSection.style.backgroundRepeat = 'no-repeat';
+                            }
+                        }
                     }
+                });
+
+                // 공간 사진 갤러리 실시간 로딩
+                db.collection("gallery_photos").onSnapshot((snapshot) => {
+                    const photos = [];
+                    snapshot.forEach(doc => {
+                        const d = doc.data();
+                        if (d.url) photos.push({ id: doc.id, url: d.url, caption: d.caption || '', order: d.order || 0 });
+                    });
+                    // order 기준 JS 정렬 (Firestore 인덱스 불필요)
+                    photos.sort((a, b) => a.order - b.order);
+                    if (typeof renderGallery === 'function') renderGallery(photos);
                 });
 
                 // 리뷰 모음 실시간 로딩
