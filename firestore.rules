@@ -67,7 +67,13 @@ service cloud.firestore {
     // 통계나 설정 파일 규칙
     match /monory_config/{configId} {
       allow read: if true;
-      allow write: if isFirebaseAuthAdmin();
+      allow write: if isFirebaseAuthAdmin() || isGeneralAdmin();
+    }
+
+    // 공간 갤러리 사진 규칙
+    match /gallery_photos/{docId} {
+      allow read: if true;
+      allow write: if isFirebaseAuthAdmin() || isGeneralAdmin();
     }
     
   }

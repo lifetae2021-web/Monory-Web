@@ -59,7 +59,7 @@
             </li>
         </ul>
         <!-- Version Display -->
-        <div style="position: absolute; bottom: 10px; left: 20px; font-size: 10px; color: #666666; font-family: 'Outfit', sans-serif;">
+        <div id="app-version-footer" style="position: absolute; bottom: 10px; left: 20px; font-size: 10px; color: #666666; font-family: 'Outfit', sans-serif;">
             v1.3.65 (2026-04-12)
         </div>
     </aside>
@@ -682,6 +682,17 @@
             // 화면 보호 시작 (로그인 검사 전까지 숨김 처리)
             document.body.style.opacity = '0';
             
+            const hasKakaoAdmin = !!sessionStorage.getItem('monory_admin_session');
+            
+            // 실시간 버전 정보 가져오기
+            fetch('./version.json?t=' + Date.now())
+                .then(res => res.json())
+                .then(data => {
+                    const el = document.getElementById('app-version-footer');
+                    if (el) el.textContent = `v${data.version} (${data.buildDate})`;
+                })
+                .catch(console.error);
+            
             setTimeout(() => {
                 if(typeof firebase === 'undefined') {
                     console.error('Firebase SDK 로드 실패 (로컬 파일 실행 중일 경우 발생. firebase serve 명령어로 실행 필요)');
@@ -690,7 +701,7 @@
                 
                 const auth = firebase.auth();
                 auth.onAuthStateChanged((user) => {
-                    if (!user) {
+                    if (!user && !hasKakaoAdmin) {
                         // 로그인 안된 경우
                         window.location.href = 'login.html';
                     } else {
