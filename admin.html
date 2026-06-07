@@ -915,6 +915,10 @@
         // Firebase Firestore Version Control Logic (CMS)
         let currentActiveVersion = 1;
         let isCMSLoaded = false;
+
+        // configRef / historyRef 전역 개방 (외부 saveAllHeroSlots 등에서 접근 가능)
+        let _cmsConfigRef = null;
+        let _cmsHistoryRef = null;
         
         function loadFirebaseCMSData() {
             if(isCMSLoaded) return; // 이미 로드되었으면 중복 실행 방지
@@ -924,6 +928,10 @@
             const db = firebase.firestore();
             const configRef = db.collection("monory_config").doc("settings");
             const historyRef = configRef.collection("history");
+
+            // 전역 접근용
+            _cmsConfigRef = configRef;
+            _cmsHistoryRef = historyRef;
 
             // ── 갤러리 사진 실시간 구독 (CMS 탭 진입 시 바로 시작) ──
             if (_galleryUnsubscribe) _galleryUnsubscribe();
@@ -1098,12 +1106,18 @@
                         currentVersion: nextVersion
                     }, { merge: true });
                 }).then(() => {
+                    currentActiveVersion = nextVersion;
                     alert(`[v${nextVersion}] ` + alertMsg);
                 }).catch(err => {
                     alert('버전 에러: ' + err.message);
                     throw err;
                 });
             }
+
+            // 전역 접근 노이즈
+            window._cmsGetFullFormData = getFullFormData;
+            window._cmsSaveWithVersionControl = saveWithVersionControl;
+
 
             document.getElementById('content-form').addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -1548,6 +1562,11 @@
                 return;
             }
 
+            if (!window._cmsSaveWithVersionControl) {
+                alert('가로의 저장 함수가 아직 준비되지 않았습니다.\n콘텐츠 편집(CMS) 탭을 다시 클릭하거나, 페이지를 새로고침 후 다시 시도해주세요.');
+                return;
+            }
+
             const saveBtn = document.getElementById('hero-save-btn');
             saveBtn.disabled = true;
             saveBtn.style.opacity = '0.5';
@@ -1566,7 +1585,7 @@
             if (slotsToUpload.length === 0) {
                 saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
                 try {
-                    await saveWithVersionControl(getFullFormData(), '히어로 슬라이드 정보가 성공적으로 저장 및 즉시 반영되었습니다.');
+                    await window._cmsSaveWithVersionControl(window._cmsGetFullFormData(), '히어로 슬라이드 정보가 성공적으로 저장 및 즉시 반영되었습니다.');
                     saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> 저장 완료!';
                     saveBtn.style.background = 'rgba(74,222,128,0.2)';
                     saveBtn.style.borderColor = '#4ade80';
@@ -1667,7 +1686,7 @@
                 document.getElementById('hero-progress-wrap').style.display = 'none';
                 saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
                 
-                await saveWithVersionControl(getFullFormData(), '히어로 슬라이드 정보가 성공적으로 저장 및 즉시 반영되었습니다.');
+                await window._cmsSaveWithVersionControl(window._cmsGetFullFormData(), '히어로 슬라이드 정보가 성공적으로 저장 및 즉시 반영되었습니다.');
                 
                 saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> 저장 완료!';
                 saveBtn.style.background = 'rgba(74,222,128,0.2)';
