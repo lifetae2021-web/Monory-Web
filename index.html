@@ -74,8 +74,11 @@
         </div>
     </nav>
 
-    <header id="home" class="hero-section" style="background: none;">
-        <div id="hero-slideshow" style="position: absolute; inset: 0; z-index: 0; pointer-events: none;"></div>
+    <header id="home" class="hero-section">
+        <div id="hero-slideshow" style="position: absolute; inset: 0; z-index: 0; pointer-events: none;">
+            <!-- 기본 슬라이드: Firebase 로드 전 즉시 표시 -->
+            <div class="hero-slide active" style="background-image: url('assets/hero.png');"></div>
+        </div>
         <div class="hero-overlay"></div>
         <div class="hero-content">
             <h1 class="fade-in-up"
@@ -100,7 +103,7 @@
                 <div class="about-text slide-in-left">
                     <h2 class="section-badge" id="display-about-badge">ABOUT US</h2>
                     <h3 class="section-title" id="display-about-title">새로운 연결의 시작<br>커뮤니티 허브</h3>
-                    <p class="section-description" id="display-about-description">
+                    <p class="section-description centered" id="display-about-description">
                         <span style="color: #FFD700; font-weight: bold;">모노리</span>는 단순한 파티룸을 넘어<br class="mobile-br">
                         다양한 사람을 만날 수 있는<br class="mobile-br"><br class="pc-br">
                         <span style="color: #FFD700; font-weight: bold;">로테이션 소개팅, 파티 이벤트</span>가 열리는<br class="mobile-br">
@@ -139,9 +142,6 @@
                             <p id="display-fac4-desc" style="font-size: 0.85rem; color: var(--text-secondary);">깊이 있는 색감의 스마트 조명</p>
                         </div>
                     </div>
-                </div>
-                <div class="about-image slide-in-right">
-                    <img id="display-about-img" src="assets/about.png" alt="Keylink Networking Event at Monory">
                 </div>
             </div>
         </div>
@@ -781,7 +781,54 @@
             document.querySelectorAll('.hero-content .fade-in-up').forEach(el => {
                 el.classList.add('visible');
             });
+        }, 100);
 
+        // ── 히어로 슬라이드 렌더링 함수 ──────────────────────────────
+        function renderHeroSlides(imageUrls) {
+            if (!imageUrls || imageUrls.length === 0) imageUrls = ['assets/hero.png'];
+
+            // 기존 타이머 정리
+            if (window._heroSlideshowTimer) {
+                clearInterval(window._heroSlideshowTimer);
+                window._heroSlideshowTimer = null;
+            }
+
+            const container = document.getElementById('hero-slideshow');
+            if (!container) return;
+
+            container.innerHTML = '';
+            imageUrls.forEach((url, index) => {
+                const slide = document.createElement('div');
+                slide.className = 'hero-slide' + (index === 0 ? ' active' : '');
+                slide.style.backgroundImage = `url('${url}')`;
+                container.appendChild(slide);
+            });
+
+            if (imageUrls.length > 1) {
+                let currentSlideIndex = 0;
+                const slides = container.querySelectorAll('.hero-slide');
+                window._heroSlideshowTimer = setInterval(() => {
+                    if (slides[currentSlideIndex]) slides[currentSlideIndex].classList.remove('active');
+                    currentSlideIndex = (currentSlideIndex + 1) % slides.length;
+                    if (slides[currentSlideIndex]) slides[currentSlideIndex].classList.add('active');
+                }, 5000);
+            }
+        }
+
+        // Firebase가 완전히 로드될 때까지 기다린 후 실시간 리스너 등록
+        // defer 스크립트 로딩 타이밍 문제를 해결하기 위해 폴링 방식 사용
+        function waitForFirebase(callback, attempts) {
+            attempts = attempts || 0;
+            if (typeof firebase !== 'undefined') {
+                callback();
+            } else if (attempts < 50) { // 최대 5초 대기 (100ms * 50)
+                setTimeout(function() { waitForFirebase(callback, attempts + 1); }, 100);
+            } else {
+                console.warn('Firebase 로드 타임아웃 - 실시간 동기화 비활성화');
+            }
+        }
+
+        waitForFirebase(function() {
             if (typeof firebase !== 'undefined') {
                 const db = firebase.firestore();
                 db.collection("monory_config").doc("settings").onSnapshot((doc) => {
@@ -828,33 +875,8 @@
                         } else {
                             imageUrls = ['assets/hero.png'];
                         }
+                        renderHeroSlides(imageUrls);
 
-                        // 기존 슬라이드쇼 타이머 해제
-                        if (window._heroSlideshowTimer) {
-                            clearInterval(window._heroSlideshowTimer);
-                            window._heroSlideshowTimer = null;
-                        }
-
-                        const slideshowContainer = document.getElementById('hero-slideshow');
-                        if (slideshowContainer) {
-                            slideshowContainer.innerHTML = '';
-                            imageUrls.forEach((url, index) => {
-                                const slide = document.createElement('div');
-                                slide.className = 'hero-slide' + (index === 0 ? ' active' : '');
-                                slide.style.backgroundImage = `url('${url}')`;
-                                slideshowContainer.appendChild(slide);
-                            });
-
-                            if (imageUrls.length > 1) {
-                                let currentSlideIndex = 0;
-                                const slides = slideshowContainer.querySelectorAll('.hero-slide');
-                                window._heroSlideshowTimer = setInterval(() => {
-                                    if (slides[currentSlideIndex]) slides[currentSlideIndex].classList.remove('active');
-                                    currentSlideIndex = (currentSlideIndex + 1) % slides.length;
-                                    if (slides[currentSlideIndex]) slides[currentSlideIndex].classList.add('active');
-                                }, 5000); // 5초마다 회전
-                            }
-                        }
 
                         // ABOUT US 실시간 반영
                         if (data.aboutBadge) {
@@ -957,7 +979,8 @@
                     });
                 });
             }
-        }, 100);
+        });
+
 
         // Toss Payments Integration
         const primaryBtn = document.querySelector('.primary-btn');

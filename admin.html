@@ -626,7 +626,7 @@
                         <h2 class="panel-title"><i class="fa-solid fa-address-card" style="color: var(--accent-gold); margin-right: 8px;"></i>ABOUT US 섹션 설정</h2>
                     </div>
                     <form id="about-form">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 30px; max-width: 800px; margin: 0 auto;">
                             <!-- Left Side: Texts -->
                             <div>
                                 <div class="edit-form-group">
@@ -686,10 +686,15 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div style="margin-top: 30px;">
+                                    <button id="about-save-btn" type="submit" class="save-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                        <i class="fa-solid fa-check"></i> ABOUT US 전체 저장 및 즉시 반영
+                                    </button>
+                                </div>
                             </div>
                             
-                            <!-- Right Side: Image Upload -->
-                            <div style="border-left: 1px solid var(--border-color); padding-left: 30px; display: flex; flex-direction: column; justify-content: space-between;">
+                            <!-- Right Side: Image Upload (Hidden) -->
+                            <div style="display: none;">
                                 <div>
                                     <label class="edit-label">ABOUT US 우측 대표 이미지</label>
                                     <div style="margin-bottom: 15px;">
@@ -733,9 +738,7 @@
                                 </div>
                                 
                                 <div style="margin-top: 30px;">
-                                    <button id="about-save-btn" type="submit" class="save-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                        <i class="fa-solid fa-check"></i> ABOUT US 전체 저장 및 즉시 반영
-                                    </button>
+                                    <button id="about-save-btn-hidden" type="button" class="save-btn" style="display:none;"></button>
                                 </div>
                             </div>
                         </div>

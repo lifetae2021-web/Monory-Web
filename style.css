@@ -464,10 +464,9 @@ section {
 
 /* About Section */
 .about-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: center;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
 }
 
 .about-text strong {
@@ -503,27 +502,7 @@ section {
     font-size: 1.2rem;
     margin-right: 12px;
 }
-
-.about-image {
-    position: relative;
-}
-
-.about-image img {
-    border-radius: 12px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-}
-
-.about-image::before {
-    content: '';
-    position: absolute;
-    top: -20px;
-    right: -20px;
-    width: 100%;
-    height: 100%;
-    border: 1px solid var(--accent-gold);
-    border-radius: 12px;
-    z-index: -1;
-}
+/* .about-image styles removed */
 
 /* Smart Pricing & CTA Section */
 .reservation-section {
@@ -789,7 +768,7 @@ footer p {
         justify-content: space-between;
     }
 
-    .about-grid, .pricing-grid {
+    .pricing-grid {
         grid-template-columns: 1fr;
     }
     
@@ -799,10 +778,6 @@ footer p {
     
     .hero-content p {
         font-size: 1.05rem;
-    }
-    
-    .about-image::before {
-        display: none;
     }
     
     .nav-links {
