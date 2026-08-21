@@ -14,10 +14,8 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css?v=1.3.24">
-    <!-- Toss Payments SDK -->
-    <script src="https://js.tosspayments.com/v1"></script>
     <!-- Kakao SDK (integrity 없이 로드 - 해시 불일치 시 로드 차단됨) -->
-    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" defer></script>
 </head>
 
 <body>
@@ -403,7 +401,7 @@
             </div>
             <div
                 style="width: 100%; height: 450px; border-radius: 16px; overflow: hidden; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
-                <img src="assets/location_map.png" alt="Monory Location Map" style="width: 100%; height: 100%; object-fit: cover;">
+                <img src="assets/location_map.jpg" alt="Monory Location Map" style="width: 100%; height: 100%; object-fit: cover;">
             </div>
         </div>
     </section>
@@ -990,41 +988,6 @@
                 });
             }
         });
-
-
-        // Toss Payments Integration
-        const primaryBtn = document.querySelector('.primary-btn');
-        if (primaryBtn) {
-            primaryBtn.addEventListener('click', function () {
-                const selectBox = document.querySelector('.custom-select');
-
-                if (selectBox.selectedIndex === 0) {
-                    alert('이용하실 공간 패키지를 먼저 선택해주세요.');
-                    return;
-                }
-
-                const packageName = selectBox.options[selectBox.selectedIndex].text;
-
-                // 토스페이먼츠 연동 (테스트 클라이언트 키)
-                const clientKey = 'test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq';
-                const tossPayments = TossPayments(clientKey);
-
-                tossPayments.requestPayment('카드', {
-                    amount: parseFloat(document.getElementById('summary-total-price').innerText.replace(/[^0-9.-]+/g,"")) || 120000,
-                    orderId: 'MNRY-' + new Date().getTime(),
-                    orderName: '모노리: ' + packageName,
-                    customerName: '태영훈 방문객님',
-                    successUrl: window.location.origin + '?status=success',
-                    failUrl: window.location.origin + '?status=fail',
-                }).catch(function (error) {
-                    if (error.code === 'USER_CANCEL') {
-                        console.log('사용자가 결제를 취소했습니다.');
-                    } else {
-                        alert('결제 오류가 발생했습니다: ' + error.message);
-                    }
-                });
-            });
-        }
     </script>
 
     <!-- Version Tag -->
