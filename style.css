@@ -660,6 +660,32 @@ footer p {
     font-size: 0.9rem;
 }
 
+.footer-business-info {
+    margin-top: 20px;
+    font-size: 0.8rem;
+    line-height: 1.7;
+    opacity: 0.6;
+}
+
+.footer-links {
+    margin-top: 16px;
+    font-size: 0.85rem;
+}
+
+.footer-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.footer-links a:hover {
+    color: var(--accent-gold);
+}
+
+.footer-links-divider {
+    margin: 0 10px;
+    opacity: 0.4;
+}
+
 .copyright {
     margin-top: 30px;
     font-size: 0.8rem;
