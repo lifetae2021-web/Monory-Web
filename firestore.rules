@@ -28,8 +28,8 @@ service cloud.firestore {
       // 사용자 본인의 쿠폰함 규칙
       match /coupons/{couponId} {
         allow read: if true;
-        // 리뷰 작성 후 자동 보상을 위해 본인 계정에 쿠폰 생성 허용
-        allow create: if request.auth != null; 
+        // 리뷰 작성/신규 가입 후 본인 계정에 쿠폰 생성을 위해 허용
+        allow create: if true; 
         allow update, delete: if isGeneralAdmin();
       }
     }

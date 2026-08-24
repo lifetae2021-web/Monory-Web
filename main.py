@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import sqlite3
+import os
 from datetime import datetime
 
 app = FastAPI()
@@ -150,3 +152,23 @@ def get_admin_data():
     rows = cursor.fetchall()
     conn.close()
     return {"reservations": rows}
+
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+
+@app.get("/{filename}.css")
+def get_css(filename: str):
+    if os.path.exists(f"{filename}.css"):
+        return FileResponse(f"{filename}.css")
+    raise HTTPException(status_code=404, detail="File not found")
+
+@app.get("/{filename}.html")
+def get_html(filename: str):
+    if os.path.exists(f"{filename}.html"):
+        return FileResponse(f"{filename}.html")
+    raise HTTPException(status_code=404, detail="File not found")
+
+@app.get("/{filename}.js")
+def get_js(filename: str):
+    if os.path.exists(f"{filename}.js"):
+        return FileResponse(f"{filename}.js")
+    raise HTTPException(status_code=404, detail="File not found")
