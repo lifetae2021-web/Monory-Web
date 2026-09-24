@@ -1687,7 +1687,7 @@
             IMP.init('imp33870371'); // 실제 가맹점 식별코드
 
             IMP.request_pay({
-                pg:           'html5_inicis.INIpayTest', // KG이니시스 테스트모드 (PG사 심사용)
+                pg:           'kcp', // 실서비스 운영 PG (NHN KCP)
                 pay_method:   'card',
                 merchant_uid:  merchantUid,
                 name:         `모노리 ${pkgLabels[pkg]}`,
