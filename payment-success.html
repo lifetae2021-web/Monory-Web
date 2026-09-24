@@ -203,15 +203,15 @@
             </div>
         </div>
 
-        <div class="btn-group">
-            <a href="mypage.html" class="btn-success btn-primary">
+        <div class="btn-group" id="btn-group">
+            <a href="mypage.html" class="btn-success btn-primary" id="btn-mypage">
                 예약 내역 확인하기 <i class="fa-solid fa-calendar-check"></i>
             </a>
-            <a href="index.html" class="btn-success btn-outline">홈으로 가기</a>
+            <a href="index.html" class="btn-success btn-outline" id="btn-home">홈으로 가기</a>
         </div>
 
         <p class="redirect-timer">
-            <span id="timer-count">5</span>초 후 마이페이지로 자동 이동합니다.
+            <span id="timer-count">5</span>초 후 <span id="redirect-target-label">마이페이지</span>로 자동 이동합니다.
         </p>
     </div>
 
@@ -222,6 +222,15 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // ★ 비로그인 게스트는 마이페이지 진입 시 튕겨나가므로 버튼/안내 문구를 홈으로 전환
+            if (!localStorage.getItem('monory_user')) {
+                const btnMypage = document.getElementById('btn-mypage');
+                btnMypage.href = 'index.html';
+                btnMypage.innerHTML = '홈으로 가기 <i class="fa-solid fa-house"></i>';
+                document.getElementById('redirect-target-label').textContent = '홈';
+                document.getElementById('btn-home').style.display = 'none';
+            }
+
             // Confetti Effect
             const duration = 3 * 1000;
             const animationEnd = Date.now() + duration;
@@ -309,15 +318,19 @@
             }
 
             // Redirect Timer
+            // ★ 비로그인 게스트는 mypage.html 접근 시 "로그인이 필요한 서비스입니다" 알림과
+            //   함께 튕겨나가므로, 로그인 상태가 아니면 홈으로 이동시킨다.
             let timeLeft = 5;
             function startRedirectTimer() {
+                const isLoggedIn = !!localStorage.getItem('monory_user');
+                const redirectTarget = isLoggedIn ? 'mypage.html' : 'index.html';
                 const timerEl = document.getElementById('timer-count');
                 const timerId = setInterval(() => {
                     timeLeft -= 1;
                     timerEl.textContent = timeLeft;
                     if (timeLeft <= 0) {
                         clearInterval(timerId);
-                        window.location.href = 'mypage.html';
+                        window.location.href = redirectTarget;
                     }
                 }, 1000);
             }

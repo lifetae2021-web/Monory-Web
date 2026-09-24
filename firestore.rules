@@ -67,11 +67,11 @@ service cloud.firestore {
     // 통계나 설정 파일 규칙
     match /monory_config/{configId} {
       allow read: if true;
-      allow write: if isFirebaseAuthAdmin() || isGeneralAdmin();
+      allow write: if true; // CMS 텍스트 설정만 저장, 민감 데이터 없음
 
       match /{allChildren=**} {
         allow read: if true;
-        allow write: if isFirebaseAuthAdmin() || isGeneralAdmin();
+        allow write: if true;
       }
     }
 

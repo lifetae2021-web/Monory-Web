@@ -391,12 +391,12 @@
     <section id="location" style="padding: 100px 0; background-color: var(--bg-main);">
         <div class="container">
             <div class="text-center" style="margin-bottom: 50px;">
-                <h2 class="section-badge">LOCATION</h2>
-                <h3 class="section-title">오시는 길</h3>
+                <h2 id="display-location-badge" class="section-badge">LOCATION</h2>
+                <h3 id="display-location-title" class="section-title">오시는 길</h3>
                 <p class="section-description centered" style="line-height: 1.8; margin-bottom: 0;">
-                    <strong>서면역 이용 시:</strong> 15번 출구에서 도보 3분<br>
-                    <strong>부전역 이용 시:</strong> 1번 출구에서 도보 4분<br>
-                    <span style="color: var(--accent-gold); font-weight: bold; display: inline-block; margin-top: 15px; font-size: 1.05rem;">"서면 중심가에서 가장 가까운 영감의 공간, 모노리에서 기다릴게요."</span>
+                    <strong><span id="display-location-subway1-label">서면역 이용 시:</span></strong> <span id="display-location-subway1">15번 출구에서 도보 3분</span><br>
+                    <strong><span id="display-location-subway2-label">부전역 이용 시:</span></strong> <span id="display-location-subway2">1번 출구에서 도보 4분</span><br>
+                    <span id="display-location-quote" style="color: var(--accent-gold); font-weight: bold; display: inline-block; margin-top: 15px; font-size: 1.05rem;">"서면 중심가에서 가장 가까운 영감의 공간, 모노리에서 기다릴게요."</span>
                 </p>
             </div>
             <div
@@ -872,10 +872,9 @@
                         }
 
                         // Set Banner Visibility
-                        if (data.bannerToggle === 'hide') {
-                            document.getElementById('display-banner').style.display = 'none';
-                        } else {
-                            document.getElementById('display-banner').style.display = 'flex';
+                        const bannerEl = document.getElementById('display-banner');
+                        if (bannerEl) {
+                            bannerEl.style.display = data.bannerToggle === 'hide' ? 'none' : 'flex';
                         }
 
                         // 메인 히어로 이미지 슬라이드쇼 실시간 반영
@@ -938,6 +937,36 @@
                         if (data.aboutImageUrl) {
                             const aboutImg = document.getElementById('display-about-img');
                             if (aboutImg) aboutImg.src = data.aboutImageUrl;
+                        }
+
+                        // 오시는길 실시간 반영
+                        if (data.locationBadge) {
+                            const el = document.getElementById('display-location-badge');
+                            if (el) el.innerText = data.locationBadge;
+                        }
+                        if (data.locationTitle) {
+                            const el = document.getElementById('display-location-title');
+                            if (el) el.innerText = data.locationTitle;
+                        }
+                        if (data.locationSubway1) {
+                            const el = document.getElementById('display-location-subway1');
+                            if (el) el.innerText = data.locationSubway1;
+                        }
+                        if (data.locationSubway1Label) {
+                            const el = document.getElementById('display-location-subway1-label');
+                            if (el) el.innerText = data.locationSubway1Label;
+                        }
+                        if (data.locationSubway2) {
+                            const el = document.getElementById('display-location-subway2');
+                            if (el) el.innerText = data.locationSubway2;
+                        }
+                        if (data.locationSubway2Label) {
+                            const el = document.getElementById('display-location-subway2-label');
+                            if (el) el.innerText = data.locationSubway2Label;
+                        }
+                        if (data.locationQuote) {
+                            const el = document.getElementById('display-location-quote');
+                            if (el) el.innerText = data.locationQuote;
                         }
                     }
                 });
@@ -1639,9 +1668,11 @@
                     usedCoupon:   usedCoupon,
                     reviewPromise: reviewPromiseVal,
                     isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false
+                }).finally(() => {
+                    // ★ Firestore 저장이 끝난 뒤에 페이지를 이동해야 저장 요청이 끊기지 않는다
+                    closeModal('bookingModal');
+                    window.location.href = 'payment-success.html?imp_uid=FREE-' + merchantUid;
                 });
-                closeModal('bookingModal');
-                window.location.href = 'payment-success.html?imp_uid=FREE-' + merchantUid;
                 return;
             }
 
@@ -1656,7 +1687,7 @@
             IMP.init('imp33870371'); // 실제 가맹점 식별코드
 
             IMP.request_pay({
-                pg:           'kakaopay',
+                pg:           'html5_inicis.INIpayTest', // KG이니시스 테스트모드 (PG사 심사용)
                 pay_method:   'card',
                 merchant_uid:  merchantUid,
                 name:         `모노리 ${pkgLabels[pkg]}`,
@@ -1689,10 +1720,12 @@
                         endTime:      currentReservationMode === 'hourly' ? hourlySelection.end : null,
                         totalHours:   currentReservationMode === 'hourly' ? (hourlySelection.end - hourlySelection.start) : null,
                         isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false
+                    }).finally(() => {
+                        // ★ Firestore 저장이 끝난 뒤에 페이지를 이동해야 저장 요청이 끊기지 않는다
+                        closeModal('bookingModal');
+                        // PC 결제 성공 시 payment-success.html로 이동
+                        window.location.href = 'payment-success.html?imp_uid=' + rsp.imp_uid;
                     });
-                    closeModal('bookingModal');
-                    // PC 결제 성공 시 payment-success.html로 이동
-                    window.location.href = 'payment-success.html?imp_uid=' + rsp.imp_uid;
                 } else {
                     if (rsp.error_msg && !rsp.error_msg.includes('취소')) {
                         alert('결제 오류: ' + rsp.error_msg);
@@ -1704,12 +1737,14 @@
         }
 
         // ── Firestore reservations 저장 ──────────────────────────────
+        // ★ 반환된 Promise가 끝나기 전에 페이지를 이동하면 저장 요청이 끊길 수 있으므로,
+        //   호출부에서는 반드시 이 Promise가 끝난 뒤 페이지 이동을 진행해야 한다.
         function saveReservationToFirestore(data) {
-            if (typeof firebase === 'undefined') { console.warn('Firebase 미연결'); return; }
+            if (typeof firebase === 'undefined') { console.warn('Firebase 미연결'); return Promise.resolve(); }
             try {
                 const db = firebase.firestore();
                 const user = JSON.parse(localStorage.getItem('monory_user') || '{}');
-                db.collection('reservations').add({
+                return db.collection('reservations').add({
                     kakaoUid:    user.kakaoId   || null,
                     kakaoName:   user.name      || null,
                     bookingType: data.bookingType,
@@ -1747,7 +1782,7 @@
                     }
                 })
                   .catch(e  => console.error('예약 저장 실패:', e));
-            } catch(e) { console.error('Firestore 오류:', e); }
+            } catch(e) { console.error('Firestore 오류:', e); return Promise.resolve(); }
         }
 
         // ── X버튼 및 메인 복귀 시 끊긴 결제(모바일 등) 검증 처리 ──
@@ -1780,7 +1815,8 @@
                     if(res.data && res.data.success && res.data.status === 'paid') {
                         // 실제 결제 성공했다면 저장 후 마이페이지
                         pendingParams.impUid = res.data.data.imp_uid;
-                        saveReservationToFirestore(pendingParams);
+                        // ★ Firestore 저장이 끝난 뒤에 페이지를 이동해야 저장 요청이 끊기지 않는다
+                        await saveReservationToFirestore(pendingParams);
                         sessionStorage.removeItem('monory_pending_booking');
                         // 검증 성공 시 마이페이지 대신 성공 페이지로 이동
                         window.location.href = 'payment-success.html?imp_uid=' + res.data.data.imp_uid;

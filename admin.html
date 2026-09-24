@@ -746,6 +746,60 @@
                 </div>
             </div>
             
+            <!-- ============================
+                 오시는길 섹션 편집 패널
+                 ============================ -->
+            <div class="edit-grid" style="margin-bottom: 30px;">
+                <div class="panel" style="grid-column: 1 / -1; border-color: rgba(212, 175, 55, 0.25);">
+                    <div class="panel-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center;">
+                        <h2 class="panel-title">
+                            <i class="fa-solid fa-map-location-dot" style="color: var(--accent-gold); margin-right: 8px;"></i>
+                            오시는길 (LOCATION) 섹션 설정
+                        </h2>
+                        <span style="font-size: 0.8rem; color: var(--text-secondary); background: rgba(212,175,55,0.1); border: 1px solid rgba(212,175,55,0.2); padding: 4px 12px; border-radius: 20px;">
+                            <i class="fa-solid fa-bolt" style="color: var(--accent-gold);"></i> 저장 즉시 홈페이지 반영
+                        </span>
+                    </div>
+                    <form id="location-form">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 900px; margin: 0 auto;">
+                            <div class="edit-form-group">
+                                <label class="edit-label">배지 텍스트 (상단 소제목)</label>
+                                <input type="text" id="input-location-badge" class="edit-input" placeholder="예: LOCATION">
+                            </div>
+                            <div class="edit-form-group">
+                                <label class="edit-label">섹션 제목 (큰 제목)</label>
+                                <input type="text" id="input-location-title" class="edit-input" placeholder="예: 오시는 길">
+                            </div>
+                            <div class="edit-form-group">
+                                <label class="edit-label">1번째 역 이름 라벨</label>
+                                <input type="text" id="input-location-subway1-label" class="edit-input" placeholder="예: 서면역 이용 시:">
+                            </div>
+                            <div class="edit-form-group">
+                                <label class="edit-label">1번째 역 교통 안내</label>
+                                <input type="text" id="input-location-subway1" class="edit-input" placeholder="예: 15번 출구에서 도보 3분">
+                            </div>
+                            <div class="edit-form-group">
+                                <label class="edit-label">2번째 역 이름 라벨</label>
+                                <input type="text" id="input-location-subway2-label" class="edit-input" placeholder="예: 부전역 이용 시:">
+                            </div>
+                            <div class="edit-form-group">
+                                <label class="edit-label">2번째 역 교통 안내</label>
+                                <input type="text" id="input-location-subway2" class="edit-input" placeholder="예: 1번 출구에서 도보 4분">
+                            </div>
+                            <div class="edit-form-group" style="grid-column: 1 / -1;">
+                                <label class="edit-label">하단 인용문 (골드 색상으로 표시)</label>
+                                <input type="text" id="input-location-quote" class="edit-input" placeholder='예: "서면 중심가에서 가장 가까운 영감의 공간, 모노리에서 기다릴게요."'>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; margin-top: 24px;">
+                            <button type="submit" class="save-btn" style="display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-check"></i> 오시는길 저장 및 즉시 반영
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <div id="version-badge" style="margin-top:20px; background: rgba(10,10,12,0.9); border: 1px solid var(--accent-gold); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; color: var(--accent-gold); display:inline-block;">
                 현재 버전: 로딩 중...
             </div>
@@ -971,6 +1025,15 @@
                         if (data.bannerToggle) document.getElementById('input-banner-toggle').value = data.bannerToggle;
 
                         // ABOUT US 데이터
+                        // 오시는길 데이터 복원
+                        document.getElementById('input-location-badge').value = data.locationBadge || "LOCATION";
+                        document.getElementById('input-location-title').value = data.locationTitle || "오시는 길";
+                        document.getElementById('input-location-subway1-label').value = data.locationSubway1Label || "서면역 이용 시:";
+                        document.getElementById('input-location-subway1').value = data.locationSubway1 || "15번 출구에서 도보 3분";
+                        document.getElementById('input-location-subway2-label').value = data.locationSubway2Label || "부전역 이용 시:";
+                        document.getElementById('input-location-subway2').value = data.locationSubway2 || "1번 출구에서 도보 4분";
+                        document.getElementById('input-location-quote').value = data.locationQuote || '"서면 중심가에서 가장 가까운 영감의 공간, 모노리에서 기다릴게요."';
+
                         document.getElementById('input-about-badge').value = data.aboutBadge || "ABOUT US";
                         document.getElementById('input-about-title').value = data.aboutTitle || "새로운 연결의 시작<br>커뮤니티 허브";
                         document.getElementById('input-about-description').value = data.aboutDescription || `모노리는 단순한 파티룸을 넘어
@@ -1088,7 +1151,14 @@
                     fac3Desc: document.getElementById('input-fac3-desc').value,
                     fac4Title: document.getElementById('input-fac4-title').value,
                     fac4Desc: document.getElementById('input-fac4-desc').value,
-                    aboutImageUrl: window._currentAboutImageUrl || ''
+                    aboutImageUrl: window._currentAboutImageUrl || '',
+                    locationBadge: document.getElementById('input-location-badge').value,
+                    locationTitle: document.getElementById('input-location-title').value,
+                    locationSubway1Label: document.getElementById('input-location-subway1-label').value,
+                    locationSubway1: document.getElementById('input-location-subway1').value,
+                    locationSubway2Label: document.getElementById('input-location-subway2-label').value,
+                    locationSubway2: document.getElementById('input-location-subway2').value,
+                    locationQuote: document.getElementById('input-location-quote').value
                 };
             }
 
@@ -1137,6 +1207,11 @@
                 aboutUploadAndSave();
             });
 
+            document.getElementById('location-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                saveWithVersionControl(getFullFormData(), '오시는길 정보가 저장되었으며, 즉시 반영되었습니다.');
+            });
+
             document.getElementById('btn-revert').addEventListener('click', () => {
                 const selectedId = document.getElementById('input-history-select').value;
                 if(!selectedId) return alert('돌아갈 과거 버전을 선택해주세요.');
@@ -1164,6 +1239,15 @@
                             if (data.fac3Desc) document.getElementById('input-fac3-desc').value = data.fac3Desc;
                             if (data.fac4Title) document.getElementById('input-fac4-title').value = data.fac4Title;
                             if (data.fac4Desc) document.getElementById('input-fac4-desc').value = data.fac4Desc;
+
+                            // 오시는길 rollback
+                            if (data.locationBadge) document.getElementById('input-location-badge').value = data.locationBadge;
+                            if (data.locationTitle) document.getElementById('input-location-title').value = data.locationTitle;
+                            if (data.locationSubway1Label) document.getElementById('input-location-subway1-label').value = data.locationSubway1Label;
+                            if (data.locationSubway1) document.getElementById('input-location-subway1').value = data.locationSubway1;
+                            if (data.locationSubway2Label) document.getElementById('input-location-subway2-label').value = data.locationSubway2Label;
+                            if (data.locationSubway2) document.getElementById('input-location-subway2').value = data.locationSubway2;
+                            if (data.locationQuote) document.getElementById('input-location-quote').value = data.locationQuote;
 
                             // 이미지 URL도 rollback
                             if (data.heroImageUrl) {
@@ -2052,8 +2136,8 @@
                         ${m.name || '-'}
                         ${isNew ? '<span style="margin-left:6px;font-size:0.7rem;background:rgba(34,197,94,0.15);color:#22c55e;padding:2px 7px;border-radius:10px;font-weight:500;">NEW</span>' : ''}
                     </td>
-                    <td style="color:var(--text-secondary);font-size:0.88rem;">${m.birthday || '생일 미등록'}</td>
-                    <td>
+                    <td style="color:var(--text-secondary);font-size:0.88rem; white-space:nowrap;">${m.birthday || '생일 미등록'}</td>
+                    <td style="white-space:nowrap;">
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;background:#FEE500;color:#3C1E1E;font-size:0.75rem;font-weight:700;">
                                     <svg width="10" height="10" viewBox="0 0 18 18" fill="none"><path d="M9 1C4.582 1 1 3.896 1 7.47c0 2.28 1.513 4.278 3.808 5.424l-.97 3.605 4.2-2.774c.637.09 1.29.135 1.962.135 4.418 0 8-2.896 8-6.47C18 3.896 13.418 1 9 1z" fill="#3C1E1E"/></svg>
@@ -2066,7 +2150,7 @@
                             </div>
                             ${badgeHtml}
                     </td>
-                    <td style="font-size:0.85rem;color:var(--text-secondary);">${fmtDate(joinedAt)}</td>
+                    <td style="font-size:0.85rem;color:var(--text-secondary); white-space:nowrap;">${fmtDate(joinedAt)}</td>
                     <td id="coupon-col-${m.id}" style="text-align:center;"><i class="fa-solid fa-circle-notch fa-spin" style="font-size:0.8rem;opacity:0.3;"></i></td>
                     <td>${actionHtml}</td>
                 `;
