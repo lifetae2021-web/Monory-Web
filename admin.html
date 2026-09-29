@@ -1906,7 +1906,7 @@
             if (!_aboutSelectedFile) {
                 saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
                 try {
-                    saveWithVersionControl(getFullFormData(), 'ABOUT US 정보가 성공적으로 저장 및 즉시 반영되었습니다.');
+                    window._cmsSaveWithVersionControl(window._cmsGetFullFormData(), 'ABOUT US 정보가 성공적으로 저장 및 즉시 반영되었습니다.');
                     setTimeout(() => {
                         saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> 저장 완료!';
                         saveBtn.style.background = 'rgba(74,222,128,0.2)';
@@ -1984,7 +1984,7 @@
                         document.getElementById('about-progress-wrap').style.display = 'none';
 
                         // DB 저장 진행
-                        saveWithVersionControl(getFullFormData(), 'ABOUT US 이미지 및 텍스트 정보가 성공적으로 저장 및 즉시 반영되었습니다.');
+                        window._cmsSaveWithVersionControl(window._cmsGetFullFormData(), 'ABOUT US 이미지 및 텍스트 정보가 성공적으로 저장 및 즉시 반영되었습니다.');
                         
                         saveBtn.innerHTML = '<i class="fa-solid fa-check"></i> 저장 완료!';
                         saveBtn.style.background = 'rgba(74,222,128,0.2)';
