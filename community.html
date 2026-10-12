@@ -127,9 +127,7 @@
         </div>
         
         <!-- Version Display -->
-        <div style="text-align: center; margin-top: 40px; font-size: 0.8rem; color: #555;">
-            v1.3.73 (2026-04-13)
-        </div>
+        <div id="version-display" style="text-align: center; margin-top: 40px; font-size: 0.8rem; color: #555;"></div>
     </div>
 
     <!-- Write Modal -->
@@ -518,6 +516,12 @@
                 alert('삭제에 실패했습니다: ' + e.message);
             }
         }
+    </script>
+<script>
+        fetch('version.json?t=' + Date.now()).then(r => r.json()).then(d => {
+            const el = document.getElementById('version-display');
+            if (el) el.innerText = `v${d.version} (${d.buildDate})`;
+        }).catch(() => {});
     </script>
 </body>
 </html>

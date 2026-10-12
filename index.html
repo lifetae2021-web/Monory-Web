@@ -1462,6 +1462,9 @@
                     alert('최소 3시간 이상 예약 가능합니다.'); return;
                 }
                 pkgName = `시간제 (${hourlySelection.start}시~${hourlySelection.end}시)`;
+                if (hasBookingConflict(selectedDateObj, hourlySelection.start, hourlySelection.end)) {
+                    alert('선택하신 시간에 이미 예약이 있습니다. 다른 시간을 선택해주세요.'); return;
+                }
             }
 
             if (!totalAmount || totalAmount <= 0) { alert('결제 금액이 계산되지 않았습니다.'); return; }
@@ -1614,6 +1617,11 @@
             if (currentReservationMode === 'hourly') {
                 pkgLabels[pkg] = `시간제 (${hourlySelection.start}시~${hourlySelection.end}시)`;
             }
+            // 결제 직전 최신 예약 현황으로 한 번 더 중복 검사
+            const wantRange = currentReservationMode === 'hourly' ? [hourlySelection.start, hourlySelection.end] : PKG_HOURS[pkg];
+            if (selectedDateObj && wantRange && hasBookingConflict(selectedDateObj, wantRange[0], wantRange[1])) {
+                alert('선택하신 시간에 이미 예약이 있습니다. 다른 날짜/시간을 선택해주세요.'); return;
+            }
             const merchantUid = 'MNRY-' + Date.now();
 
             const couponSelect = document.getElementById('booking-coupon');
@@ -1635,7 +1643,7 @@
                 requests:     requests,
                 date:         document.getElementById('selected-date-display').innerText,
                 guestCount:   guestCount,
-                packageKey:   pkg,
+                packageKey:   currentReservationMode === 'hourly' ? 'hourly' : pkg,
                 packageName:  pkgLabels[pkg],
                 totalAmount:  totalAmount,
                 usedCoupon:   usedCoupon,
@@ -1667,7 +1675,7 @@
                     requests:     requests,
                     date:         document.getElementById('selected-date-display').innerText,
                     guestCount:   guestCount,
-                    packageKey:   pkg,
+                    packageKey:   currentReservationMode === 'hourly' ? 'hourly' : pkg,
                     packageName:  pkgLabels[pkg],
                     totalAmount:  0,
                     usedCoupon:   usedCoupon,
@@ -1715,7 +1723,7 @@
                         requests:     requests,
                         date:         document.getElementById('selected-date-display').innerText,
                         guestCount:   guestCount,
-                        packageKey:   pkg,
+                        packageKey:   currentReservationMode === 'hourly' ? 'hourly' : pkg,
                         packageName:  pkgLabels[pkg],
                         totalAmount:  totalAmount,
                         usedCoupon:   usedCoupon, // 결제성공시 쿠폰 처리용 데이터 추가
@@ -1777,7 +1785,8 @@
                     console.log('✅ 예약 저장 완료:', ref.id);
                     // 쿠폰 사용 상태 변경
                     if (data.usedCoupon && data.usedCoupon.id) {
-                        db.collection('members').doc(String(user.kakaoId)).collection('coupons').doc(data.usedCoupon.id)
+                        // ★ return 하지 않으면 이후 페이지 이동으로 업데이트 요청이 끊긴다
+                        return db.collection('members').doc(String(user.kakaoId)).collection('coupons').doc(data.usedCoupon.id)
                           .update({ 
                             status: 'used', 
                             isUsed: true, 
@@ -1861,8 +1870,24 @@
         }
 
         // ── 예약 현황 / 중복 방지 데이터 ─────────────────────────────
-        // bookedMap: { 'YYYY-M-D': ['day','night','allnight', ...] }
+        // bookedMap: { 'YYYY-M-D': [[startHour, endHour), ...] }  (시간 인덱스: 24 이상 = 익일 0시~)
         let bookedMap = {};
+        const PKG_HOURS = { day: [10, 17], night: [18, 24], allnight: [18, 33] };
+
+        // 'YY.MM.DD (요일)' 또는 구형 'YYYY년 M월 D일' → { y, m, d } (m: 1~12)
+        function parseReservationDate(str) {
+            if (!str) return null;
+            let m = str.match(/(\d{4})년 (\d+)월 (\d+)일/);
+            if (m) return { y: +m[1], m: +m[2], d: +m[3] };
+            m = str.match(/(\d{2})\.(\d{2})\.(\d{2})/);
+            if (m) return { y: 2000 + (+m[1]), m: +m[2], d: +m[3] };
+            return null;
+        }
+
+        function addBookedInterval(y, m, d, start, end) {
+            const key = y + '-' + m + '-' + d;
+            (bookedMap[key] = bookedMap[key] || []).push([start, end]);
+        }
 
         function loadBookedDates() {
             if (typeof firebase === 'undefined') return;
@@ -1873,34 +1898,50 @@
                   bookedMap = {};
                   snapshot.forEach(doc => {
                       const r = doc.data();
-                      if (!r.date || !r.packageKey) return;
-                      const match = r.date.match(/(\d+)년 (\d+)월 (\d+)일/);
-                      if (!match) return;
-                      const key = match[1] + '-' + match[2] + '-' + match[3];
-                      if (!bookedMap[key]) bookedMap[key] = [];
-                      if (!bookedMap[key].includes(r.packageKey)) bookedMap[key].push(r.packageKey);
+                      const dt = parseReservationDate(r.date);
+                      if (!dt) return;
+                      let range = null;
+                      if (r.reservationMode === 'hourly' && r.startTime != null && r.endTime != null) range = [r.startTime, r.endTime];
+                      else if (PKG_HOURS[r.packageKey]) range = PKG_HOURS[r.packageKey];
+                      if (!range) return;
+                      addBookedInterval(dt.y, dt.m, dt.d, range[0], Math.min(range[1], 24));
+                      // 익일로 넘어가는 시간(24시 이후)은 다음 날 0시부터로 환산
+                      if (range[1] > 24) {
+                          const next = new Date(dt.y, dt.m - 1, dt.d + 1);
+                          addBookedInterval(next.getFullYear(), next.getMonth() + 1, next.getDate(), Math.max(range[0], 24) - 24, range[1] - 24);
+                      }
                   });
                   renderCalendar(currentCalDate);
+                  if (selectedDateObj) checkAndDisablePackages(toDateKey(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate()));
               }, function(e) { console.warn('부킹 데이터 로드 실패:', e); });
+        }
+
+        // [start, end) 구간(24 이상 = 익일)이 해당 날짜의 기존 예약과 겹치는지 검사. 익일 구간은 다음 날 예약과도 비교
+        function hasBookingConflict(dateObj, start, end) {
+            const check = (dt, s, e) => (bookedMap[dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + dt.getDate()] || [])
+                .some(([bs, be]) => s < be && bs < e);
+            if (check(dateObj, start, Math.min(end, 24))) return true;
+            if (end > 24) {
+                const next = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate() + 1);
+                if (check(next, Math.max(start, 24) - 24, end - 24)) return true;
+            }
+            return false;
         }
 
         function toDateKey(y, m, d) { return y + '-' + (m+1) + '-' + d; }
 
         function checkAndDisablePackages(dateKey) {
-            const booked = bookedMap[dateKey] || [];
             const sel = document.getElementById('booking-package');
             if (!sel) return;
+            const [y, m, d] = dateKey.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d);
             const opts = sel.options;
-            const allnightBooked = booked.includes('allnight');
-            const nightBooked    = booked.includes('night');
             for (let i = 0; i < opts.length; i++) {
                 const v = opts[i].value;
                 if (v === 'none') { opts[i].disabled = false; continue; }
-                let disabled = false;
+                const range = PKG_HOURS[v];
+                const disabled = !!range && hasBookingConflict(dateObj, range[0], range[1]);
                 const baseText = opts[i].text.replace(' (마감)', '');
-                if (v === 'day')      disabled = booked.includes('day');
-                if (v === 'night')    disabled = nightBooked || allnightBooked;
-                if (v === 'allnight') disabled = nightBooked || allnightBooked;
                 opts[i].disabled = disabled;
                 opts[i].text = baseText + (disabled ? ' (마감)' : '');
                 if (disabled && sel.value === v) { sel.value = 'none'; }
@@ -2294,10 +2335,6 @@
             <li><a href="#reservation" onclick="closeMobileMenu()">예약하기</a></li>
             <li><a href="#location" onclick="closeMobileMenu()">오시는길</a></li>
         </ul>
-    </div>
-    <!-- Version Tag -->
-    <div style="position: fixed; bottom: 15px; right: 20px; font-size: 11px; color: rgba(255,255,255,0.2); font-family: 'Outfit', sans-serif; pointer-events: none; z-index: 100;">
-        v1.3.73 (2026-04-13)
     </div>
 </body>
 

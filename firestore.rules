@@ -30,7 +30,13 @@ service cloud.firestore {
         allow read: if true;
         // 리뷰 작성/신규 가입 후 본인 계정에 쿠폰 생성을 위해 허용
         allow create: if true; 
-        allow update, delete: if isGeneralAdmin();
+        // 결제 완료 시 클라이언트가 active → used 로만 상태 변경 가능 (다른 필드 변경 불가)
+        allow update: if isGeneralAdmin() || (
+          resource.data.status == 'active'
+          && request.resource.data.status == 'used'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'isUsed', 'usedAt'])
+        );
+        allow delete: if isGeneralAdmin();
       }
     }
 
