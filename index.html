@@ -1610,13 +1610,18 @@
             const guestCount = parseInt(document.getElementById('guest-count').value);
             const totalAmount = parseInt(document.getElementById('summary-total-price').innerText.replace(/[^0-9]/g, ''));
             const pkgLabels  = { day:'데이 패키지 (10:00~17:00)', night:'나이트 패키지 (18:00~24:00)', allnight:'올나잇 패키지 (18:00~익일 09:00)' };
+            // ★ 시간제 예약은 패키지 드롭다운이 'none'이라 pkgLabels[pkg]가 undefined가 되어 Firestore 저장이 거부됐다
+            if (currentReservationMode === 'hourly') {
+                pkgLabels[pkg] = `시간제 (${hourlySelection.start}시~${hourlySelection.end}시)`;
+            }
             const merchantUid = 'MNRY-' + Date.now();
 
             const couponSelect = document.getElementById('booking-coupon');
             const usedCoupon = couponSelect && couponSelect.value !== 'none' ? {
                 id: couponSelect.value,
                 name: couponSelect.options[couponSelect.selectedIndex].text,
-                discount: parseInt(couponSelect.options[couponSelect.selectedIndex].dataset.discount || '0')
+                discount: parseInt(couponSelect.options[couponSelect.selectedIndex].dataset.amount || '0'),
+                rate: parseInt(couponSelect.options[couponSelect.selectedIndex].dataset.rate || '0')
             } : null;
 
             const reviewPromiseVal = document.getElementById('review-promise')?.checked || false;
@@ -1988,11 +1993,9 @@
 
         function getHourlyRate(hour, isWeekend) {
             if (isWeekend) return 30000;
-            // 평일 기준 (낮 1.5 / 저녁 2.5)
-            // 낮: 10:00 ~ 18:00 (8시간)
-            // 저녁/심야: 18:00 ~ 익일 09:00 (15시간)
-            if (hour >= 18 || hour < 10) return 25000; // 저녁 및 심야 타임
-            return 15000; // 낮 타임 (10:00 ~ 18:00)
+            // 평일 기준: 10~18시 15,000 / 18~24시(Prime) 25,000 / 00~09시 15,000
+            if (hour >= 18) return 25000; // 저녁 타임 (18:00 ~ 24:00)
+            return 15000; // 낮 타임 (10:00 ~ 18:00) 및 심야 (00:00 ~ 09:00)
         }
 
         function calculatePrice() {
@@ -2017,7 +2020,7 @@
                 const pkgOriginPrices = {
                     day:      { weekday: 105000, weekend: 210000 },
                     night:    { weekday: 150000, weekend: 180000 },
-                    allnight: { weekday: 375000, weekend: 450000 }
+                    allnight: { weekday: 285000, weekend: 450000 }
                 };
                 const originEl = document.getElementById('summary-pkg-origin-price');
                 if (originEl) {
