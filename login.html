@@ -148,7 +148,9 @@
     <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-functions-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
+    <script defer src="kakao-auth.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -265,6 +267,8 @@
                         if (tokenData.error) {
                             throw new Error(tokenData.error_description || '토큰 교환 실패');
                         }
+
+                        await signInFirebaseWithKakao(tokenData.access_token); // Firebase 인증 연동(실패해도 진행)
 
                         // 2. 사용자 정보 가져오기
                         const userRes = await fetch('https://kapi.kakao.com/v2/user/me', {

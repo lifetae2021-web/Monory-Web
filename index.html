@@ -439,7 +439,10 @@
     <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-storage-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-functions-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
+    <script defer src="kakao-auth.js"></script>
 
     <!-- ============================================================
          카카오 로그인 + 회원 관리 시스템
@@ -630,6 +633,7 @@
             }
 
             const accessToken = tokenData.access_token;
+            await signInFirebaseWithKakao(accessToken); // Firebase 인증 연동(실패해도 로그인은 계속 진행)
 
             // Step 2: 사용자 정보 가져오기
             const userRes = await fetch('https://kapi.kakao.com/v2/user/me', {
@@ -750,6 +754,7 @@
     function kakaoLogout() {
         // 세션 파기
         localStorage.removeItem('monory_user');
+        signOutFirebase();
         
         const loggedout = document.getElementById('auth-loggedout');
         const loggedin  = document.getElementById('auth-loggedin');
@@ -1706,7 +1711,19 @@
                 buyer_name:    name,
                 buyer_tel:     phone,
                 // ★ 모바일: 결제 완료 후 이 URL로 리다이렉트 (imp_uid, merchant_uid, imp_success 파라미터 자동 포함)
-                m_redirect_url: window.location.origin + '/payment-success.html'
+                m_redirect_url: window.location.origin + '/payment-success.html',
+                // 브라우저에서 예약 저장이 실패해도 서버(포트원 웹훅)가 같은 정보로 예약을 복구할 수 있도록 함께 전달
+                custom_data: JSON.stringify({
+                    kakaoUid: (JSON.parse(localStorage.getItem('monory_user') || '{}')).kakaoId || null,
+                    kakaoName: (JSON.parse(localStorage.getItem('monory_user') || '{}')).name || null,
+                    bookingType: currentBookingType, companyName: company, guestName: name, phone: phone, requests: requests,
+                    date: pendingBooking.date, guestCount: guestCount,
+                    packageKey: pendingBooking.packageKey, packageName: pkgLabels[pkg],
+                    totalAmount: totalAmount, usedCoupon: usedCoupon, reviewPromise: reviewPromiseVal,
+                    reservationMode: currentReservationMode,
+                    startTime: pendingBooking.startTime, endTime: pendingBooking.endTime, totalHours: pendingBooking.totalHours,
+                    isWeekend: pendingBooking.isWeekend
+                })
             }, function(rsp) {
                 // PC 콜백 (모바일은 페이지 이동이라 이 콜백이 실행되지 않음)
                 sessionStorage.removeItem('monory_pending_booking'); // 저장 데이터 정리
@@ -1755,7 +1772,11 @@
             try {
                 const db = firebase.firestore();
                 const user = JSON.parse(localStorage.getItem('monory_user') || '{}');
-                return db.collection('reservations').add({
+                // 문서 ID를 impUid로 고정해 포트원 웹훅(서버 복구)과 중복 저장되지 않게 한다
+                const resRef = db.collection('reservations').doc(String(data.impUid));
+                return resRef.get().then(snap => {
+                    if (snap.exists) return { id: resRef.id, existed: true };
+                    return resRef.set({
                     kakaoUid:    user.kakaoId   || null,
                     kakaoName:   user.name      || null,
                     bookingType: data.bookingType,
@@ -1779,6 +1800,7 @@
                     merchantUid: data.merchantUid,
                     status:      'paid',
                     createdAt:   firebase.firestore.Timestamp.now()
+                    }).then(() => ({ id: resRef.id }));
                 }).then(ref => {
                     console.log('✅ 예약 저장 완료:', ref.id);
                     // 쿠폰 사용 상태 변경
