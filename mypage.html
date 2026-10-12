@@ -977,12 +977,7 @@
         });
     </script>
 
-    <div id="version-display" style="position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;"></div>
-    <script>
-        fetch('version.json?t=' + Date.now()).then(r => r.json()).then(d => {
-            const el = document.getElementById('version-display');
-            if (el) el.innerText = `v${d.version} (${d.buildDate})`;
-        }).catch(() => {});
-    </script>
+    <div id="version-display" style="display:none; position: fixed; bottom: 15px; right: 20px; font-size: 0.75rem; color: rgba(255, 255, 255, 0.3); z-index: 9999; pointer-events: none; user-select: none; font-family: 'Outfit', sans-serif; letter-spacing: 1px;"></div>
+    <script src="version-badge.js"></script>
 </body>
 </html>

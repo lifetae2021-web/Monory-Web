@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /mypage.html
+Disallow: /login.html
+Disallow: /payment-success.html
+
+Sitemap: https://monory.kr/sitemap.xml

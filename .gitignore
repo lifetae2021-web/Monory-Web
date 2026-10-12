@@ -71,3 +71,9 @@ node_modules/
 # Firebase service account keys (never commit)
 serviceAccountKey.json
 functions/serviceAccountKey.json
+
+# macOS / Python
+.DS_Store
+**/.DS_Store
+__pycache__/
+*.pyc

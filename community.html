@@ -127,7 +127,7 @@
         </div>
         
         <!-- Version Display -->
-        <div id="version-display" style="text-align: center; margin-top: 40px; font-size: 0.8rem; color: #555;"></div>
+        <div id="version-display" style="display:none; text-align: center; margin-top: 40px; font-size: 0.8rem; color: #555;"></div>
     </div>
 
     <!-- Write Modal -->
@@ -517,11 +517,6 @@
             }
         }
     </script>
-<script>
-        fetch('version.json?t=' + Date.now()).then(r => r.json()).then(d => {
-            const el = document.getElementById('version-display');
-            if (el) el.innerText = `v${d.version} (${d.buildDate})`;
-        }).catch(() => {});
-    </script>
+<script src="version-badge.js"></script>
 </body>
 </html>
