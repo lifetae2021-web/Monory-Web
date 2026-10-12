@@ -2169,7 +2169,9 @@
                     const data = doc.data();
                     const now = new Date();
                     
-                    if (data.expireAt && data.expireAt.toDate() > now) {
+                    // 마이페이지와 동일 기준: 무제한이거나 유효기간이 미래인 쿠폰만 표시
+                    const expireDate = getExpireDate(data);
+                    if (isUnlimitedCoupon(data) || (expireDate && expireDate > now)) {
                         const opt = document.createElement('option');
                         opt.value = doc.id;
                         
