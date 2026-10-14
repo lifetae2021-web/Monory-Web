@@ -19,8 +19,10 @@ function newReservationMessage(r) {
     if (r.pointUsed > 0) lines.push(`포인트 사용: ${Number(r.pointUsed).toLocaleString("ko-KR")}P`);
     if (r.reviewPromise) lines.push("📷 포토리뷰 약속");
     lines.push(`연락처 ${r.phone || "-"}`);
+    if (r.usagePurpose) lines.push(`용도: ${r.usagePurpose}`);
+    if (Array.isArray(r.visitSource) && r.visitSource.length) lines.push(`방문 경로: ${r.visitSource.join(", ")}`);
     if (r.requests) lines.push(`요청: ${r.requests}`);
-    lines.push("", "관리자 페이지에서 승인하면 고객에게 확정 문자가 갑니다.");
+    lines.push("", "관리자 페이지에서 승인하면 고객에게 확정 문자가 갑니다. (환급 계좌는 관리자 페이지에서 확인)");
     return lines.join("\n");
 }
 

@@ -15,7 +15,7 @@
     <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
     <script defer src="/__/firebase/init.js?useEmulator=false"></script>
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=1.3.35">
     
     <style>
         :root {
@@ -100,18 +100,120 @@
         }
         .action-btn:hover { color: var(--accent-gold); }
         .action-btn.delete:hover { color: #ff5252; }
+        /* ── 커뮤니티 꾸미기 ───────────────────────────── */
+        .comm-container { margin: 40px auto 60px; }
+        .comm-hero {
+            text-align: center; margin-bottom: 34px; padding: 34px 20px 28px;
+            border: 1px solid rgba(212,175,55,0.22); border-radius: 18px;
+            background: radial-gradient(ellipse at top, rgba(212,175,55,0.14), rgba(212,175,55,0) 65%), rgba(255,255,255,0.02);
+        }
+        .comm-hero .hero-icon {
+            width: 54px; height: 54px; margin: 0 auto 14px; border-radius: 16px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+            color: #111; background: linear-gradient(135deg, #f3e5ab, var(--accent-gold));
+            box-shadow: 0 8px 24px rgba(212,175,55,0.3);
+        }
+        .comm-hero h1 { font-size: 1.9rem; margin: 0 0 8px; color: var(--accent-gold); letter-spacing: -0.5px; }
+        .comm-hero .hero-desc {
+            margin: 0; color: #d6d6d6; font-size: 1rem; line-height: 1.7;
+            word-break: keep-all; text-wrap: balance;
+        }
+        .comm-hero .hero-tagline {
+            margin: 12px 0 0; color: var(--accent-gold); font-size: 0.85rem; font-weight: 600; letter-spacing: 2px;
+        }
+        .comm-hero .hero-desc span { display: inline-block; }
+
+        .section-title { font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+        .section-title::before { content: ''; width: 4px; height: 16px; border-radius: 2px; background: var(--accent-gold); }
+
+        /* 탭: 알약 모양 */
+        .member-tabs { border-bottom: none !important; padding-bottom: 0 !important; margin-bottom: 20px !important; gap: 8px !important; }
+        .tab-btn { padding: 9px 20px !important; border-radius: 999px; border: 1px solid var(--border-color); font-size: 0.95rem !important; }
+        .tab-btn.active { background: rgba(212,175,55,0.14); border-color: var(--accent-gold); }
+        .tab-btn.active::after { display: none !important; }
+
+        /* 글 카드 */
+        .post-card { border-left: 3px solid rgba(212,175,55,0.55); border-radius: 12px; padding: 18px 20px; }
+        .post-card.is-inquiry { border-left-color: rgba(255,255,255,0.14); }
+        .post-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; line-height: 1.4; }
+        .badge-new { background: #ef4444; color: #fff; padding: 2px 7px; border-radius: 999px; font-size: 0.68rem; font-weight: 800; letter-spacing: 0.3px; }
+
+        /* 빈 화면 */
+        .empty-box {
+            text-align: center; padding: 54px 24px; border: 1px dashed rgba(255,255,255,0.14);
+            border-radius: 16px; background: rgba(255,255,255,0.02);
+        }
+        .empty-box .empty-icon {
+            width: 64px; height: 64px; margin: 0 auto 16px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+            color: var(--accent-gold); background: rgba(212,175,55,0.1);
+        }
+        .empty-box h3 { margin: 0 0 8px; font-size: 1.1rem; color: #fff; }
+        .empty-box p { margin: 0; color: #999; font-size: 0.9rem; line-height: 1.7; }
+        .empty-box .empty-lines { display: flex; flex-direction: column; gap: 10px; align-items: center; word-break: keep-all; }
+        .empty-box .empty-lines > span:first-child { color: #d6d6d6; font-size: 0.98rem; }
+        .empty-box .empty-sub {
+            display: block; padding: 10px 16px; border-radius: 10px; background: rgba(255,255,255,0.04);
+            color: #9a9a9a; font-size: 0.84rem; line-height: 1.7;
+        }
+        .empty-box .empty-sub i { color: var(--accent-gold); margin-right: 4px; font-size: 0.8rem; }
+        .empty-box .empty-cta {
+            display: inline-flex; align-items: center; gap: 8px; margin-top: 20px; padding: 11px 22px;
+            border-radius: 999px; background: var(--accent-gold); color: #111; font-weight: 700; font-size: 0.9rem;
+            text-decoration: none; border: none; cursor: pointer;
+        }
+
+
+        /* 자주 묻는 질문 */
+        .faq-cat { font-size: 0.85rem; font-weight: 700; color: var(--accent-gold); margin: 26px 0 10px; letter-spacing: 0.3px; }
+        .faq-cat:first-child { margin-top: 4px; }
+        .faq-item { border: 1px solid var(--border-color); border-radius: 12px; background: rgba(255,255,255,0.02); margin-bottom: 10px; overflow: hidden; }
+        .faq-item[open] { border-color: rgba(212,175,55,0.45); background: rgba(212,175,55,0.04); }
+        .faq-item summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 16px 18px; cursor: pointer; }
+        .faq-item summary::-webkit-details-marker { display: none; }
+        .faq-q, .faq-qa { flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; }
+        .faq-q { background: var(--accent-gold); color: #111; }
+        .faq-qa { background: rgba(255,255,255,0.1); color: #ddd; }
+        .faq-text { flex: 1; font-weight: 600; color: #fff; line-height: 1.45; word-break: keep-all; }
+        .faq-arrow { color: #888; font-size: 0.8rem; transition: transform 0.2s; }
+        .faq-item[open] .faq-arrow { transform: rotate(180deg); color: var(--accent-gold); }
+        .faq-a { display: flex; gap: 12px; padding: 0 18px 18px; color: #cfcfcf; line-height: 1.75; font-size: 0.93rem; word-break: keep-all; }
+        .faq-a b { color: #fff; }
+        .faq-help { margin-top: 26px; padding: 18px; border-radius: 12px; background: rgba(255,255,255,0.03); text-align: center; color: #aaa; font-size: 0.9rem; line-height: 1.8; }
+        .faq-help a { color: var(--accent-gold); font-weight: 600; text-decoration: underline; }
+
+        @media (max-width: 768px) {
+            .comm-container { margin: 20px auto 40px; padding: 14px; }
+            .faq-item summary { padding: 14px; gap: 10px; }
+            .faq-a { padding: 0 14px 16px; font-size: 0.9rem; }
+            .comm-hero { padding: 26px 16px 22px; margin-bottom: 24px; }
+            .comm-hero h1 { font-size: 1.5rem; }
+            .comm-hero .hero-desc { font-size: 0.92rem; }
+            .comm-hero .hero-tagline { font-size: 0.78rem; letter-spacing: 1.5px; }
+            .post-header { flex-direction: column; align-items: flex-start !important; gap: 8px; }
+            .post-meta { flex-wrap: wrap; }
+            .empty-box { padding: 36px 16px; }
+            .empty-box h3 { font-size: 1.05rem; }
+            .board-bar { display: block !important; }
+            .member-tabs { display: flex; flex-wrap: wrap; margin-bottom: 14px !important; }
+            #btn-open-write { width: 100%; justify-content: center; margin-bottom: 16px; padding: 13px 20px; }
+        }
     </style>
 </head>
 <body>
     <div class="comm-container">
-        <div class="comm-header">
-            <h1 style="color: var(--accent-gold); margin-bottom: 10px;">모노리 커뮤니티</h1>
-            <p style="color: var(--text-secondary);">모노리에서의 경험을 자유롭게 공유해 보세요.</p>
+        <div class="comm-hero">
+            <div class="hero-icon"><i class="fa-solid fa-bullhorn"></i></div>
+            <h1>모노리 소식</h1>
+            <p class="hero-desc"><span>이벤트와 이용 안내,</span> <span>궁금한 점을 한곳에서 확인하세요.</span></p>
+            <p class="hero-tagline">모이고, 놀고, 리프레시하다</p>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 class="section-title" id="board-title">공지사항</h2>
+        <div class="board-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div class="member-tabs">
                 <button class="tab-btn active" onclick="switchTab('notices')" id="tab-notices">공지사항</button>
+                <button class="tab-btn" onclick="switchTab('faq')" id="tab-faq">자주 묻는 질문</button>
                 <button class="tab-btn" onclick="switchTab('inquiries')" id="tab-inquiries">문의사항</button>
             </div>
             
@@ -210,6 +312,11 @@
                 return;
             }
 
+            if (currentTab === 'faq') {
+                btn.style.display = 'none';
+                return;
+            }
+
             if (currentTab === 'notices') {
                 // 공지사항 탭: 어드민만 노출
                 if (currentUserRole === 'super_admin' || currentUserRole === 'admin' || currentUserRole === 'general_admin') {
@@ -223,12 +330,63 @@
             }
         }
 
+
+        // ── 자주 묻는 질문 (운영자가 작성한 안내, DB를 쓰지 않는 고정 내용) ──
+        const FAQ = [
+            { cat: '예약 · 결제', items: [
+                ['예약은 어떻게 하나요?', '웹사이트에서 날짜를 고르고 패키지 또는 시간제를 선택한 뒤, 인원과 예약자 정보(사용 용도, 청소 보증금 반환 계좌 포함)를 입력하고 결제하시면 됩니다.'],
+                ['결제하면 바로 예약이 확정되나요?', '결제 후 예약이 접수되고, 운영자가 승인하면 <b>예약 확정 문자</b>가 발송됩니다. 운영 사정으로 승인이 어려운 경우 결제 금액은 전액 환불됩니다.'],
+                ['시간제는 최소 몇 시간부터 예약하나요?', '시간제는 <b>최소 3시간</b>부터 예약하실 수 있습니다.'],
+                ['이용 요금은 어떻게 되나요?', '<b>시간제</b> — 평일(월~목) 00~18시 15,000원/시간, 평일 18~24시 25,000원/시간, 주말(금·토·일)·공휴일 30,000원/시간<br><b>패키지(평일/주말)</b> — 데이(10~17시) 70,000원/100,000원, 나이트(18~24시) 100,000원/150,000원, 올나잇(18시~익일 09시) 150,000원/220,000원<br>일요일 밤 입실이나 공휴일에 걸친 이용은 고객센터에서 확인 후 안내드립니다.'],
+                ['인원이 늘거나 줄면 요금이 달라지나요?', '8명까지는 추가 요금이 없고, 8명을 넘으면 1인당 10,000원이 추가됩니다. 인원이 바뀌면 이용 전에 고객센터(010-9130-1577)로 알려 주세요. 확인 후 안내드립니다.'],
+                ['시간을 연장할 수 있나요?', '연장은 가능하며 시간제 요금 기준으로 계산합니다. 연장하려는 시간에 다음 예약이 있는지 확인이 필요하니 고객센터로 문의해 주세요.']
+            ]},
+            { cat: '취소 · 환불', items: [
+                ['취소하면 환불은 어떻게 되나요?', '이용일 8일 전 자정까지 <b>100%</b>, 7일 전~4일 전 자정까지 <b>50%</b>, 3일 전~당일(노쇼 포함)은 환불이 불가합니다. 결제 후 1시간 이내 취소는 100% 환불됩니다(이용일 1일 전·당일 결제 건 제외). 일수는 매일 밤 12시(자정)를 기준으로 계산하며, 환불은 영업일 기준 3~7일 걸릴 수 있습니다.'],
+                ['날짜를 바꾸고 싶어요.', '날짜 변경도 취소와 같은 환불 규정이 적용되어, 기존 예약을 취소하신 뒤 다시 예약해 주셔야 합니다. 취소는 마이페이지에서 하실 수 있어요.']
+            ]},
+            { cat: '이용 안내', items: [
+                ['외부 음식이나 주류, 배달 음식을 가져가도 되나요?', '네, 외부 음식과 배달 음식, 주류 반입이 모두 가능합니다. 퇴실하실 때 음식물과 쓰레기는 분리수거를 부탁드립니다.'],
+                ['청소 보증금은 무엇인가요?', '공간을 청결하게 유지하기 위한 보증금(50,000원)입니다. 퇴실 후 공간과 기물 상태(설거지, 분리수거, 실내 금연 등)를 확인한 뒤 <b>24시간 이내에 전액 환급</b>해 드립니다. 예약 확정 문자로 입금 계좌를 안내드립니다.'],
+                ['흡연이 가능한가요? 소음 제한은 있나요?', '전 공간 <b>절대 금연</b>입니다. 흡연은 건물 외부 지정 장소를 이용해 주세요. 소음에 대한 별도 제한은 없습니다.'],
+                ['신발을 신고 들어가나요?', '네, 신발을 신고 이용하는 공간입니다. 맨발은 안 됩니다.']
+            ]},
+            { cat: '오시는 길', items: [
+                ['주차는 어떻게 하나요?', '건물 안에는 주차 공간이 없습니다. 맞은편 부전주차장 또는 인근 주차장을 이용하실 수 있으며, 주차 요금과 운영 시간은 이용 전 직접 확인해 주세요.'],
+                ['엘리베이터가 있나요?', '엘리베이터가 없는 4층입니다. 짐이 많거나 거동이 불편한 분이 계시면 미리 알려 주세요.']
+            ]},
+            { cat: '쿠폰 · 포인트', items: [
+                ['쿠폰과 포인트는 어떻게 쓰나요?', '카카오로 가입하면 10,000원 할인 쿠폰을 드리며, 예약 시 쿠폰 선택과 포토 리뷰 작성 약속 할인을 함께 적용하실 수 있습니다. 이용이 끝나면 실제 결제금액의 5%가 포인트로 적립되고, 1,000P 이상부터 다음 예약 결제에 사용할 수 있습니다(적립일로부터 12개월 유효).']
+            ]}
+        ];
+
+        function renderFaq() {
+            const container = document.getElementById('posts-container');
+            let html = '<div class="faq-wrap">';
+            FAQ.forEach(group => {
+                html += `<div class="faq-cat">${group.cat}</div>`;
+                group.items.forEach(([q, a]) => {
+                    html += `<details class="faq-item"><summary><span class="faq-q">Q</span><span class="faq-text">${q}</span><i class="fa-solid fa-chevron-down faq-arrow"></i></summary><div class="faq-a"><span class="faq-qa">A</span><div>${a}</div></div></details>`;
+                });
+            });
+            html += `<div class="faq-help">원하시는 답을 찾지 못하셨나요? <a href="#" onclick="switchTab('inquiries'); return false;">문의사항에 남겨 주세요</a> 또는 고객센터 <a href="tel:01091301577">010-9130-1577</a></div></div>`;
+            container.innerHTML = html;
+        }
+
         function switchTab(tab) {
             currentTab = tab;
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById('tab-' + tab).classList.add('active');
             
+            const bt = document.getElementById('board-title');
+            if (bt) bt.textContent = tab === 'notices' ? '공지사항' : (tab === 'faq' ? '자주 묻는 질문' : '문의사항');
+
             updateWriteButtonVisibility();
+            if (tab === 'faq') {
+                if (postsListener) { postsListener(); postsListener = null; }
+                renderFaq();
+                return;
+            }
             loadPosts(tab);
         }
 
@@ -244,7 +402,18 @@
                 .orderBy('createdAt', 'desc')
                 .onSnapshot((snapshot) => {
                     if (snapshot.empty) {
-                        container.innerHTML = `<div style="text-align: center; padding: 50px; background: rgba(255,255,255,0.02); border-radius:12px; color:#aaa;">작성된 글이 없습니다.</div>`;
+                        container.innerHTML = collectionName === 'notices'
+                            ? `<div class="empty-box">
+                                    <div class="empty-icon"><i class="fa-regular fa-bell"></i></div>
+                                    <h3>아직 등록된 공지가 없어요</h3>
+                                    <p>이벤트와 새로운 소식이 생기면 가장 먼저 이곳에 알려드릴게요.<br>그동안 궁금한 점은 문의게시판이나 고객센터로 편하게 물어보세요.</p>
+                                    <button class="empty-cta" onclick="switchTab('inquiries')"><i class="fa-regular fa-comment-dots"></i> 문의 남기기</button>
+                               </div>`
+                            : `<div class="empty-box">
+                                    <div class="empty-icon"><i class="fa-regular fa-comment-dots"></i></div>
+                                    <h3>등록된 문의가 없어요</h3>
+                                    <p class="empty-lines"><span>예약이나 이용에 궁금한 점을 남겨 주세요.</span><span class="empty-sub"><i class="fa-solid fa-lock"></i> 문의글은 비밀번호로 보호되어<br>작성하신 분만 볼 수 있어요.</span></p>
+                               </div>`;
                         return;
                     }
 
@@ -253,12 +422,13 @@
                         const data = doc.data();
                         const dateStr = data.createdAt ? data.createdAt.toDate().toLocaleDateString() : '';
                         const isNotice = collectionName === 'notices';
-                        const badge = isNotice ? `<span class="badge-notice">공지</span> ` : '';
+                        const isNew = data.createdAt && (Date.now() - data.createdAt.toMillis() < 7 * 86400000);
+                        const badge = (isNotice ? `<span class="badge-notice">공지</span> ` : '') + (isNew ? `<span class="badge-new">NEW</span> ` : '');
                         const lockIcon = collectionName === 'inquiries' ? `<i class="fa-solid fa-lock" style="font-size:0.8rem; margin-right:6px; color:var(--accent-gold);"></i> ` : '';
                         const authorDisplay = collectionName === 'inquiries' ? '익명' : data.authorName;
                         
                         const div = document.createElement('div');
-                        div.className = 'post-card';
+                        div.className = 'post-card' + (isNotice ? '' : ' is-inquiry');
                         div.id = 'post-' + doc.id;
 
                         let actionButtons = '';

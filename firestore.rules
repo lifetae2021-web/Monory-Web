@@ -64,6 +64,15 @@ service cloud.firestore {
       }
     }
 
+    // 청소 보증금 환급 계좌: 고객은 새로 만들기만 가능(읽기 불가), 조회·수정·삭제는 관리자만
+    match /reservation_private/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['reservationId', 'kakaoUid', 'bank', 'account', 'holder', 'createdAt'])
+                    && request.resource.data.account is string && request.resource.data.account.size() <= 20
+                    && request.resource.data.bank is string && request.resource.data.bank.size() <= 30
+                    && request.resource.data.holder is string && request.resource.data.holder.size() <= 30;
+      allow read, update, delete: if isGeneralAdmin();
+    }
+
     // 결제 중 포인트 선차감 기록: 클라이언트 접근 불가(서버 전용)
     match /point_holds/{holdId} {
       allow read, write: if false;

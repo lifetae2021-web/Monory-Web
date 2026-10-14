@@ -21,7 +21,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.3.26">
+    <link rel="stylesheet" href="style.css?v=1.3.35">
     <!-- Kakao SDK (integrity 없이 로드 - 해시 불일치 시 로드 차단됨) -->
     <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" defer></script>
 </head>
@@ -1034,31 +1034,37 @@
                         return;
                     }
                     grid.innerHTML = '';
+                    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
                     snapshot.forEach(doc => {
                         const data = doc.data();
-                        const stars = '<i class="fa-solid fa-star" style="color:var(--accent-gold);"></i>'.repeat(data.rating || 5);
+                        const rating = Math.max(1, Math.min(5, Number(data.rating) || 5));
+                        const stars = '<i class="fa-solid fa-star"></i>'.repeat(rating) + '<i class="fa-regular fa-star" style="opacity:.35"></i>'.repeat(5 - rating);
+                        const photos = Array.isArray(data.photoUrls) && data.photoUrls.length ? data.photoUrls : (data.photoUrl ? [data.photoUrl] : []);
                         let dateStr = '';
                         if (data.createdAt) {
-                            dateStr = data.createdAt.toDate().toLocaleDateString();
+                            const d = data.createdAt.toDate();
+                            dateStr = d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0');
                         }
-                        grid.innerHTML += `
-                            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,55,0.2); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
-                                <div style="height: 200px; overflow: hidden; background: #000;">
-                                    <img src="${data.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;" alt="Review Image">
-                                </div>
-                                <div style="padding: 20px;">
-                                    <div style="margin-bottom: 10px;">${stars}</div>
-                                    <p style="color: #ddd; font-size: 0.95rem; line-height: 1.5; margin-bottom: 15px;">"${data.content}"</p>
-                                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                                        <div style="display: flex; align-items: center; gap: 10px;">
-                                            <img src="${data.authorProfile || 'assets/favicon.png'}" alt="" style="width: 30px; height: 30px; border-radius: 50%;">
-                                            <span style="color: #888; font-size: 0.85rem;">${data.authorName}</span>
+                        const photoHtml = photos.length ? `
+                            <div class="rv-card-photo">
+                                <img src="${esc(photos[0])}" alt="이용 후기 사진" loading="lazy">
+                                ${photos.length > 1 ? `<span class="rv-more"><i class="fa-regular fa-images"></i> ${photos.length}</span>` : ''}
+                            </div>` : '';
+                        grid.insertAdjacentHTML('beforeend', `
+                            <article class="rv-card">
+                                ${photoHtml}
+                                <div class="rv-card-body">
+                                    <div class="rv-card-stars">${stars}</div>
+                                    <p class="rv-card-text">${esc(data.content)}</p>
+                                    <div class="rv-card-foot">
+                                        <div class="rv-card-user">
+                                            <img src="${esc(data.authorProfile || 'assets/favicon.png')}" alt="">
+                                            <span>${esc(data.authorName)}</span>
                                         </div>
-                                        <div style="font-size:0.8rem; color:#666;">${dateStr}</div>
+                                        <span class="rv-card-date">${dateStr}</span>
                                     </div>
                                 </div>
-                            </div>
-                        `;
+                            </article>`);
                     });
                 });
             }
@@ -1194,25 +1200,35 @@
 
                                 <!-- 시간제 이용 시간 선택을 좌측 달력 아래로 이동 -->
                                 <div id="group-hourly-select" class="option-group" style="display:none; margin-top: 30px; padding-top: 20px; border-top: 1px dashed rgba(0,0,0,0.1);">
-                                    <label>이용 시간 선택 (최소 3시간)</label>
-                                    <div class="hourly-picker-container" id="hourly-picker" style="background: none; padding: 0;">
-                                        <div class="hourly-dropdown-wrap">
-                                            <div class="dropdown-item">
-                                                <label style="font-size: 0.8rem; color: #888; display: block; margin-bottom: 5px;">시작 시간</label>
-                                                <select id="hourly-start" class="hourly-select" onchange="onHourlyStartChange()">
-                                                    <!-- Options generated by JS -->
-                                                </select>
-                                            </div>
-                                            <div class="dropdown-sep">~</div>
-                                            <div class="dropdown-item">
-                                                <label style="font-size: 0.8rem; color: #888; display: block; margin-bottom: 5px;">종료 시간</label>
-                                                <select id="hourly-end" class="hourly-select" onchange="calculatePrice()">
-                                                    <!-- Options generated by JS -->
-                                                </select>
+                                    <div class="tl-wrap" id="hourly-picker">
+                                        <div class="tl-head">
+                                            <span class="tl-title">시간을 눌러 선택해 주세요</span>
+                                            <button type="button" class="tl-reset" id="tl-reset" onclick="clearHourlySelection()" style="display:none;"><i class="fa-solid fa-rotate-left"></i> 초기화</button>
+                                        </div>
+                                        <ol class="tl-steps">
+                                            <li><b>시작 시간</b>을 누르세요. <span>3시간이 먼저 선택돼요 (최소 3시간)</span></li>
+                                            <li>더 이용하려면 <b>끝나는 시간</b>을 누르거나 <b>+</b> 버튼을 누르세요.</li>
+                                            <li>시간을 다시 고르려면 원하는 <b>시작 시간</b>을 다시 누르세요.</li>
+                                        </ol>
+                                        <div id="hourly-timeline" class="tl-grid"></div>
+                                        <div class="tl-legend">
+                                            <span><i class="lg lg-free"></i>예약 가능</span>
+                                            <span><i class="lg lg-booked"></i>예약됨</span>
+                                            <span><i class="lg lg-clean"></i>정리 시간</span>
+                                            <span><i class="lg lg-sel"></i>선택</span>
+                                        </div>
+                                        <div id="tl-controls" class="tl-controls" style="display:none;">
+                                            <span class="tl-ctl-label">이용 시간</span>
+                                            <div class="tl-stepper">
+                                                <button type="button" id="tl-minus" onclick="changeHourlyDuration(-1)" aria-label="1시간 줄이기">−</button>
+                                                <strong id="tl-dur">3시간</strong>
+                                                <button type="button" id="tl-plus" onclick="changeHourlyDuration(1)" aria-label="1시간 늘리기">+</button>
                                             </div>
                                         </div>
+                                        <div id="hourly-msg" class="tl-msg" style="display:none;"></div>
                                     </div>
                                     <div id="hourly-time-display" style="margin-top:10px; font-size:0.88rem; color:var(--accent-gold); font-weight:600; text-align:right;">시간을 선택해주세요</div>
+                                    <div id="hourly-full-notice" style="display:none; margin-top:10px; padding:12px 14px; border-radius:10px; background:#fff1f0; border:1px solid #ffccc7; color:#cf1322; font-size:0.85rem; line-height:1.5;">선택하신 날짜는 시간제로 3시간 이상 이용할 수 있는 시간이 없습니다. 다른 날짜를 선택해 주세요.</div>
                                     
                                     <!-- 스마트 추천 배너 -->
                                     <div id="hourly-recommend" class="recommend-banner">
@@ -1345,7 +1361,7 @@
                             <button onclick="goToStep1()" title="이전 단계로">
                                 <i class="fa-solid fa-arrow-left" style="font-size:0.85rem;"></i>
                             </button>
-                            <h3>예약자 정보 입력</h3>
+                            <h3 style="font-size:0.95rem;font-weight:600;color:#666;">일정 다시 선택하기</h3>
                         </div>
 
                         <!-- 예약 요약 미니 바 -->
@@ -1398,7 +1414,46 @@
                         <!-- 요청사항 -->
                         <div class="s2-group">
                             <label>요청사항 <span style="color:#aaa;font-weight:400;font-size:0.78rem;">(선택)</span></label>
-                            <textarea id="s2-requests" class="s2-input" placeholder="음식 반입, 장식 세팅, 특별 이벤트 등 미리 알려주시면 더욱 특별하게 준비해 드립니다 🎉"></textarea>
+                            <textarea id="s2-requests" class="s2-input" placeholder=""></textarea>
+                        </div>
+
+                        <!-- 사용 용도 -->
+                        <div class="s2-group">
+                            <label>사용 용도 <span class="required">*</span></label>
+                            <textarea id="s2-purpose" class="s2-input" style="min-height:70px;" placeholder="사용 용도 (예: 생일파티, 로테이션 소개팅, 모임, 파티, 영화, 보드게임 등)"></textarea>
+                        </div>
+
+                        <!-- 청소 보증금 반환 계좌 -->
+                        <div class="s2-group">
+                            <label>청소 보증금 반환 계좌 <span class="required">*</span></label>
+                            <p style="font-size:0.76rem;color:#888;margin:0 0 8px;line-height:1.4;">보증금은 이용 후 확인을 거쳐 아래 계좌로 환급해 드립니다. 환급 후 지체 없이 파기됩니다.</p>
+                            <div id="s2-bank-chips" class="bank-chips">
+                                <button type="button" class="bank-chip" data-bank="카카오뱅크">카카오뱅크</button>
+                                <button type="button" class="bank-chip" data-bank="토스뱅크">토스뱅크</button>
+                                <button type="button" class="bank-chip" data-bank="KB국민은행">국민</button>
+                                <button type="button" class="bank-chip" data-bank="신한은행">신한</button>
+                                <button type="button" class="bank-chip" data-bank="우리은행">우리</button>
+                                <button type="button" class="bank-chip" data-bank="하나은행">하나</button>
+                                <button type="button" class="bank-chip" data-bank="NH농협은행">농협</button>
+                                <button type="button" class="bank-chip" data-bank="IBK기업은행">기업</button>
+                                <button type="button" class="bank-chip" data-bank="우체국">우체국</button>
+                                <button type="button" class="bank-chip" data-bank="__other">다른 은행</button>
+                            </div>
+                            <input id="s2-bank" type="text" class="s2-input" placeholder="은행명을 직접 입력해주세요" autocomplete="off" style="display:none;margin:8px 0;">
+                            <input id="s2-account" type="text" inputmode="numeric" class="s2-input" placeholder="계좌번호 (- 없이 숫자만)" maxlength="20" oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="margin-bottom:8px;">
+                            <input id="s2-holder" type="text" class="s2-input" placeholder="예금주">
+                        </div>
+
+                        <!-- 방문 경로 -->
+                        <div class="s2-group">
+                            <label>어떤 경로로 방문하게 되셨나요? <span class="required">*</span></label>
+                            <div id="s2-source" style="display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:6px;">
+                                <label style="font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="s2-source" value="인스타그램"> 인스타그램</label>
+                                <label style="font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="s2-source" value="블로그"> 블로그</label>
+                                <label style="font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="s2-source" value="검색"> 검색</label>
+                                <label style="font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="s2-source" value="지인 추천"> 지인 추천</label>
+                                <label style="font-weight:400;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" name="s2-source" value="기타"> 기타</label>
+                            </div>
                         </div>
 
                         <!-- 취소/환불 규정 -->
@@ -1541,13 +1596,35 @@
             document.getElementById('step-dot-2').classList.remove('active');
         }
 
+        // 은행 선택 칩: 자주 쓰는 은행은 한 번에 고르고, 그 외는 직접 입력
+        document.addEventListener('click', function (e) {
+            const chip = e.target.closest && e.target.closest('.bank-chip');
+            if (!chip) return;
+            const input = document.getElementById('s2-bank');
+            document.querySelectorAll('.bank-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            if (chip.dataset.bank === '__other') {
+                input.style.display = 'block';
+                input.value = '';
+                input.focus();
+            } else {
+                input.style.display = 'none';
+                input.value = chip.dataset.bank;
+            }
+        });
+
         function resetBookingModal() {
             goToStep1();
+            hourlySelection.start = null; hourlySelection.end = null;
+            if (typeof renderHourlyTimeline === 'function') renderHourlyTimeline();
             // 입력 필드 초기화
-            ['s2-name','s2-phone','s2-company','s2-requests'].forEach(id => {
+            ['s2-name','s2-phone','s2-company','s2-requests','s2-purpose','s2-bank','s2-account','s2-holder'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.value = '';
             });
+            document.querySelectorAll('input[name="s2-source"]').forEach(cb => { cb.checked = false; });
+            document.querySelectorAll('.bank-chip').forEach(c => c.classList.remove('selected'));
+            const bankInput = document.getElementById('s2-bank'); if (bankInput) bankInput.style.display = 'none';
             setBookingType('personal');
         }
 
@@ -1568,42 +1645,147 @@
             const recommendEl = document.getElementById('hourly-recommend');
             if (recommendEl) recommendEl.style.display = 'none';
 
-            if (mode === 'hourly' && document.getElementById('hourly-start').options.length === 0) {
-                initHourlyDropdowns();
+            if (mode === 'hourly') {
+                renderHourlyTimeline();
             }
             calculatePrice();
         }
 
-        function initHourlyDropdowns() {
-            const startSelect = document.getElementById('hourly-start');
-            startSelect.innerHTML = '';
-            // 시작 시간: 오늘 10시 ~ 내일 오전 6시 (최소 3시간 이용 보장을 위해 9시 종료 3시간 전인 6시까지)
-            for (let i = 10; i <= 30; i++) {
-                const opt = document.createElement('option');
-                opt.value = i;
-                opt.innerText = formatHourLabel(i);
-                startSelect.appendChild(opt);
-            }
-            onHourlyStartChange();
+        const HOURLY_MIN = 3;
+        const HOURLY_FIRST = 10;   // 첫 칸 10:00
+        const HOURLY_LAST_END = 33; // 마지막 종료 익일 09:00 (칸은 10 ~ 32)
+
+        // 선택한 날짜에 이 시간대를 쓸 수 있는지 (날짜를 아직 안 골랐으면 모두 가능)
+        function hourlyRangeFree(start, end) {
+            if (!selectedDateObj) return true;
+            return !hasBookingConflict(selectedDateObj, start, end);
         }
 
-        function onHourlyStartChange() {
-            const startVal = parseInt(document.getElementById('hourly-start').value);
-            const endSelect = document.getElementById('hourly-end');
-            endSelect.innerHTML = '';
-            // 종료 시간: 시작 시간 + 3시간 ~ 내일 오전 9시(계산 인덱스 33)
-            for (let i = startVal + 3; i <= 33; i++) {
-                const opt = document.createElement('option');
-                opt.value = i;
-                opt.innerText = formatHourLabel(i);
-                endSelect.appendChild(opt);
+        let tlMsgTimer = null;
+        function tlNotice(text) {
+            const el = document.getElementById('hourly-msg');
+            if (!el) return;
+            el.textContent = text; el.style.display = 'block';
+            clearTimeout(tlMsgTimer);
+            tlMsgTimer = setTimeout(() => { el.style.display = 'none'; }, 2800);
+        }
+
+        function clearHourlySelection() {
+            hourlySelection.start = null;
+            hourlySelection.end = null;
+            renderHourlyTimeline();
+            calculatePrice();
+        }
+
+        // 시간표 그리기: 칸 하나 = 1시간(i ~ i+1). 예약된 칸은 "마감", 예약 앞뒤 정리 시간 칸은 "정리"로 잠기고, 선택 범위는 금색
+        function renderHourlyTimeline() {
+            const grid = document.getElementById('hourly-timeline');
+            if (!grid) return;
+            const hasDate = !!selectedDateObj;
+            const sel = hourlySelection;
+            let html = '';
+            let anyFree = false;
+            for (let i = HOURLY_FIRST; i < HOURLY_LAST_END; i++) {
+                const reserved = hasDate && hasBookingConflict(selectedDateObj, i, i + 1, false); // 실제 예약
+                const blocked  = hasDate && hasBookingConflict(selectedDateObj, i, i + 1, true);  // 정리 시간 포함
+                const cleaning = blocked && !reserved;
+                const h = i >= 24 ? i - 24 : i;
+                const inSel = sel.start !== null && i >= sel.start && i < sel.end;
+                const tooShort = hasDate && !blocked && !hourlyRangeFree(i, i + HOURLY_MIN);
+                if (hasDate && !blocked && !tooShort && i + HOURLY_MIN <= HOURLY_LAST_END) anyFree = true;
+                const cls = ['tl-cell'];
+                if (reserved) cls.push('booked');
+                else if (cleaning) cls.push('cleaning');
+                else if (tooShort || i + HOURLY_MIN > HOURLY_LAST_END) cls.push('short');
+                if (i >= 24) cls.push('next');
+                if (inSel) cls.push('sel');
+                if (inSel && i === sel.start) cls.push('sel-start');
+                if (inSel && i === sel.end - 1) cls.push('sel-end');
+                const sub = reserved ? '<span class="tl-r">마감</span>' : (cleaning ? '<span class="tl-r">정리</span>' : '');
+                html += `<button type="button" class="${cls.join(' ')}" data-i="${i}" ${blocked ? 'disabled' : ''} aria-label="${formatHourLabel(i)}${reserved ? ' 예약됨' : (cleaning ? ' 정리 시간' : '')}">
+                            <span class="tl-h">${i >= 24 ? '<em>익일</em>' : ''}${h}시</span>${sub}
+                         </button>`;
             }
-            // 종료 시간 선택값 초기화 (최소 3시간 유지)
-            if (hourlySelection.end < startVal + 3) {
-                endSelect.value = startVal + 3;
+            grid.innerHTML = html;
+            grid.classList.toggle('no-date', !hasDate);
+            const reset = document.getElementById('tl-reset');
+            if (reset) reset.style.display = sel.start !== null ? 'inline-flex' : 'none';
+            const ctl = document.getElementById('tl-controls');
+            if (ctl) {
+                ctl.style.display = sel.start !== null ? 'flex' : 'none';
+                if (sel.start !== null) {
+                    const dur = sel.end - sel.start;
+                    document.getElementById('tl-dur').textContent = dur + '시간';
+                    document.getElementById('tl-minus').disabled = dur <= HOURLY_MIN;
+                    document.getElementById('tl-plus').disabled = (sel.end + 1 > HOURLY_LAST_END) || !hourlyRangeFree(sel.start, sel.end + 1);
+                }
+            }
+            const notice = document.getElementById('hourly-full-notice');
+            if (notice) notice.style.display = (hasDate && !anyFree) ? 'block' : 'none';
+        }
+
+        // 시작 시간을 새로 고른다 (3시간이 자동으로 잡힘). 불가능하면 기존 선택을 그대로 둔다
+        function setHourlyStart(i) {
+            if (i + HOURLY_MIN > HOURLY_LAST_END || !hourlyRangeFree(i, i + HOURLY_MIN)) {
+                tlNotice('이 시간부터는 최소 3시간을 이용할 수 없어요. (다른 예약 또는 정리 시간) 다른 시간을 선택해 주세요.');
+                return false;
+            }
+            hourlySelection.start = i;
+            hourlySelection.end = i + HOURLY_MIN;
+            return true;
+        }
+
+        // 이용 시간을 1시간씩 늘리거나 줄인다 (+ / − 버튼)
+        function changeHourlyDuration(delta) {
+            const sel = hourlySelection;
+            if (sel.start === null) return;
+            const newEnd = sel.end + delta;
+            if (newEnd < sel.start + HOURLY_MIN) { tlNotice('최소 3시간부터 이용할 수 있어요.'); return; }
+            if (newEnd > HOURLY_LAST_END || !hourlyRangeFree(sel.start, newEnd)) {
+                tlNotice('더 늘릴 수 없어요. 다음 예약(또는 정리 시간)이 있어요.');
+                return;
+            }
+            sel.end = newEnd;
+            renderHourlyTimeline();
+            calculatePrice();
+        }
+
+        // 칸을 눌렀을 때
+        //  - 아직 선택이 없거나, 선택한 시간 안쪽/앞쪽 칸을 누르면: 그 칸이 새 시작 시간 (3시간 자동 선택)
+        //  - 선택한 시간 뒤쪽 칸을 누르면: 그 칸까지 끝나는 시간을 늘림
+        function onTimelineTap(i) {
+            if (!selectedDateObj) { tlNotice('먼저 위에서 날짜를 선택해 주세요.'); return; }
+            const sel = hourlySelection;
+            if (sel.start === null || i < sel.end) {
+                if (!setHourlyStart(i)) return;
             } else {
-                endSelect.value = Math.min(hourlySelection.end, 33);
+                const newEnd = i + 1;
+                if (newEnd > HOURLY_LAST_END || !hourlyRangeFree(sel.start, newEnd)) {
+                    tlNotice('그 시간까지는 다른 예약(또는 정리 시간)과 겹쳐 이용할 수 없어요.');
+                    return;
+                }
+                sel.end = newEnd;
             }
+            renderHourlyTimeline();
+            calculatePrice();
+        }
+
+        document.addEventListener('click', function (e) {
+            const cell = e.target.closest && e.target.closest('#hourly-timeline .tl-cell');
+            if (!cell || cell.disabled) return;
+            onTimelineTap(parseInt(cell.dataset.i));
+        });
+
+        function initHourlyDropdowns() { renderHourlyTimeline(); }
+
+        // 날짜가 바뀌거나 예약 현황이 갱신될 때: 고른 시간이 더 이상 불가능하면 비우고 다시 그린다
+        function refreshHourlyAvailability() {
+            if (!document.getElementById('hourly-timeline')) return;
+            const sel = hourlySelection;
+            if (sel.start !== null && !hourlyRangeFree(sel.start, sel.end)) {
+                sel.start = null; sel.end = null;
+            }
+            renderHourlyTimeline();
             calculatePrice();
         }
 
@@ -1655,6 +1837,15 @@
             if (!name)  { alert('예약자 성함을 입력해주세요.'); return; }
             if (!phone || phone.length < 12) { alert('올바른 연락처를 입력해주세요. (010-XXXX-XXXX)'); return; }
             if (currentBookingType === 'corporate' && !company) { alert('회사명을 입력해주세요.'); return; }
+
+            const usagePurpose = document.getElementById('s2-purpose').value.trim();
+            const refundBank   = document.getElementById('s2-bank').value.trim();
+            const refundAccount = document.getElementById('s2-account').value.trim();
+            const refundHolder = document.getElementById('s2-holder').value.trim();
+            const visitSource  = Array.from(document.querySelectorAll('input[name="s2-source"]:checked')).map(cb => cb.value);
+            if (!usagePurpose) { alert('사용 용도를 작성해주세요.'); return; }
+            if (!refundBank || refundAccount.length < 8 || !refundHolder) { alert('청소 보증금 반환 계좌(은행명, 계좌번호, 예금주)를 정확히 입력해주세요.'); return; }
+            if (visitSource.length === 0) { alert('방문 경로를 한 가지 이상 선택해주세요.'); return; }
 
             const pkg        = document.getElementById('booking-package').value;
             const guestCount = parseInt(document.getElementById('guest-count').value);
@@ -1712,6 +1903,11 @@
                 totalAmount:  totalAmount,
                 usedCoupon:   usedCoupon,
                 pointUsed:    pointUsed,
+                usagePurpose: usagePurpose,
+                visitSource:  visitSource,
+                refundBank:   refundBank,
+                refundAccount: refundAccount,
+                refundHolder: refundHolder,
                 reviewPromise: reviewPromiseVal,
                 reservationMode: currentReservationMode,
                 startTime:    currentReservationMode === 'hourly' ? hourlySelection.start : null,
@@ -1744,6 +1940,8 @@
                     packageName:  pkgLabels[pkg],
                     totalAmount:  0,
                     pointUsed:    pointUsed,
+                    usagePurpose: usagePurpose, visitSource: visitSource,
+                    refundBank: refundBank, refundAccount: refundAccount, refundHolder: refundHolder,
                     usedCoupon:   usedCoupon,
                     reviewPromise: reviewPromiseVal,
                     isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false
@@ -1782,7 +1980,7 @@
                     bookingType: currentBookingType, companyName: company, guestName: name, phone: phone, requests: requests,
                     date: pendingBooking.date, guestCount: guestCount,
                     packageKey: pendingBooking.packageKey, packageName: pkgLabels[pkg],
-                    totalAmount: totalAmount, pointUsed: pointUsed, usedCoupon: usedCoupon, reviewPromise: reviewPromiseVal,
+                    totalAmount: totalAmount, pointUsed: pointUsed, usagePurpose: usagePurpose, visitSource: visitSource, usedCoupon: usedCoupon, reviewPromise: reviewPromiseVal,
                     reservationMode: currentReservationMode,
                     startTime: pendingBooking.startTime, endTime: pendingBooking.endTime, totalHours: pendingBooking.totalHours,
                     isWeekend: pendingBooking.isWeekend
@@ -1805,6 +2003,8 @@
                         packageName:  pkgLabels[pkg],
                         totalAmount:  totalAmount,
                         pointUsed:    pointUsed,
+                        usagePurpose: usagePurpose, visitSource: visitSource,
+                        refundBank: refundBank, refundAccount: refundAccount, refundHolder: refundHolder,
                         usedCoupon:   usedCoupon, // 결제성공시 쿠폰 처리용 데이터 추가
                         reviewPromise: reviewPromiseVal,
                         reservationMode: currentReservationMode,
@@ -1855,6 +2055,8 @@
                     packageName: data.packageName,
                     totalAmount: data.totalAmount,
                     pointUsed:   data.pointUsed || 0,
+                    usagePurpose: data.usagePurpose || '',
+                    visitSource:  data.visitSource || [],
                     usedCoupon:  data.usedCoupon || null,
                     reviewPromise: data.reviewPromise || false,
                     reservationMode: data.reservationMode || 'package',
@@ -1870,17 +2072,28 @@
                     }).then(() => ({ id: resRef.id }));
                 }).then(ref => {
                     console.log('✅ 예약 저장 완료:', ref.id);
+                    // 환급 계좌는 관리자만 읽을 수 있는 별도 문서에 저장 (예약 문서는 공개 조회가 가능해서 분리)
+                    // ★ 페이지 이동 전에 끝나도록 Promise 로 묶어서 반환한다
+                    const tasks = [];
+                    if (data.refundAccount && !ref.existed) {
+                        tasks.push(db.collection('reservation_private').doc(String(data.impUid)).set({
+                            reservationId: String(data.impUid),
+                            kakaoUid: user.kakaoId || null,
+                            bank: data.refundBank || '', account: data.refundAccount || '', holder: data.refundHolder || '',
+                            createdAt: firebase.firestore.Timestamp.now()
+                        }).catch(e => console.warn('환급 계좌 저장 실패:', e.code || e)));
+                    }
                     // 쿠폰 사용 상태 변경
                     if (data.usedCoupon && data.usedCoupon.id) {
-                        // ★ return 하지 않으면 이후 페이지 이동으로 업데이트 요청이 끊긴다
-                        return db.collection('members').doc(String(user.kakaoId)).collection('coupons').doc(data.usedCoupon.id)
+                        tasks.push(db.collection('members').doc(String(user.kakaoId)).collection('coupons').doc(data.usedCoupon.id)
                           .update({ 
                             status: 'used', 
                             isUsed: true, 
                             usedAt: firebase.firestore.Timestamp.now() 
                           })
-                          .catch(e => console.error('쿠폰 상태 업데이트 실패', e));
+                          .catch(e => console.error('쿠폰 상태 업데이트 실패', e)));
                     }
+                    return Promise.all(tasks);
                 })
                   .catch(e  => console.error('예약 저장 실패:', e));
             } catch(e) { console.error('Firestore 오류:', e); return Promise.resolve(); }
@@ -2005,19 +2218,28 @@
                   });
                   renderCalendar(currentCalDate);
                   if (selectedDateObj) checkAndDisablePackages(toDateKey(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate()));
+                  refreshHourlyAvailability();
               }, function(e) { console.warn('부킹 데이터 로드 실패:', e); });
         }
 
-        // [start, end) 구간(24 이상 = 익일)이 해당 날짜의 기존 예약과 겹치는지 검사. 익일 구간은 다음 날 예약과도 비교
-        function hasBookingConflict(dateObj, start, end) {
-            const check = (dt, s, e) => (bookedMap[dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + dt.getDate()] || [])
-                .some(([bs, be]) => s < be && bs < e);
-            if (check(dateObj, start, Math.min(end, 24))) return true;
-            if (end > 24) {
-                const next = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate() + 1);
-                if (check(next, Math.max(start, 24) - 24, end - 24)) return true;
-            }
-            return false;
+        // 예약과 예약 사이에는 정리 시간 1시간이 필요하다 (앞 예약이 끝난 뒤 1시간은 다음 예약을 받지 않는다)
+        const CLEANING_BUFFER = 1;
+
+        // dateObj 날짜를 기준 시각(0시)으로 한 기존 예약 구간들을 돌려준다. 전날/다음날 예약도 같은 기준으로 환산한다.
+        function bookedIntervalsFor(dateObj) {
+            const out = [];
+            [-1, 0, 1].forEach(offset => {
+                const dt = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate() + offset);
+                const list = bookedMap[dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + dt.getDate()] || [];
+                list.forEach(([bs, be]) => out.push([bs + offset * 24, be + offset * 24]));
+            });
+            return out;
+        }
+
+        // [start, end) 구간(24 이상 = 익일)이 기존 예약과 겹치는지 검사. withBuffer=true 이면 앞뒤 정리 시간까지 겹침으로 본다
+        function hasBookingConflict(dateObj, start, end, withBuffer = true) {
+            const buf = withBuffer ? CLEANING_BUFFER : 0;
+            return bookedIntervalsFor(dateObj).some(([bs, be]) => start < be + buf && bs - buf < end);
         }
 
         function toDateKey(y, m, d) { return y + '-' + (m+1) + '-' + d; }
@@ -2094,6 +2316,7 @@
                         const dayName = ['일', '월', '화', '수', '목', '금', '토'][cellDate.getDay()];
                         document.getElementById('selected-date-display').innerText = `${yy}.${mm}.${dd} (${dayName})`;
                         checkAndDisablePackages(toDateKey(year, month, i));
+                        refreshHourlyAvailability();
                     });
                 }
                 calGrid.appendChild(dayDiv);
@@ -2170,9 +2393,13 @@
                 const originEl = document.getElementById('summary-pkg-origin-price');
                 if (originEl) originEl.style.display = 'none';
                 // 시간제 예약: 드롭다운 값을 가져와서 가변 요령 합산
-                const startIdx = parseInt(document.getElementById('hourly-start').value);
-                const endIdx   = parseInt(document.getElementById('hourly-end').value);
-                
+                const startIdx = hourlySelection.start === null ? NaN : hourlySelection.start;
+                const endIdx   = hourlySelection.end === null ? NaN : hourlySelection.end;
+
+                if (isNaN(startIdx) || isNaN(endIdx)) {
+                    const td = document.getElementById('hourly-time-display');
+                    if (td) td.innerText = '시간을 선택해주세요';
+                }
                 if (!isNaN(startIdx) && !isNaN(endIdx)) {
                     // 전역 객체 업데이트 (후속 저장 프로세스 연동)
                     hourlySelection.start = startIdx;

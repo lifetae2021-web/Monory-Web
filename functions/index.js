@@ -311,6 +311,8 @@ exports.portoneWebhook = onRequest({ secrets: SECRETS }, async (req, res) => {
 
         await resRef.create({
             approvalStatus: "pending",
+            usagePurpose: b.usagePurpose || "",
+            visitSource: Array.isArray(b.visitSource) ? b.visitSource : [],
             pointUsed,
             kakaoUid: b.kakaoUid || null,
             kakaoName: b.kakaoName || null,
@@ -697,3 +699,27 @@ exports.checkSmsBalance = onSchedule(
         await stateRef.set({ alertedAt: admin.firestore.FieldValue.serverTimestamp(), balance, checkedAt: admin.firestore.FieldValue.serverTimestamp() });
     }
 );
+
+
+// ── 11. 청소 보증금 환급 계좌 자동 파기 ──────────────────────
+// 이용일로부터 REFUND_ACCOUNT_KEEP_DAYS 일이 지났거나, 예약이 없어졌거나 취소된 계좌 정보는 매일 새벽에 삭제한다.
+const REFUND_ACCOUNT_KEEP_DAYS = 14;
+
+exports.cleanupRefundAccounts = onSchedule({ schedule: "0 4 * * *", timeZone: "Asia/Seoul" }, async () => {
+    const db = admin.firestore();
+    const snap = await db.collection("reservation_private").get();
+    const now = Date.now();
+    let removed = 0;
+    for (const doc of snap.docs) {
+        const res = await db.collection("reservations").doc(doc.id).get();
+        let expired = false;
+        if (!res.exists || res.data().status === "cancelled") {
+            expired = true;
+        } else {
+            const useMs = parseReservationDate(res.data().date);
+            expired = useMs !== null && now > useMs + (REFUND_ACCOUNT_KEEP_DAYS + 1) * 86400000;
+        }
+        if (expired) { await doc.ref.delete(); removed++; }
+    }
+    console.log(`환급 계좌 파기: ${removed}건 (전체 ${snap.size}건)`);
+});

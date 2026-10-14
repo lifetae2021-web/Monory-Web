@@ -46,10 +46,163 @@ def init_db():
 
 init_db()
 
+# ── 로컬 개발 편의: 파일을 저장하면 브라우저가 자동으로 새로고침되게 한다 ──
+# (이 서버는 로컬 확인용이며 Firebase Hosting 배포에는 포함되지 않는다)
+NO_CACHE = {"Cache-Control": "no-store"}
+WATCH_EXT = (".html", ".css", ".js")
+
+def _mtimes() -> str:
+    """css / html / js 파일의 마지막 수정 시각을 각각 돌려준다."""
+    latest = {".css": 0.0, ".html": 0.0, ".js": 0.0}
+    for name in os.listdir("."):
+        for ext in latest:
+            if name.endswith(ext):
+                latest[ext] = max(latest[ext], os.path.getmtime(name))
+    return f'{latest[".css"]},{latest[".html"]},{latest[".js"]}'
+
+# 파일이 바뀌면 화면을 그대로 둔 채 바뀐 부분만 반영한다.
+#  - CSS      : 스타일시트만 다시 불러온다 (화면 상태 유지)
+#  - HTML     : 바뀐 요소만 교체하고, 입력값·열린 팝업·스크롤은 그대로 둔다
+#  - JS/구조  : 전체 새로고침하되 열린 팝업·입력값·스크롤을 복원한다
+DEV_RELOAD_SNIPPET = r"""
+<script>
+(function () {
+    var SKIP = '__dev/mtime', last = null, prevDoc = null, busy = false;
+    function parse(t) { return new DOMParser().parseFromString(t, 'text/html'); }
+    function fetchDoc() { return fetch(location.pathname + location.search, { cache: 'no-store' }).then(function (r) { return r.text(); }).then(parse); }
+    function scriptsSig(doc) {
+        return Array.prototype.map.call(doc.querySelectorAll('script'), function (s) {
+            return (s.textContent || '').indexOf(SKIP) > -1 ? '' : (s.getAttribute('src') || '') + '|' + (s.textContent || '');
+        }).join('\u0001');
+    }
+    function ownSig(el) {
+        var c = el.cloneNode(true);
+        Array.prototype.forEach.call(c.querySelectorAll('[id]'), function (d) {
+            var p = document.createElement('i'); p.setAttribute('data-ph', d.id); d.replaceWith(p);
+        });
+        return c.outerHTML;
+    }
+
+    // ── 화면 상태 저장/복원 (전체 새로고침이 필요할 때) ──
+    function saveState() {
+        var st = { ts: Date.now(), vals: {}, open: [], step2: false, scroll: {} };
+        Array.prototype.forEach.call(document.querySelectorAll('input[id], textarea[id], select[id]'), function (el) {
+            st.vals[el.id] = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value;
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('.modal-overlay.active'), function (el) { if (el.id) st.open.push(el.id); });
+        var inner = document.getElementById('booking-steps-inner'); st.step2 = !!(inner && inner.classList.contains('step-2'));
+        var mc = document.querySelector('.booking-modal-container'); if (mc) st.scroll.modal = mc.scrollTop;
+        st.scroll.page = window.scrollY;
+        try { sessionStorage.setItem('__devState', JSON.stringify(st)); } catch (e) {}
+    }
+    function restoreState() {
+        var raw; try { raw = sessionStorage.getItem('__devState'); sessionStorage.removeItem('__devState'); } catch (e) {}
+        if (!raw) return; var st; try { st = JSON.parse(raw); } catch (e) { return; }
+        if (Date.now() - st.ts > 15000) return;
+        setTimeout(function () {
+            (st.open || []).forEach(function (id) { if (typeof openModal === 'function') { try { openModal(id); } catch (e) {} } });
+            var inner = document.getElementById('booking-steps-inner');
+            if (st.step2 && inner) { inner.classList.add('step-2'); var t = document.getElementById('booking-modal-title'); if (t) t.textContent = '예약자 정보 입력'; }
+            Object.keys(st.vals || {}).forEach(function (id) {
+                var el = document.getElementById(id); if (!el) return;
+                if (el.type === 'checkbox' || el.type === 'radio') el.checked = st.vals[id]; else el.value = st.vals[id];
+            });
+            setTimeout(function () {
+                var mc = document.querySelector('.booking-modal-container'); if (mc && st.scroll) mc.scrollTop = st.scroll.modal || 0;
+                if (st.scroll) window.scrollTo(0, st.scroll.page || 0);
+            }, 300);
+        }, 1200);
+    }
+    function fullReload() { saveState(); location.reload(); }
+
+    // ── CSS 만 교체 ──
+    function swapCss() {
+        Array.prototype.forEach.call(document.querySelectorAll('link[rel="stylesheet"]'), function (l) {
+            var href = l.getAttribute('href'); if (!href || /^https?:|^\/\//.test(href)) return;
+            var nh = href.replace(/([?&])_t=\d+/, '').replace(/[?&]$/, '') + (href.indexOf('?') > -1 ? '&' : '?') + '_t=' + Date.now();
+            var n = l.cloneNode(); n.setAttribute('href', nh);
+            n.onload = function () { l.remove(); };
+            l.parentNode.insertBefore(n, l.nextSibling);
+        });
+    }
+
+    // ── HTML 바뀐 요소만 교체 ──
+    function patchHtml() {
+        return fetchDoc().then(function (newDoc) {
+            if (!prevDoc) { prevDoc = newDoc; return; }
+            if (scriptsSig(prevDoc) !== scriptsSig(newDoc)) { fullReload(); return; }
+            // id 없는 영역이 바뀐 경우는 부분 교체가 어려워 전체 새로고침
+            if (ownSig(prevDoc.body) !== ownSig(newDoc.body)) { fullReload(); return; }
+            var changed = [];
+            Array.prototype.forEach.call(newDoc.querySelectorAll('[id]'), function (n) {
+                var o = prevDoc.getElementById(n.id);
+                if (!o || ownSig(o) !== ownSig(n)) changed.push(n.id);
+            });
+            var removed = [];
+            Array.prototype.forEach.call(prevDoc.querySelectorAll('[id]'), function (o) { if (!newDoc.getElementById(o.id)) removed.push(o.id); });
+            if (removed.length) { fullReload(); return; }
+            var set = {}; changed.forEach(function (id) { set[id] = true; });
+            for (var i = 0; i < changed.length; i++) {
+                var id = changed[i], live = document.getElementById(id), fresh = newDoc.getElementById(id);
+                if (!live || !fresh) { fullReload(); return; }
+                var imp = document.importNode(fresh, true);
+                var liveKids = {};
+                Array.prototype.forEach.call(live.querySelectorAll('[id]'), function (d) { liveKids[d.id] = d; });
+                Array.prototype.forEach.call(imp.querySelectorAll('[id]'), function (d) {
+                    if (!imp.contains(d) || set[d.id] || !liveKids[d.id]) return;
+                    d.replaceWith(liveKids[d.id]);
+                });
+                // 입력 중이던 값은 유지
+                var vals = {};
+                Array.prototype.forEach.call(live.querySelectorAll('input[id], textarea[id], select[id]'), function (el) {
+                    vals[el.id] = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value;
+                });
+                live.replaceWith(imp);
+                Object.keys(vals).forEach(function (k) {
+                    var el = document.getElementById(k); if (!el || set[k]) return;
+                    if (el.type === 'checkbox' || el.type === 'radio') el.checked = vals[k]; else el.value = vals[k];
+                });
+            }
+            prevDoc = newDoc;
+        }).catch(function () { fullReload(); });
+    }
+
+    function check() {
+        if (busy) return;
+        fetch('/__dev/mtime', { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t) {
+            var cur = t.split(',');
+            if (last === null) { last = cur; return; }
+            var cssChanged = cur[0] !== last[0], htmlChanged = cur[1] !== last[1], jsChanged = cur[2] !== last[2];
+            last = cur;
+            if (jsChanged) { fullReload(); return; }
+            if (cssChanged) swapCss();
+            if (htmlChanged) { busy = true; patchHtml().then(function () { busy = false; }); }
+        }).catch(function () {});
+    }
+    restoreState();
+    window.addEventListener('load', function () { fetchDoc().then(function (d) { prevDoc = d; }); });
+    check(); setInterval(check, 800);
+})();
+</script>
+"""
+
+def html_response(path: str):
+    with open(path, encoding="utf-8") as f:
+        html = f.read()
+    if "</body>" in html:
+        html = html.replace("</body>", DEV_RELOAD_SNIPPET + "</body>", 1)
+    else:
+        html += DEV_RELOAD_SNIPPET
+    return Response(content=html, media_type="text/html; charset=utf-8", headers=NO_CACHE)
+
+@app.get("/__dev/mtime")
+def dev_mtime():
+    return Response(content=_mtimes(), media_type="text/plain", headers=NO_CACHE)
+
 # 브라우저 접속 시 index.html 화면을 바로 띄워줌
 @app.get("/")
 def read_root():
-    return FileResponse("index.html")
+    return html_response("index.html")
 
 # 2024년 대한민국 공휴일 (대체공휴일 포함)
 PUBLIC_HOLIDAYS_2024 = {
@@ -141,7 +294,7 @@ def get_holidays():
 
 @app.get("/admin")
 def read_admin():
-    return FileResponse("admin.html")
+    return html_response("admin.html")
 
 @app.get("/admin-data")
 def get_admin_data():
@@ -179,17 +332,17 @@ def firebase_reserved(path: str):
 @app.get("/{filename}.css")
 def get_css(filename: str):
     if os.path.exists(f"{filename}.css"):
-        return FileResponse(f"{filename}.css")
+        return FileResponse(f"{filename}.css", headers=NO_CACHE)
     raise HTTPException(status_code=404, detail="File not found")
 
 @app.get("/{filename}.html")
 def get_html(filename: str):
     if os.path.exists(f"{filename}.html"):
-        return FileResponse(f"{filename}.html")
+        return html_response(f"{filename}.html")
     raise HTTPException(status_code=404, detail="File not found")
 
 @app.get("/{filename}.js")
 def get_js(filename: str):
     if os.path.exists(f"{filename}.js"):
-        return FileResponse(f"{filename}.js")
+        return FileResponse(f"{filename}.js", headers=NO_CACHE)
     raise HTTPException(status_code=404, detail="File not found")

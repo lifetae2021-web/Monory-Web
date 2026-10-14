@@ -2353,6 +2353,9 @@
                                 ${requests
                                     ? `<div style="max-height:60px;overflow-y:auto;line-height:1.5;padding:4px 0;" title="${requests.replace(/"/g,'&quot;')}">${requests}</div>`
                                     : '<span style="opacity:0.3;">없음</span>'}
+                                ${r.usagePurpose ? `<div style="margin-top:6px;line-height:1.5;"><b style="color:var(--accent-gold);">용도</b> ${String(r.usagePurpose).replace(/</g,'&lt;')}</div>` : ''}
+                                ${Array.isArray(r.visitSource) && r.visitSource.length ? `<div style="line-height:1.5;"><b style="color:var(--accent-gold);">경로</b> ${r.visitSource.join(', ')}</div>` : ''}
+                                <button onclick="showRefundAccount('${docId}','${(r.guestName || '').replace(/'/g, '')}')" style="margin-top:6px;padding:3px 8px;font-size:0.72rem;border:1px solid var(--border-color);background:transparent;color:var(--text-secondary);border-radius:6px;cursor:pointer;">환급 계좌 보기</button>
                             </td>
                         `;
                         tbody.appendChild(row);
@@ -2381,6 +2384,15 @@
                   // onSnapshot이 자동으로 테이블 갱신함
               })
               .catch(e => alert('업데이트 실패: ' + e.message));
+        }
+
+        // 청소 보증금 환급 계좌 조회 (관리자 전용 문서)
+        function showRefundAccount(docId, name) {
+            firebase.firestore().collection('reservation_private').doc(docId).get().then(doc => {
+                if (!doc.exists) { alert(`'${name}' 예약의 환급 계좌 정보가 없습니다.\n(이전 예약이거나 저장되지 않았을 수 있습니다.)`); return; }
+                const d = doc.data();
+                alert(`[${name}] 청소 보증금 환급 계좌\n\n은행: ${d.bank}\n계좌번호: ${d.account}\n예금주: ${d.holder}`);
+            }).catch(e => alert('조회 실패: ' + e.message));
         }
 
         // 예약 승인: 승인하면 고객에게 예약 확정 문자가 자동 발송된다

@@ -2220,3 +2220,237 @@ textarea.s2-input {
         letter-spacing: -0.8px;
     }
 }
+
+/* ── 예약 팝업 모바일 정리 ────────────────────────────────────
+   1단계 내용이 팝업 폭보다 넓어지면(긴 쿠폰 이름 등) 2단계로 넘어갈 때 1단계 일부가 겹쳐 보이던 문제를 막고,
+   입력칸·표가 항상 팝업 폭 안에서 줄바꿈되도록 한다. */
+@media (max-width: 768px) {
+    .booking-modal-container {
+        width: calc(100% - 20px);
+        padding: 22px 16px;
+    }
+    .booking-steps-inner { align-items: flex-start; }
+    .booking-step {
+        flex: 0 0 100%;
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+    .booking-split-layout > *,
+    .booking-calendar-section,
+    .booking-options-section { min-width: 0; }
+
+    /* 보이지 않는 단계는 높이를 0으로 줄여서 빈 공간이 생기거나 비치지 않게 한다 */
+    .booking-steps-inner.step-2 #booking-step-1,
+    .booking-steps-inner:not(.step-2) #booking-step-2 { height: 0; overflow: hidden; visibility: hidden; }
+
+    #booking-step-1 select,
+    #booking-step-1 .custom-select,
+    #booking-step-1 input,
+    #booking-step-2 .s2-input,
+    #booking-step-2 select {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    #booking-step-1 select { text-overflow: ellipsis; }
+
+    /* 금액 요약: 긴 문구는 줄바꿈 */
+    .price-summary-box .summary-row { gap: 10px; flex-wrap: wrap; }
+    .price-summary-box .summary-row > span:last-child,
+    .price-summary-box .summary-row > div:last-child { text-align: right; margin-left: auto; }
+    #summary-coupon-discount { white-space: normal; text-align: right; }
+
+    /* 2단계 상단 요약바 */
+    .s2-summary-bar { flex-wrap: wrap; gap: 10px 14px; }
+}
+
+/* ── 드롭다운/선택 UI 정리 ──────────────────────────────────── */
+/* 예약 팝업의 선택창: 기본 화살표 대신 통일된 화살표, 터치하기 쉬운 높이 */
+.booking-modal-container select {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px 40px 12px 14px !important;
+    font-size: 1rem !important;
+    font-family: inherit;
+    color: #1a1a1a;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9' fill='none'><path d='M1 1.5L7 7.5L13 1.5' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+.booking-modal-container select:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+}
+
+/* 은행 선택 칩 */
+.bank-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.bank-chip {
+    padding: 9px 14px;
+    border: 1px solid #ddd;
+    border-radius: 999px;
+    background: #fff;
+    color: #444;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.bank-chip:hover { border-color: var(--accent-gold); }
+.bank-chip.selected {
+    border-color: var(--accent-gold);
+    background: rgba(212, 175, 55, 0.14);
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+/* ── 모바일 전체 가독성 정리 ───────────────────────────────────
+   - 한국어는 단어 단위로 줄바꿈 (어절 중간에서 끊기지 않게)
+   - 본문 글자 크기·줄 간격·여백을 한 화면에서 읽기 편하게 통일
+   - 카드 안 설명, 가격표, 약관 같은 긴 글의 폭과 간격 정리 */
+@media (max-width: 768px) {
+    body { -webkit-text-size-adjust: 100%; }
+    p, li, .section-description, .about-grid p, .feature-card p, .pkg-desc,
+    .pricing-note, .footer-business-info, .review-text {
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+        line-height: 1.75;
+    }
+
+    /* 섹션 제목 / 소개 */
+    .section-title { font-size: 1.65rem; line-height: 1.35; word-break: keep-all; text-wrap: balance; }
+    .section-description { font-size: 1rem; padding: 0 4%; text-wrap: pretty; }
+    .section-badge { font-size: 0.72rem; letter-spacing: 3px; margin-bottom: 12px; }
+    .text-center { margin-bottom: 36px; }
+
+    /* 소개 카드(프리미엄 라운지 등): 설명이 한 글자씩 쪼개지지 않게 */
+    .feature-card, .feature-item, .about-feature { padding: 22px 14px; }
+    .feature-card p, .feature-item p { font-size: 0.86rem; line-height: 1.6; text-wrap: balance; }
+    .feature-card h3, .feature-item h3, .feature-card h4, .feature-item h4 { font-size: 1rem; margin-bottom: 8px; }
+
+    /* 요금 카드: 항목 라벨과 금액이 한 줄에 선명하게 */
+    .pricing-card { padding: 30px 18px; }
+    .price-row { gap: 10px; }
+    .price-row span { font-size: 0.92rem; color: #cfcfcf; }
+    .price-row strong { font-size: 1.25rem; }
+
+    /* 위치 안내 */
+    #location { padding: 64px 0 !important; }
+    #location p { font-size: 1rem; line-height: 1.9; }
+
+    /* 푸터 사업자 정보 */
+    .footer-business-info { font-size: 0.78rem; line-height: 1.8; color: #9a9a9a; }
+    .footer-links a { padding: 6px 4px; font-size: 0.85rem; }
+
+    /* 터치 영역: 링크·버튼은 최소 44px 높이 */
+    .cta-button, .btn-submit, .ml-submit { min-height: 48px; }
+    .mobile-nav-links a { padding: 14px 0; font-size: 1.15rem; }
+}
+
+/* 아주 작은 화면(360px 이하)에서는 한 단계 더 줄임 */
+@media (max-width: 360px) {
+    .section-title { font-size: 1.45rem; }
+    .section-description { font-size: 0.95rem; }
+}
+
+/* ── 고객 후기 카드 ───────────────────────────────────────────── */
+.rv-card { display: flex; flex-direction: column; background: rgba(255,255,255,0.03); border: 1px solid rgba(212,175,55,0.2); border-radius: 16px; overflow: hidden; transition: transform 0.2s, border-color 0.2s; }
+.rv-card:hover { transform: translateY(-3px); border-color: rgba(212,175,55,0.5); }
+.rv-card-photo { position: relative; aspect-ratio: 4 / 3; background: #000; overflow: hidden; }
+.rv-card-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rv-more { position: absolute; right: 10px; bottom: 10px; padding: 4px 10px; border-radius: 999px; background: rgba(0,0,0,0.65); color: #fff; font-size: 0.78rem; backdrop-filter: blur(4px); }
+.rv-card-body { padding: 18px 18px 16px; display: flex; flex-direction: column; flex: 1; gap: 10px; }
+.rv-card-stars { color: var(--accent-gold); font-size: 0.9rem; letter-spacing: 2px; }
+.rv-card-text { margin: 0; color: #e2e2e2; font-size: 0.95rem; line-height: 1.7; word-break: keep-all; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; flex: 1; }
+.rv-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.07); }
+.rv-card-user { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.rv-card-user img { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.rv-card-user span { color: #aaa; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rv-card-date { color: #777; font-size: 0.78rem; flex-shrink: 0; }
+@media (max-width: 768px) {
+    #reviews-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
+}
+
+/* ── 시간제 시간표 ──────────────────────────────────────────────
+   칸 하나 = 1시간. 시작 칸을 누르면 3시간이 잡히고, 끝 칸을 눌러 늘린다. */
+.tl-wrap { margin-top: 4px; }
+.tl-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.tl-title { font-weight: 700; color: #1a1a1a; font-size: 0.95rem; }
+.tl-reset { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #ddd; background: #fff; color: #666; border-radius: 999px; padding: 5px 12px; font-size: 0.78rem; cursor: pointer; font-family: inherit; }
+.tl-reset:hover { border-color: var(--accent-gold); color: #1a1a1a; }
+.tl-guide { margin: 0 0 12px; color: #888; font-size: 0.8rem; line-height: 1.6; word-break: keep-all; }
+.tl-guide b { color: #555; }
+
+.tl-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.tl-grid.no-date { opacity: 0.45; }
+.tl-cell {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    min-height: 54px; padding: 6px 2px; border-radius: 10px; border: 1.5px solid transparent;
+    cursor: pointer; font-family: inherit; color: #1a1a1a; transition: transform 0.1s, border-color 0.15s, background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.tl-cell:hover:not(:disabled) { border-color: var(--accent-gold); }
+.tl-cell:active:not(:disabled) { transform: scale(0.95); }
+.tl-h { font-size: 0.82rem; font-weight: 700; line-height: 1.1; white-space: nowrap; }
+.tl-h em { display: block; font-style: normal; font-size: 0.6rem; font-weight: 600; color: #7a6a3a; margin-bottom: 1px; }
+.tl-r { font-size: 0.68rem; color: #666; }
+
+/* 예약 가능한 칸 */
+.tl-cell { background: #f6f6f4; border-color: #ecece8; min-height: 48px; }
+.tl-cell.next { background: #f1f1ee; }
+
+/* 예약됨: 회색으로 잠금 */
+.tl-cell.booked, .tl-cell:disabled {
+    background: #e6e6e6; color: #aaa; cursor: not-allowed;
+    background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(255,255,255,0.55) 6px 12px);
+}
+.tl-cell.booked .tl-r { color: #999; font-weight: 600; }
+/* 예약 앞뒤 정리 시간: 예약됨보다 연한 점선 느낌 */
+.tl-cell.cleaning { background: #f0efe9; color: #b3b0a3; cursor: not-allowed; border: 1.5px dashed #d8d4c4; }
+.tl-cell.cleaning .tl-r { color: #aaa69a; font-weight: 600; }
+/* 시작하면 3시간이 안 되는 칸 */
+.tl-cell.short { opacity: 0.5; }
+
+/* 선택 범위 */
+.tl-cell.sel { opacity: 1 !important; background: var(--accent-gold); border-color: var(--accent-gold); color: #fff; box-shadow: 0 4px 12px rgba(212,175,55,0.35); }
+.tl-cell.sel .tl-h em { color: rgba(255,255,255,0.9); }
+.tl-cell.sel-start { border-top-left-radius: 14px; border-bottom-left-radius: 14px; }
+.tl-cell.sel-end { border-top-right-radius: 14px; border-bottom-right-radius: 14px; }
+
+.tl-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 12px; color: #777; font-size: 0.74rem; }
+.tl-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.tl-legend .lg { width: 12px; height: 12px; border-radius: 4px; display: inline-block; }
+.lg-free { background: #f6f6f4; border: 1px solid #dcdcd6; }
+.lg-clean { background: #f0efe9; border: 1px dashed #c9c5b4; }
+.lg-booked { background: #e6e6e6; }
+.lg-sel { background: var(--accent-gold); }
+.tl-msg { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #fff7e6; border: 1px solid #ffe0a3; color: #8a5a00; font-size: 0.82rem; line-height: 1.5; word-break: keep-all; }
+
+@media (max-width: 380px) {
+    .tl-grid { gap: 5px; }
+    .tl-h { font-size: 0.76rem; }
+}
+
+/* 시간표 사용 안내(단계) + 이용 시간 +/- */
+.tl-steps { margin: 0 0 14px; padding: 12px 14px 12px 30px; border-radius: 10px; background: #faf8f1; border: 1px solid #efe6c8; color: #6b6246; font-size: 0.8rem; line-height: 1.7; word-break: keep-all; }
+.tl-steps li { margin: 0; }
+.tl-steps li::marker { color: var(--accent-gold); font-weight: 800; }
+.tl-steps b { color: #1a1a1a; }
+.tl-steps span { color: #999; }
+.tl-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: #faf8f1; border: 1px solid #efe6c8; }
+.tl-ctl-label { font-size: 0.85rem; font-weight: 700; color: #1a1a1a; }
+.tl-stepper { display: flex; align-items: center; gap: 12px; }
+.tl-stepper strong { min-width: 52px; text-align: center; font-size: 1rem; color: #1a1a1a; }
+.tl-stepper button { width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid #d9cfa6; background: #fff; color: #1a1a1a; font-size: 1.2rem; line-height: 1; cursor: pointer; font-family: inherit; }
+.tl-stepper button:hover:not(:disabled) { border-color: var(--accent-gold); background: #fffaf0; }
+.tl-stepper button:disabled { opacity: 0.35; cursor: not-allowed; }
