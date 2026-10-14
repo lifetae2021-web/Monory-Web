@@ -9,7 +9,10 @@
         try { user = JSON.parse(localStorage.getItem('monory_user') || 'null'); } catch (e) {}
         if (!user || !user.kakaoId) return;
         try {
-            if (window.ensureFirebaseSession) { const u = await window.ensureFirebaseSession(); if (!u) return; }
+            // 서버 로그인이 복원될 때까지 기다린다 (kakao-auth.js 가 늦게 로드될 수 있어 잠깐 기다림)
+            for (let i = 0; i < 50 && !window.firebaseAuthState; i++) await new Promise(r => setTimeout(r, 100));
+            if (window.firebaseAuthState) await window.firebaseAuthState();
+            if (!firebase.auth || !firebase.auth().currentUser) return;
             const doc = await firebase.firestore().collection('members').doc(String(user.kakaoId)).get();
             if (!doc.exists || !ADMIN_ROLES.includes(doc.data().role)) return;
             const res = await fetch('version.json?t=' + Date.now());
