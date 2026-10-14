@@ -1,10 +1,26 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // 모든 이미지 파일: 누구나 읽기 가능, 관리자(로그인 사용자)만 쓰기 가능
+
+    // 관리자: 이메일 로그인 관리자이거나, 카카오 로그인 때 서버가 admin 표식을 붙인 계정(members.role 이 관리자 권한)
+    function isAdmin() {
+      return request.auth != null && (request.auth.token.email != null || request.auth.token.admin == true);
+    }
+
+    // 고객 리뷰 사진: 로그인한 회원이 이미지 파일(5MB 이하)을 새로 올릴 수만 있다. 덮어쓰기·삭제는 관리자만
+    match /reviews/{file} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && resource == null
+                    && request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if isAdmin();
+    }
+
+    // 그 외 모든 경로(갤러리, 대표 이미지, 소개 이미지 등): 누구나 읽기, 쓰기는 관리자만
     match /{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
   }
 }

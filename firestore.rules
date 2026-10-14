@@ -37,6 +37,13 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
+    // 글(리뷰·문의)의 작성자인지: authorId 가 숫자로 저장돼 있어도 문자열로 저장돼 있어도 비교된다
+    function isAuthor(data) {
+      return request.auth != null && data.get('authorId', null) != null
+        && ((data.authorId is int && data.authorId == int(request.auth.uid))
+            || (data.authorId is string && data.authorId == request.auth.uid));
+    }
+
     // 예약 문서의 주인인지 (예약의 kakaoUid 는 숫자, auth uid 는 문자열이라 숫자로 바꿔서 비교)
     function ownsReservation(data) {
       return request.auth != null && data.get('kakaoUid', null) != null && data.kakaoUid == int(request.auth.uid);
@@ -111,8 +118,9 @@ service cloud.firestore {
     // 리뷰 컬렉션 규칙
     match /reviews/{docId} {
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if isGeneralAdmin() || (request.auth != null && request.auth.uid == resource.data.authorId);
+      // 본인 명의로만 작성 (남의 이름으로 리뷰 작성 불가)
+      allow create: if isAuthor(request.resource.data);
+      allow update, delete: if isGeneralAdmin() || isAuthor(resource.data);
     }
 
     // community (notices, inquiries) 규칙
@@ -121,10 +129,11 @@ service cloud.firestore {
       allow write: if isGeneralAdmin();
     }
     
+    // 문의: 내용·비밀번호가 들어 있어서 작성자와 관리자만 읽을 수 있다 (목록은 본인 글만 조회)
     match /inquiries/{docId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if isGeneralAdmin() || (request.auth != null && request.auth.uid == resource.data.authorId);
+      allow read: if isGeneralAdmin() || isAuthor(resource.data);
+      allow create: if isAuthor(request.resource.data);
+      allow update, delete: if isGeneralAdmin() || isAuthor(resource.data);
     }
 
     // reservations 컬렉션 규칙
@@ -148,13 +157,14 @@ service cloud.firestore {
     }
 
     // 통계나 설정 파일 규칙
+    // 사이트 설정(CMS): 화면을 그리려면 누구나 읽어야 하지만, 수정은 관리자만 가능
     match /monory_config/{configId} {
       allow read: if true;
-      allow write: if true; // CMS 텍스트 설정만 저장, 민감 데이터 없음
+      allow write: if isGeneralAdmin();
 
       match /{allChildren=**} {
         allow read: if true;
-        allow write: if true;
+        allow write: if isGeneralAdmin();
       }
     }
 

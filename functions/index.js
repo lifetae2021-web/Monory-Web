@@ -92,6 +92,20 @@ function calcRefundRate(resData, nowMs) {
 // ── 1. 카카오 로그인 → Firebase 커스텀 토큰 ─────────────────
 // 클라이언트가 보낸 카카오 액세스 토큰을 카카오 서버로 검증한 뒤, uid = 카카오 회원번호인 토큰 발급.
 // (Firestore 규칙의 members/{uid}.role 조회, 예약 소유자 비교가 이 uid를 기준으로 동작한다)
+// 로그인 토큰에 넣을 권한 표식. 관리자 권한(members.role)이 있으면 admin: true 를 넣어
+// Storage 규칙이 "관리자만 파일 쓰기"를 판단할 수 있게 한다. (권한을 바꾼 뒤에는 다시 로그인해야 반영된다)
+async function buildLoginClaims(uid) {
+    const claims = { provider: "kakao" };
+    try {
+        const m = await admin.firestore().collection("members").doc(uid).get();
+        if (m.exists && ["super_admin", "admin", "general_admin"].includes(m.data().role)) claims.admin = true;
+    } catch (e) {
+        console.warn("로그인 권한 표식 조회 실패(일반 회원으로 처리):", e.message);
+    }
+    return claims;
+}
+exports.buildLoginClaims = buildLoginClaims;
+
 exports.kakaoLogin = onCall(async (request) => {
     const accessToken = request.data && request.data.accessToken;
     if (!accessToken || typeof accessToken !== "string") {
@@ -112,7 +126,8 @@ exports.kakaoLogin = onCall(async (request) => {
         const kakaoId = me.data && me.data.id;
         if (!kakaoId) throw new HttpsError("unauthenticated", "카카오 사용자 정보를 확인할 수 없습니다.");
 
-        const customToken = await admin.auth().createCustomToken(String(kakaoId), { provider: "kakao" });
+        const claims = await buildLoginClaims(String(kakaoId));
+        const customToken = await admin.auth().createCustomToken(String(kakaoId), claims);
         return { customToken };
     } catch (e) {
         if (e instanceof HttpsError) throw e;
