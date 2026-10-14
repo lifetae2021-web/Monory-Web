@@ -26,7 +26,7 @@
     <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-functions-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
-    <script defer src="kakao-auth.js"></script>
+    <script defer src="kakao-auth.js?v=2"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -459,11 +459,20 @@
 
         // 쿠폰 불러오기
         // ── 포인트 잔액/내역 (읽기 전용, 적립·차감은 서버에서만) ──
+        // Firebase 로그인 상태가 복원될 때까지 기다린다 (복원 전에 조회하면 권한 오류가 난다)
+        async function waitForFirebaseAuth() {
+            try {
+                if (firebase.auth && firebase.auth().authStateReady) await firebase.auth().authStateReady();
+            } catch (e) { /* 대기 실패 시 그냥 진행 */ }
+            return firebase.auth ? firebase.auth().currentUser : null;
+        }
+
         async function loadPoints(user) {
             const balEl = document.getElementById('point-balance');
             const listEl = document.getElementById('point-list');
             const expEl = document.getElementById('point-expiry');
             try {
+                await waitForFirebaseAuth();
                 const memberRef = firebase.firestore().collection('members').doc(String(user.kakaoId));
                 const [lots, logs] = await Promise.all([
                     memberRef.collection('point_lots').where('expiresAt', '>', firebase.firestore.Timestamp.now()).orderBy('expiresAt').get(),
@@ -499,8 +508,12 @@
                     listEl.appendChild(row);
                 });
             } catch (e) {
-                console.warn('포인트 조회 실패:', e.code || e);
-                listEl.innerHTML = '<div style="color:#666;font-size:13px;">포인트를 불러오지 못했습니다. 로그아웃 후 다시 로그인해 주세요.</div>';
+                const signedIn = !!(firebase.auth && firebase.auth().currentUser);
+                console.warn('포인트 조회 실패:', e.code || e, '| 서버 로그인:', signedIn);
+                listEl.innerHTML = '<div style="color:#666;font-size:13px;">포인트를 불러오지 못했습니다. 로그아웃 후 다시 로그인해 주세요.'
+                    + '<br><span style="font-size:11px;color:#555;">(진단: ' + (e.code || e.message || '알 수 없음') + ' / 서버 로그인 ' + (signedIn ? '됨' : '안 됨') + ' / 스크립트 v' + (window.__kakaoAuthVer || '구버전')
+                    + (function(){ try { var m = localStorage.getItem('monory_auth_error'); return m ? ' / 로그인 연동 오류: ' + m : ''; } catch (x) { return ''; } })()
+                    + ')</span></div>';
             }
         }
 

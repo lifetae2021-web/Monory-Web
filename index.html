@@ -442,7 +442,7 @@
     <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-functions-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
-    <script defer src="kakao-auth.js"></script>
+    <script defer src="kakao-auth.js?v=2"></script>
 
     <!-- ============================================================
          카카오 로그인 + 회원 관리 시스템
@@ -2301,6 +2301,14 @@
         let myPointBalance = 0;
         let currentPointUse = 0;
 
+        // Firebase 로그인 상태가 복원될 때까지 기다린다 (복원 전에 조회하면 권한 오류가 난다)
+        async function waitForFirebaseAuth() {
+            try {
+                if (firebase.auth && firebase.auth().authStateReady) await firebase.auth().authStateReady();
+            } catch (e) { /* 대기 실패 시 그냥 진행 */ }
+            return firebase.auth ? firebase.auth().currentUser : null;
+        }
+
         async function loadMyPoints() {
             myPointBalance = 0;
             const group = document.getElementById('point-group');
@@ -2308,6 +2316,7 @@
             if (!group || !userStr || typeof firebase === 'undefined') return;
             try {
                 const user = JSON.parse(userStr);
+                await waitForFirebaseAuth();
                 const snap = await firebase.firestore().collection('members').doc(String(user.kakaoId))
                     .collection('point_lots')
                     .where('expiresAt', '>', firebase.firestore.Timestamp.now())
