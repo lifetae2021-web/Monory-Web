@@ -271,7 +271,7 @@
                     let query;
 
                     // 예약 정보는 본인(로그인한 카카오 계정)만 읽을 수 있다. 서버 로그인 복원을 기다린 뒤 본인 예약으로 한정해 조회한다.
-                    try { if (firebase.auth && firebase.auth().authStateReady) await firebase.auth().authStateReady(); } catch (e) {}
+                    try { await new Promise(function (res) { const t = setTimeout(res, 8000); const un = firebase.auth().onAuthStateChanged(function () { clearTimeout(t); try { un(); } catch (e) {} res(); }); }); } catch (e) {}
                     let me = null;
                     try { me = JSON.parse(localStorage.getItem('monory_user') || 'null'); } catch (e) {}
                     if (!me || !me.kakaoId) { showEmptyState(); startRedirectTimer(); return; }

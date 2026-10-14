@@ -858,6 +858,24 @@
     <script defer src="/__/firebase/init.js"></script>
 
     <script>
+        // 저장된 로그인 상태가 복원될 때까지 기다린다. 복원 전에 DB 구독을 시작하면 권한 오류가 나고 구독이 끊긴다.
+        let __adminAuthPromise = null;
+        function waitAdminAuth() {
+            if (!__adminAuthPromise) {
+                __adminAuthPromise = new Promise(function (resolve) {
+                    if (typeof firebase === 'undefined' || !firebase.auth) return resolve(null);
+                    let done = false;
+                    const timer = setTimeout(function () { if (!done) { done = true; resolve(firebase.auth().currentUser); } }, 8000);
+                    const unsub = firebase.auth().onAuthStateChanged(function (u) {
+                        if (done) return; done = true; clearTimeout(timer);
+                        try { unsub(); } catch (e) {}
+                        resolve(u);
+                    });
+                });
+            }
+            return __adminAuthPromise;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // 화면 보호 시작 (로그인 검사 전까지 숨김 처리)
             document.body.style.opacity = '0';
@@ -2711,8 +2729,10 @@
         // 대시보드 진입 시 데이터 통합 로드
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof firebase !== 'undefined') {
-                loadReservations();
-                loadDashboardStats();
+                waitAdminAuth().then(() => {
+                    loadReservations();
+                    loadDashboardStats();
+                });
             }
         });
     </script>
@@ -3064,10 +3084,10 @@
         // 초기화 시 리스너 등록
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof firebase !== 'undefined') {
-                initNotificationListener();
+                waitAdminAuth().then(() => initNotificationListener());
             }
             // 직전에 열어둔 탭 복구 (기본값: dashboard)
             const lastSection = sessionStorage.getItem('admin_current_section') || 'dashboard';
-            showSection(lastSection);
+            waitAdminAuth().then(() => showSection(lastSection));
         });
     </script>

@@ -522,9 +522,7 @@
         // ── 포인트 잔액/내역 (읽기 전용, 적립·차감은 서버에서만) ──
         // Firebase 로그인 상태가 복원될 때까지 기다린다 (복원 전에 조회하면 권한 오류가 난다)
         async function waitForFirebaseAuth() {
-            try {
-                if (firebase.auth && firebase.auth().authStateReady) await firebase.auth().authStateReady();
-            } catch (e) { /* 대기 실패 시 그냥 진행 */ }
+            try { if (window.firebaseAuthState) await window.firebaseAuthState(); } catch (e) { /* 대기 실패 시 그냥 진행 */ }
             return firebase.auth ? firebase.auth().currentUser : null;
         }
 
