@@ -761,3 +761,25 @@ exports.syncBookedSlot = onDocumentWritten(
         await ref.set({ ...slot, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
     }
 );
+
+// 예약 가능 시간(공개) 점검: booked_slots 가 reservations 와 어긋나지 않게 6시간마다 맞춘다.
+// (예약이 아주 짧은 간격으로 생겼다 지워지는 등 드문 경우에 남을 수 있는 찌꺼기 슬롯을 지우고, 빠진 슬롯을 채운다)
+exports.reconcileBookedSlots = onSchedule({ schedule: "every 6 hours", timeZone: "Asia/Seoul" }, async () => {
+    const db = admin.firestore();
+    const want = new Map();
+    (await db.collection("reservations").get()).forEach((d) => {
+        const slot = slots.slotFromReservation(d.data());
+        if (slot) want.set(slots.slotId(d.id), slot);
+    });
+    const have = await db.collection("booked_slots").get();
+    let removed = 0, added = 0;
+    for (const doc of have.docs) {
+        if (!want.has(doc.id)) { await doc.ref.delete(); removed++; }
+        else want.delete(doc.id);
+    }
+    for (const [id, slot] of want) {
+        await db.collection("booked_slots").doc(id).set({ ...slot, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+        added++;
+    }
+    console.log(`예약 현황 점검: 찌꺼기 ${removed}건 삭제, 누락 ${added}건 추가`);
+});
