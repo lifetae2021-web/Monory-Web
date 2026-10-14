@@ -73,6 +73,12 @@ service cloud.firestore {
       allow read, update, delete: if isGeneralAdmin();
     }
 
+    // 예약 가능 시간 표시용 공개 데이터: 날짜·시간만 있고 개인정보는 없다. 쓰기는 서버(Cloud Functions)만 가능
+    match /booked_slots/{slotId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // 결제 중 포인트 선차감 기록: 클라이언트 접근 불가(서버 전용)
     match /point_holds/{holdId} {
       allow read, write: if false;

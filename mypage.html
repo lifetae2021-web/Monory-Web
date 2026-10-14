@@ -422,8 +422,8 @@
                     try {
                         const db = firebase.firestore();
                         const resRef = db.collection('reservations').doc(String(pendingData.impUid));
-                        const alreadySaved = (await resRef.get()).exists;
-                        if (!alreadySaved) await resRef.set({
+                        let alreadySaved = false;
+                        try { await resRef.set({
                             kakaoUid:    user.kakaoId   || null,
                             kakaoName:   user.name      || null,
                             bookingType: pendingData.bookingType,
@@ -446,8 +446,12 @@
                             status:      'paid',
                             approvalStatus: 'pending',
                             createdAt:   firebase.firestore.Timestamp.now()
-                        });
-                        console.log('✅ 모바일 결제 후 자동 저장 완료');
+                        }); } catch (setErr) {
+                            // 이미 저장된 예약(웹훅 등)이면 규칙이 다시 쓰는 것을 막는다 → 정상이므로 넘어간다
+                            if (setErr && setErr.code === 'permission-denied') { alreadySaved = true; }
+                            else throw setErr;
+                        }
+                        if (!alreadySaved) console.log('✅ 모바일 결제 후 자동 저장 완료');
 
                         // 환급 계좌는 관리자만 읽을 수 있는 별도 문서에 저장
                         if (!alreadySaved && pendingData.refundAccount) {
@@ -579,6 +583,7 @@
             const countEl = document.getElementById('coupon-count');
             const db = firebase.firestore();
             try {
+                await ensureFirebaseSession();
                 const snapshot = await db.collection('members').doc(String(user.kakaoId)).collection('coupons')
                                          .where('status', '==', 'active').get();
                 const now = new Date();
@@ -654,6 +659,7 @@
             const loading = document.getElementById('loading-state');
             
             try {
+                await ensureFirebaseSession();
                 const db = firebase.firestore();
                 // 사용자의 고유 kakaoId로 예약 내역 검색
                 const snapshot = await db.collection('reservations')
@@ -1058,6 +1064,9 @@
         // ── 헤더 쿠폰 알림 모니터링 (loadCoupons와 100% 동일 로직) ────
         function checkHeaderCouponAlert(uid) {
             if (!uid || typeof firebase === 'undefined') return;
+            ensureFirebaseSession().then(function (u) { if (u) _checkHeaderCouponAlertNow(uid); });
+        }
+        function _checkHeaderCouponAlertNow(uid) {
             const db = firebase.firestore();
             db.collection('members').doc(String(uid)).collection('coupons')
               .where('status', '==', 'active')

@@ -6,7 +6,8 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const points = require("./points");
 const notify = require("./notify");
 const sms = require("./sms");
-const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const slots = require("./slots");
+const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { applyPortoneCancellation: applyCancellation } = require("./cancellation");
 
 admin.initializeApp();
@@ -723,3 +724,25 @@ exports.cleanupRefundAccounts = onSchedule({ schedule: "0 4 * * *", timeZone: "A
     }
     console.log(`환급 계좌 파기: ${removed}건 (전체 ${snap.size}건)`);
 });
+
+
+// ── 12. 예약 가능 시간(공개) 동기화 ───────────────────────────
+// reservations 가 생기거나 상태가 바뀌면 booked_slots(날짜·시간만 있는 공개 데이터)를 맞춰 둔다.
+// 결제완료/이용완료 예약만 남기고, 취소·삭제되면 지운다.
+exports.syncBookedSlot = onDocumentWritten(
+    { document: "reservations/{resId}", region: "asia-northeast3" },
+    async (event) => {
+        const db = admin.firestore();
+        const ref = db.collection("booked_slots").doc(slots.slotId(event.params.resId));
+        const after = event.data && event.data.after && event.data.after.exists ? event.data.after.data() : null;
+        const slot = slots.slotFromReservation(after);
+        if (!slot) {
+            if (after && ["paid", "completed"].includes(after.status)) {
+                console.warn("예약 시간을 계산할 수 없어 공개 슬롯을 만들지 못했습니다:", event.params.resId);
+            }
+            await ref.delete().catch(() => {});
+            return;
+        }
+        await ref.set({ ...slot, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    }
+);

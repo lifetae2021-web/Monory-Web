@@ -217,6 +217,7 @@
 
     <!-- Firebase SDK (Compat) -->
     <script src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+    <script src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
     <script src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
     <script src="/__/firebase/init.js"></script>
 
@@ -268,11 +269,18 @@
                 try {
                     const db = firebase.firestore();
                     let query;
-                    
+
+                    // 예약 정보는 본인(로그인한 카카오 계정)만 읽을 수 있다. 서버 로그인 복원을 기다린 뒤 본인 예약으로 한정해 조회한다.
+                    try { if (firebase.auth && firebase.auth().authStateReady) await firebase.auth().authStateReady(); } catch (e) {}
+                    let me = null;
+                    try { me = JSON.parse(localStorage.getItem('monory_user') || 'null'); } catch (e) {}
+                    if (!me || !me.kakaoId) { showEmptyState(); startRedirectTimer(); return; }
+                    const mine = Number(me.kakaoId);
+
                     if (impUid) {
-                        query = db.collection('reservations').where('impUid', '==', impUid);
+                        query = db.collection('reservations').where('kakaoUid', '==', mine).where('impUid', '==', impUid);
                     } else if (merchantUid) {
-                        query = db.collection('reservations').where('merchantUid', '==', merchantUid);
+                        query = db.collection('reservations').where('kakaoUid', '==', mine).where('merchantUid', '==', merchantUid);
                     } else {
                         // 파라미터가 없으면 가장 최근 예약을 가져오거나 로컬스토리지 활용...
                         // 여기서는 데이터 로딩 실패 처리

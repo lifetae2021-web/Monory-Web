@@ -12,6 +12,7 @@
     <!-- Firebase SDK -->
     <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
+    <script defer src="kakao-auth.js?v=2"></script>
     <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
     <script defer src="/__/firebase/init.js?useEmulator=false"></script>
 
@@ -295,6 +296,7 @@
             if(!currentUser) return;
             const db = firebase.firestore();
             try {
+                if (window.ensureFirebaseSession) { const u = await window.ensureFirebaseSession(); if (!u) return; }
                 // Kakao ID를 문서 ID로 사용하거나 uid를 사용함 (이전 코드에서는 String(currentUser.kakaoId))
                 const doc = await db.collection('members').doc(String(currentUser.kakaoId)).get();
                 if(doc.exists) {

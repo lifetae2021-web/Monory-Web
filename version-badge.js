@@ -9,6 +9,7 @@
         try { user = JSON.parse(localStorage.getItem('monory_user') || 'null'); } catch (e) {}
         if (!user || !user.kakaoId) return;
         try {
+            if (window.ensureFirebaseSession) { const u = await window.ensureFirebaseSession(); if (!u) return; }
             const doc = await firebase.firestore().collection('members').doc(String(user.kakaoId)).get();
             if (!doc.exists || !ADMIN_ROLES.includes(doc.data().role)) return;
             const res = await fetch('version.json?t=' + Date.now());

@@ -766,7 +766,7 @@
         const item = document.getElementById('mobile-admin-link');
         if (!item || typeof firebase === 'undefined' || !kakaoId) return;
         try {
-            firebase.firestore().collection('members').doc(String(kakaoId)).get().then(function (doc) {
+            ensureFirebaseSession().then(function (u) { if (!u) throw new Error('no-session'); return firebase.firestore().collection('members').doc(String(kakaoId)).get(); }).then(function (doc) {
                 const role = doc.exists ? doc.data().role : null;
                 const isAdmin = (role === 'super_admin' || role === 'general_admin');
                 item.style.display = isAdmin ? '' : 'none';
@@ -1546,6 +1546,7 @@
         // ── 예약 모달 단계 전환 ──────────────────────────────────────
         function goToStep2() {
             if (!selectedDateObj) { alert('캘린더에서 예약하실 날짜를 지정해주세요.'); return; }
+            if (!checkAvailabilityReady()) return;
             
             let pkgName = '';
             let totalAmount = parseInt(document.getElementById('summary-total-price').innerText.replace(/[^0-9]/g, ''));
@@ -1868,6 +1869,10 @@
             if (!phone || phone.length < 12) { alert('올바른 연락처를 입력해주세요. (010-XXXX-XXXX)'); return; }
             if (currentBookingType === 'corporate' && !company) { alert('회사명을 입력해주세요.'); return; }
 
+            // 결제 전에 서버 로그인과 예약 현황을 확인한다 (둘 중 하나라도 없으면 결제로 넘어가지 않는다)
+            if (!checkAvailabilityReady()) return;
+            if (!(await ensureFirebaseSession())) { alert('로그인 정보를 확인할 수 없습니다. 로그아웃 후 카카오로 다시 로그인해 주세요.'); return; }
+
             const usagePurpose = document.getElementById('s2-purpose').value.trim();
             const refundBank   = document.getElementById('s2-bank').value.trim();
             const refundAccount = document.getElementById('s2-account').value.trim();
@@ -2069,8 +2074,9 @@
                 const user = JSON.parse(localStorage.getItem('monory_user') || '{}');
                 // 문서 ID를 impUid로 고정해 포트원 웹훅(서버 복구)과 중복 저장되지 않게 한다
                 const resRef = db.collection('reservations').doc(String(data.impUid));
-                return resRef.get().then(snap => {
-                    if (snap.exists) return { id: resRef.id, existed: true };
+                // (예약 문서는 본인/관리자만 읽을 수 있으므로 "이미 있는지" 읽어 보지 않고 바로 쓴다.
+                //  이미 웹훅이 저장한 예약이면 규칙이 덮어쓰기를 막으므로 permission-denied → 정상으로 본다)
+                return Promise.resolve().then(() => {
                     return resRef.set({
                     kakaoUid:    user.kakaoId   || null,
                     kakaoName:   user.name      || null,
@@ -2099,7 +2105,10 @@
                     status:      'paid',
                     approvalStatus: 'pending',
                     createdAt:   firebase.firestore.Timestamp.now()
-                    }).then(() => ({ id: resRef.id }));
+                    }).then(() => ({ id: resRef.id })).catch(e => {
+                        if (e && e.code === 'permission-denied') { console.warn('예약이 이미 저장되어 있습니다(또는 서버가 복구 저장함).'); return { id: resRef.id, existed: true }; }
+                        throw e;
+                    });
                 }).then(ref => {
                     console.log('✅ 예약 저장 완료:', ref.id);
                     // 환급 계좌는 관리자만 읽을 수 있는 별도 문서에 저장 (예약 문서는 공개 조회가 가능해서 분리)
@@ -2224,32 +2233,37 @@
             (bookedMap[key] = bookedMap[key] || []).push([start, end]);
         }
 
+        // 예약 현황은 개인정보가 없는 공개 컬렉션(booked_slots: 날짜·시간만)에서 읽는다.
+        // 현황을 못 불러온 상태에서 예약이 진행되면 겹치는 예약이 생길 수 있으므로, 불러오기 전/실패 시에는 예약을 막는다.
+        let availabilityReady = false, availabilityError = false;
+
+        function checkAvailabilityReady() {
+            if (availabilityError) { alert('예약 현황을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.'); return false; }
+            if (!availabilityReady) { alert('예약 현황을 불러오는 중입니다. 잠시 후 다시 눌러 주세요.'); return false; }
+            return true;
+        }
+
         function loadBookedDates() {
             if (typeof firebase === 'undefined') return;
             const db = firebase.firestore();
-            db.collection('reservations')
-              .where('status', '==', 'paid')
+            db.collection('booked_slots')
               .onSnapshot(function(snapshot) {
                   bookedMap = {};
                   snapshot.forEach(doc => {
                       const r = doc.data();
-                      const dt = parseReservationDate(r.date);
-                      if (!dt) return;
-                      let range = null;
-                      if (r.reservationMode === 'hourly' && r.startTime != null && r.endTime != null) range = [r.startTime, r.endTime];
-                      else if (PKG_HOURS[r.packageKey]) range = PKG_HOURS[r.packageKey];
-                      if (!range) return;
-                      addBookedInterval(dt.y, dt.m, dt.d, range[0], Math.min(range[1], 24));
+                      if (r.y == null || r.start == null || r.end == null) return;
+                      addBookedInterval(r.y, r.m, r.d, r.start, Math.min(r.end, 24));
                       // 익일로 넘어가는 시간(24시 이후)은 다음 날 0시부터로 환산
-                      if (range[1] > 24) {
-                          const next = new Date(dt.y, dt.m - 1, dt.d + 1);
-                          addBookedInterval(next.getFullYear(), next.getMonth() + 1, next.getDate(), Math.max(range[0], 24) - 24, range[1] - 24);
+                      if (r.end > 24) {
+                          const next = new Date(r.y, r.m - 1, r.d + 1);
+                          addBookedInterval(next.getFullYear(), next.getMonth() + 1, next.getDate(), Math.max(r.start, 24) - 24, r.end - 24);
                       }
                   });
+                  availabilityReady = true; availabilityError = false;
                   renderCalendar(currentCalDate);
                   if (selectedDateObj) checkAndDisablePackages(toDateKey(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate()));
                   refreshHourlyAvailability();
-              }, function(e) { console.warn('부킹 데이터 로드 실패:', e); });
+              }, function(e) { availabilityError = true; console.warn('예약 현황 로드 실패:', e); });
         }
 
         // 예약과 예약 사이에는 정리 시간 1시간이 필요하다 (앞 예약이 끝난 뒤 1시간은 다음 예약을 받지 않는다)
@@ -2603,6 +2617,7 @@
             try {
                 const user = JSON.parse(userStr);
                 const db = firebase.firestore();
+                if (!(await ensureFirebaseSession())) return;
                 const snapshot = await db.collection('members').doc(String(user.kakaoId)).collection('coupons')
                     .where('status', '==', 'active')
                     .get();
@@ -2673,6 +2688,9 @@
         // ── 헤더 쿠폰 알림 모니터링 (mypage loadCoupons와 100% 동일 로직) ──
         function checkHeaderCouponAlert(uid) {
             if (!uid || typeof firebase === 'undefined') return;
+            ensureFirebaseSession().then(function (u) { if (u) _checkHeaderCouponAlertNow(uid); });
+        }
+        function _checkHeaderCouponAlertNow(uid) {
             const db = firebase.firestore();
             db.collection('members').doc(String(uid)).collection('coupons')
               .where('status', '==', 'active')
