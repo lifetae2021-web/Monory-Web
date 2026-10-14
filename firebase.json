@@ -36,7 +36,14 @@
         ".git",
         "firebase-debug.log",
         "firebase-debug.*.log",
-        "*.local"
+        "*.local",
+        "serviceAccountKey*.json",
+        "**/serviceAccountKey*.json",
+        "*.pem",
+        "*.p12",
+        ".env.local",
+        ".env.*.local",
+        "*.key"
       ],
       "predeploy": [
         "npm --prefix \"$RESOURCE_DIR\" run lint"
