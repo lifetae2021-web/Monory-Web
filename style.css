@@ -2454,3 +2454,13 @@ textarea.s2-input {
 .tl-stepper button { width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid #d9cfa6; background: #fff; color: #1a1a1a; font-size: 1.2rem; line-height: 1; cursor: pointer; font-family: inherit; }
 .tl-stepper button:hover:not(:disabled) { border-color: var(--accent-gold); background: #fffaf0; }
 .tl-stepper button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* 개인정보 수집·이용 동의 박스 (청소 보증금 환급 계좌) */
+.consent-box { margin-top: 14px; padding: 14px 14px 12px; border: 1px solid #e6e0c8; border-radius: 12px; background: #fbf9f1; }
+.consent-title { font-size: 0.86rem; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
+.consent-title .required { color: var(--accent-gold); font-weight: 700; }
+.consent-box ul { margin: 0 0 10px; padding-left: 16px; font-size: 0.78rem; line-height: 1.65; color: #666; word-break: keep-all; }
+.consent-box li b { color: #333; margin-right: 4px; }
+.consent-check { display: flex; align-items: flex-start; gap: 8px; font-size: 0.84rem; font-weight: 600; color: #1a1a1a; line-height: 1.5; cursor: pointer; }
+.consent-check input { width: 20px; height: 20px; margin-top: 1px; accent-color: var(--accent-gold); flex-shrink: 0; }
+.consent-check a { color: #8a6d1b; font-weight: 500; text-decoration: underline; margin-left: 4px; white-space: nowrap; }

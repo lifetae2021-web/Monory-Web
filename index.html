@@ -21,7 +21,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.3.35">
+    <link rel="stylesheet" href="style.css?v=1.3.36">
     <!-- Kakao SDK (integrity 없이 로드 - 해시 불일치 시 로드 차단됨) -->
     <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" defer></script>
 </head>
@@ -1442,6 +1442,16 @@
                             <input id="s2-bank" type="text" class="s2-input" placeholder="은행명을 직접 입력해주세요" autocomplete="off" style="display:none;margin:8px 0;">
                             <input id="s2-account" type="text" inputmode="numeric" class="s2-input" placeholder="계좌번호 (- 없이 숫자만)" maxlength="20" oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="margin-bottom:8px;">
                             <input id="s2-holder" type="text" class="s2-input" placeholder="예금주">
+                            <div class="consent-box">
+                                <div class="consent-title">개인정보 수집·이용 동의 <span class="required">(필수)</span></div>
+                                <ul>
+                                    <li><b>수집 항목</b> 은행명, 계좌번호, 예금주</li>
+                                    <li><b>이용 목적</b> 청소 보증금 환급</li>
+                                    <li><b>보관 기간</b> 환급을 마치는 즉시 삭제하며, 늦어도 이용일로부터 14일 후 자동 삭제됩니다.</li>
+                                    <li><b>동의 거부</b> 동의하지 않을 수 있으나, 보증금 환급 계좌를 확인할 수 없어 예약을 진행할 수 없습니다. 다른 방법은 고객센터(010-9130-1577)로 문의해 주세요.</li>
+                                </ul>
+                                <label class="consent-check"><input type="checkbox" id="s2-consent"> 위 내용에 동의합니다. <a href="privacy.html" target="_blank" rel="noopener">개인정보처리방침 보기</a></label>
+                            </div>
                         </div>
 
                         <!-- 방문 경로 -->
@@ -1624,6 +1634,7 @@
                 if (el) el.value = '';
             });
             document.querySelectorAll('input[name="s2-source"]').forEach(cb => { cb.checked = false; });
+            const consentEl = document.getElementById('s2-consent'); if (consentEl) consentEl.checked = false;
             document.querySelectorAll('.bank-chip').forEach(c => c.classList.remove('selected'));
             const bankInput = document.getElementById('s2-bank'); if (bankInput) bankInput.style.display = 'none';
             setBookingType('personal');
@@ -1880,6 +1891,7 @@
             const visitSource  = Array.from(document.querySelectorAll('input[name="s2-source"]:checked')).map(cb => cb.value);
             if (!usagePurpose) { alert('사용 용도를 작성해주세요.'); return; }
             if (!refundBank || refundAccount.length < 8 || !refundHolder) { alert('청소 보증금 반환 계좌(은행명, 계좌번호, 예금주)를 정확히 입력해주세요.'); return; }
+            if (!document.getElementById('s2-consent').checked) { alert('청소 보증금 환급 계좌 수집·이용에 동의해 주세요.'); return; }
             if (visitSource.length === 0) { alert('방문 경로를 한 가지 이상 선택해주세요.'); return; }
 
             const pkg        = document.getElementById('booking-package').value;
@@ -1943,6 +1955,7 @@
                 refundBank:   refundBank,
                 refundAccount: refundAccount,
                 refundHolder: refundHolder,
+                refundConsent: true,
                 reviewPromise: reviewPromiseVal,
                 reservationMode: currentReservationMode,
                 startTime:    currentReservationMode === 'hourly' ? hourlySelection.start : null,
@@ -2119,6 +2132,7 @@
                             reservationId: String(data.impUid),
                             kakaoUid: user.kakaoId || null,
                             bank: data.refundBank || '', account: data.refundAccount || '', holder: data.refundHolder || '',
+                            consent: true, consentAt: firebase.firestore.Timestamp.now(),
                             createdAt: firebase.firestore.Timestamp.now()
                         }).catch(e => console.warn('환급 계좌 저장 실패:', e.code || e)));
                     }

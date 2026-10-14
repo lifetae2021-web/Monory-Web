@@ -2373,7 +2373,12 @@
                                     : '<span style="opacity:0.3;">없음</span>'}
                                 ${r.usagePurpose ? `<div style="margin-top:6px;line-height:1.5;"><b style="color:var(--accent-gold);">용도</b> ${String(r.usagePurpose).replace(/</g,'&lt;')}</div>` : ''}
                                 ${Array.isArray(r.visitSource) && r.visitSource.length ? `<div style="line-height:1.5;"><b style="color:var(--accent-gold);">경로</b> ${r.visitSource.join(', ')}</div>` : ''}
-                                <button onclick="showRefundAccount('${docId}','${(r.guestName || '').replace(/'/g, '')}')" style="margin-top:6px;padding:3px 8px;font-size:0.72rem;border:1px solid var(--border-color);background:transparent;color:var(--text-secondary);border-radius:6px;cursor:pointer;">환급 계좌 보기</button>
+                                ${r.depositRefunded
+                                    ? `<div style="margin-top:6px;font-size:0.74rem;color:#4ade80;"><i class="fa-solid fa-circle-check"></i> 보증금 환급 완료${r.depositRefundedAt && r.depositRefundedAt.toDate ? ' (' + r.depositRefundedAt.toDate().toLocaleDateString('ko-KR') + ')' : ''}</div>`
+                                    : `<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;">
+                                         <button onclick="showRefundAccount('${docId}','${(r.guestName || '').replace(/'/g, '')}')" style="padding:3px 8px;font-size:0.72rem;border:1px solid var(--border-color);background:transparent;color:var(--text-secondary);border-radius:6px;cursor:pointer;">환급 계좌 보기</button>
+                                         <button onclick="markDepositRefunded('${docId}','${(r.guestName || '').replace(/'/g, '')}')" style="padding:3px 8px;font-size:0.72rem;border:1px solid #4ade80;background:transparent;color:#4ade80;border-radius:6px;cursor:pointer;">환급 완료 (계좌 삭제)</button>
+                                       </div>`}
                             </td>
                         `;
                         tbody.appendChild(row);
@@ -2411,6 +2416,19 @@
                 const d = doc.data();
                 alert(`[${name}] 청소 보증금 환급 계좌\n\n은행: ${d.bank}\n계좌번호: ${d.account}\n예금주: ${d.holder}`);
             }).catch(e => alert('조회 실패: ' + e.message));
+        }
+
+        // 청소 보증금 환급을 마쳤을 때: 고객 계좌 정보를 즉시 삭제하고 예약에 "환급 완료"를 표시한다
+        function markDepositRefunded(docId, name) {
+            if (!confirm(`'${name}' 님의 청소 보증금을 환급하셨나요?\n\n[확인]을 누르면 보관 중인 고객 계좌 정보가 지금 바로 삭제되며 되돌릴 수 없습니다.`)) return;
+            const db = firebase.firestore();
+            db.collection('reservation_private').doc(docId).delete()
+              .then(() => db.collection('reservations').doc(docId).update({
+                  depositRefunded: true,
+                  depositRefundedAt: firebase.firestore.Timestamp.now()
+              }))
+              .then(() => alert('환급 완료로 표시했고, 고객 계좌 정보를 삭제했습니다.'))
+              .catch(e => alert('처리 실패: ' + e.message));
         }
 
         // 예약 승인: 승인하면 고객에게 예약 확정 문자가 자동 발송된다
