@@ -752,13 +752,25 @@
     }
 
     // ─── 관리자 계정이면 햄버거 메뉴에 관리자페이지 노출 ─────────────
+    let adminMenuInfo = null;
+
+    // 이미 관리자로 확인된 계정은 관리자 로그인 화면을 거치지 않고 바로 관리자페이지로 이동한다
+    function enterAdminPage() {
+        if (adminMenuInfo) {
+            try { sessionStorage.setItem('monory_admin_session', JSON.stringify(adminMenuInfo)); } catch (e) {}
+        }
+        closeMobileMenu();
+    }
+
     function checkAdminMenu(kakaoId) {
         const item = document.getElementById('mobile-admin-link');
         if (!item || typeof firebase === 'undefined' || !kakaoId) return;
         try {
             firebase.firestore().collection('members').doc(String(kakaoId)).get().then(function (doc) {
                 const role = doc.exists ? doc.data().role : null;
-                item.style.display = (role === 'super_admin' || role === 'general_admin') ? '' : 'none';
+                const isAdmin = (role === 'super_admin' || role === 'general_admin');
+                item.style.display = isAdmin ? '' : 'none';
+                adminMenuInfo = isAdmin ? { kakaoId: kakaoId, role: role, name: doc.data().name || '' } : null;
             }).catch(function () {});
         } catch (e) {}
     }
@@ -770,6 +782,8 @@
         signOutFirebase();
         const adminItem = document.getElementById('mobile-admin-link');
         if (adminItem) adminItem.style.display = 'none';
+        adminMenuInfo = null;
+        sessionStorage.removeItem('monory_admin_session');
         
         const loggedout = document.getElementById('auth-loggedout');
         const loggedin  = document.getElementById('auth-loggedin');
@@ -1270,6 +1284,15 @@
                                     </select>
                                 </div>
 
+                                <div class="option-group" id="point-group" style="display:none; margin-top:20px;">
+                                    <label>포인트 사용 <span id="point-balance-text" style="font-weight:400; color:var(--accent-gold); margin-left:6px;">보유 0P</span></label>
+                                    <div style="display:flex; gap:8px;">
+                                        <input type="number" id="booking-points" min="0" step="100" placeholder="0" oninput="calculatePrice()" style="flex:1; padding:12px; font-size:0.95rem; background:#fff; border:1px solid #ddd; border-radius:8px; color:#1a1a1a;">
+                                        <button type="button" onclick="useAllPoints()" style="padding:0 16px; border:1px solid var(--accent-gold); background:transparent; color:var(--accent-gold); border-radius:8px; cursor:pointer; font-weight:600; white-space:nowrap;">전액 사용</button>
+                                    </div>
+                                    <div class="guest-info-text" id="point-hint">* 1,000P 이상부터 사용 가능 (1P = 1원) · 실제 결제금액의 5%는 이용완료 후 적립됩니다.</div>
+                                </div>
+
                                 <div class="option-group" style="margin-top:20px; background: rgba(212, 175, 55, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed rgba(212, 175, 55, 0.4);">
                                     <label class="checkbox-container" style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; user-select: none;">
                                         <input type="checkbox" id="review-promise" onchange="calculatePrice()" style="width: 20px; height: 20px; margin-top: 2px; cursor: pointer; accent-color: var(--accent-gold);">
@@ -1295,6 +1318,11 @@
                                     <div class="summary-row" id="summary-coupon-row" style="margin-top: 10px; display:none; color:var(--accent-gold);">
                                         <span>쿠폰 할인</span>
                                         <span id="summary-coupon-discount">-0원</span>
+                                    </div>
+
+                                    <div class="summary-row" id="summary-point-row" style="margin-top: 10px; display:none; color:var(--accent-gold);">
+                                        <span>포인트 사용</span>
+                                        <span id="summary-point-discount">-0P</span>
                                     </div>
 
                                     <hr style="border-color: rgba(0,0,0,0.08); border-width: 1px; margin: 15px 0;">
@@ -1618,7 +1646,7 @@
         }
 
         // ── PortOne 결제 처리 ────────────────────────────────────────
-        function processPayment() {
+        async function processPayment() {
             const name    = document.getElementById('s2-name').value.trim();
             const phone   = document.getElementById('s2-phone').value.trim();
             const company = document.getElementById('s2-company').value.trim();
@@ -1643,6 +1671,23 @@
             }
             const merchantUid = 'MNRY-' + Date.now();
 
+            // 포인트 사용 시 결제 직전에 서버에서 선차감 (결제 실패/중단 시 복구됨)
+            const pointUsed = currentPointUse;
+            if (pointUsed > 0) {
+                const pb = document.getElementById('btn-pay');
+                if (pb) pb.disabled = true; // 선차감 중 중복 클릭 방지
+                try {
+                    await firebase.functions().httpsCallable('reservePoints')({ amount: pointUsed, merchantUid });
+                } catch (e) {
+                    if (pb) pb.disabled = false;
+                    alert('포인트 사용 실패: ' + (e.message || '잠시 후 다시 시도해주세요.'));
+                    return;
+                }
+            }
+            const releasePointsIfUsed = () => {
+                if (pointUsed > 0) firebase.functions().httpsCallable('releasePoints')({ merchantUid }).catch(() => {});
+            };
+
             const couponSelect = document.getElementById('booking-coupon');
             const usedCoupon = couponSelect && couponSelect.value !== 'none' ? {
                 id: couponSelect.value,
@@ -1666,6 +1711,7 @@
                 packageName:  pkgLabels[pkg],
                 totalAmount:  totalAmount,
                 usedCoupon:   usedCoupon,
+                pointUsed:    pointUsed,
                 reviewPromise: reviewPromiseVal,
                 reservationMode: currentReservationMode,
                 startTime:    currentReservationMode === 'hourly' ? hourlySelection.start : null,
@@ -1697,6 +1743,7 @@
                     packageKey:   currentReservationMode === 'hourly' ? 'hourly' : pkg,
                     packageName:  pkgLabels[pkg],
                     totalAmount:  0,
+                    pointUsed:    pointUsed,
                     usedCoupon:   usedCoupon,
                     reviewPromise: reviewPromiseVal,
                     isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false
@@ -1735,7 +1782,7 @@
                     bookingType: currentBookingType, companyName: company, guestName: name, phone: phone, requests: requests,
                     date: pendingBooking.date, guestCount: guestCount,
                     packageKey: pendingBooking.packageKey, packageName: pkgLabels[pkg],
-                    totalAmount: totalAmount, usedCoupon: usedCoupon, reviewPromise: reviewPromiseVal,
+                    totalAmount: totalAmount, pointUsed: pointUsed, usedCoupon: usedCoupon, reviewPromise: reviewPromiseVal,
                     reservationMode: currentReservationMode,
                     startTime: pendingBooking.startTime, endTime: pendingBooking.endTime, totalHours: pendingBooking.totalHours,
                     isWeekend: pendingBooking.isWeekend
@@ -1757,6 +1804,7 @@
                         packageKey:   currentReservationMode === 'hourly' ? 'hourly' : pkg,
                         packageName:  pkgLabels[pkg],
                         totalAmount:  totalAmount,
+                        pointUsed:    pointUsed,
                         usedCoupon:   usedCoupon, // 결제성공시 쿠폰 처리용 데이터 추가
                         reviewPromise: reviewPromiseVal,
                         reservationMode: currentReservationMode,
@@ -1771,6 +1819,7 @@
                         window.location.href = 'payment-success.html?imp_uid=' + rsp.imp_uid;
                     });
                 } else {
+                    releasePointsIfUsed();
                     if (rsp.error_msg && !rsp.error_msg.includes('취소')) {
                         alert('결제 오류: ' + rsp.error_msg);
                     }
@@ -1805,6 +1854,7 @@
                     packageKey:  data.packageKey,
                     packageName: data.packageName,
                     totalAmount: data.totalAmount,
+                    pointUsed:   data.pointUsed || 0,
                     usedCoupon:  data.usedCoupon || null,
                     reviewPromise: data.reviewPromise || false,
                     reservationMode: data.reservationMode || 'package',
@@ -1815,6 +1865,7 @@
                     impUid:      data.impUid,
                     merchantUid: data.merchantUid,
                     status:      'paid',
+                    approvalStatus: 'pending',
                     createdAt:   firebase.firestore.Timestamp.now()
                     }).then(() => ({ id: resRef.id }));
                 }).then(ref => {
@@ -1871,7 +1922,11 @@
                         // 검증 성공 시 마이페이지 대신 성공 페이지로 이동
                         window.location.href = 'payment-success.html?imp_uid=' + res.data.data.imp_uid;
                         return;
-                    } 
+                    }
+                    // 결제가 완료되지 않았다면 선차감한 포인트 복구
+                    if (pendingParams.pointUsed > 0) {
+                        await functions.httpsCallable('releasePoints')({ merchantUid: pendingParams.merchantUid }).catch(() => {});
+                    }
                 }
             } catch(e) {
                 console.warn('결제 검증 오류/실패: ', e);
@@ -1896,7 +1951,8 @@
             `;
             toast.innerHTML = `
                 <div style="font-size:1.8rem;margin-bottom:8px;">🎉</div>
-                <div style="font-weight:700;font-size:1.1rem;margin-bottom:4px;">${name}님, 예약이 완료되었습니다!</div>
+                <div style="font-weight:700;font-size:1.1rem;margin-bottom:4px;">${name}님, 예약이 접수되었습니다!</div>
+                <div style="color:#aaa;font-size:0.8rem;margin-bottom:6px;">승인되면 문자로 안내드립니다</div>
                 <div style="color:var(--accent-gold);font-weight:600;">${pkg}</div>
                 <div style="color:#aaa;font-size:0.85rem;margin-top:4px;">결제금액: ${amount.toLocaleString()}원</div>
             `;
@@ -2199,6 +2255,21 @@
             let total = baseTotal - discount - reviewDiscount;
             if (total < 0) total = 0;
 
+            // 3. 포인트 사용 (1,000P 이상, 보유 한도·결제금액 이내)
+            const pointInput = document.getElementById('booking-points');
+            let pointUse = pointInput ? Math.floor(parseInt(pointInput.value) || 0) : 0;
+            pointUse = Math.max(0, Math.min(pointUse, myPointBalance, total));
+            const pointHint = document.getElementById('point-hint');
+            if (pointHint) pointHint.style.color = (pointUse > 0 && pointUse < POINT_MIN_USE) ? '#ef4444' : '';
+            if (pointUse < POINT_MIN_USE) pointUse = 0;
+            currentPointUse = pointUse;
+            total -= pointUse;
+            const pointRow = document.getElementById('summary-point-row');
+            if (pointRow) {
+                pointRow.style.display = pointUse > 0 ? 'flex' : 'none';
+                document.getElementById('summary-point-discount').innerText = `-${pointUse.toLocaleString()}P`;
+            }
+
             document.getElementById('summary-pkg-price').innerText   = basePrice.toLocaleString() + '원';
             document.getElementById('summary-extra-price').innerText = extraPrice.toLocaleString() + '원';
             
@@ -2225,6 +2296,40 @@
             totalPrice = total;
         }
         
+        // ── 보유 포인트 (잔액 = 만료 전 적립 묶음의 remaining 합계) ──
+        const POINT_MIN_USE = 1000;
+        let myPointBalance = 0;
+        let currentPointUse = 0;
+
+        async function loadMyPoints() {
+            myPointBalance = 0;
+            const group = document.getElementById('point-group');
+            const userStr = localStorage.getItem('monory_user');
+            if (!group || !userStr || typeof firebase === 'undefined') return;
+            try {
+                const user = JSON.parse(userStr);
+                const snap = await firebase.firestore().collection('members').doc(String(user.kakaoId))
+                    .collection('point_lots')
+                    .where('expiresAt', '>', firebase.firestore.Timestamp.now())
+                    .orderBy('expiresAt').get();
+                snap.forEach(d => { myPointBalance += (d.data().remaining || 0); });
+            } catch (e) {
+                console.warn('포인트 조회 실패:', e.code || e);
+            }
+            document.getElementById('point-balance-text').textContent = '보유 ' + myPointBalance.toLocaleString() + 'P';
+            group.style.display = myPointBalance >= POINT_MIN_USE ? 'block' : 'none';
+            calculatePrice();
+        }
+
+        function useAllPoints() {
+            const input = document.getElementById('booking-points');
+            if (!input) return;
+            input.value = myPointBalance;
+            calculatePrice();
+            // 결제금액을 넘으면 계산된 사용 포인트로 맞춰준다
+            input.value = currentPointUse || '';
+        }
+
         // ── 보유 쿠폰 불러오기 ──────────────────────────────────────
         async function loadMyCoupons() {
             const userStr = localStorage.getItem('monory_user');
@@ -2339,6 +2444,7 @@
             originOpenModal(id);
             if (id === 'bookingModal') {
                 loadMyCoupons();
+                loadMyPoints();
             }
         };
 
@@ -2370,7 +2476,7 @@
             <li><a href="community.html" onclick="closeMobileMenu()">커뮤니티</a></li>
             <li><a href="#reservation" onclick="closeMobileMenu()">예약하기</a></li>
             <li><a href="#location" onclick="closeMobileMenu()">오시는길</a></li>
-            <li id="mobile-admin-link" style="display:none;"><a href="login.html" onclick="closeMobileMenu()">관리자페이지</a></li>
+            <li id="mobile-admin-link" style="display:none;"><a href="admin.html" onclick="enterAdminPage()">관리자페이지</a></li>
         </ul>
     </div>
 </body>

@@ -2,6 +2,12 @@ const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https")
 const { defineSecret, defineString } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const axios = require("axios");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
+const points = require("./points");
+const notify = require("./notify");
+const sms = require("./sms");
+const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { applyPortoneCancellation: applyCancellation } = require("./cancellation");
 
 admin.initializeApp();
 
@@ -14,6 +20,14 @@ const PORTONE_API_SECRET = defineSecret("PORTONE_API_SECRET");
 const KAKAO_APP_ID = defineString("KAKAO_APP_ID", { default: "" });
 
 const SECRETS = [PORTONE_API_KEY, PORTONE_API_SECRET];
+// 텔레그램 알림: BotFather 에서 만든 봇 토큰과, 알림을 받을 대화방 ID
+const TELEGRAM_BOT_TOKEN = defineSecret("TELEGRAM_BOT_TOKEN");
+const TELEGRAM_CHAT_ID = defineSecret("TELEGRAM_CHAT_ID");
+const TELEGRAM_SECRETS = [TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID];
+// 고객 문자(솔라피)
+const SOLAPI_API_KEY = defineSecret("SOLAPI_API_KEY");
+const SOLAPI_API_SECRET = defineSecret("SOLAPI_API_SECRET");
+const NOTIFY_SECRETS = [...TELEGRAM_SECRETS, SOLAPI_API_KEY, SOLAPI_API_SECRET];
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 // ── 공통 헬퍼 ───────────────────────────────────────────────
@@ -174,6 +188,16 @@ exports.cancelReservation = onCall({ secrets: SECRETS }, async (request) => {
             refundAmount,
         });
 
+        // 사용한 포인트는 환불 비율만큼 복구 (서버 기록 기준, 예약 문서의 값은 신뢰하지 않음)
+        let pointsRestored = 0;
+        if (resData.merchantUid) {
+            const r = await points.releaseHold(db, {
+                merchantUid: resData.merchantUid, rate,
+                memo: rate === 1 ? "예약 취소로 포인트 복구" : `예약 취소로 포인트 일부 복구 (환불 ${Math.round(rate * 100)}%)`,
+            }).catch((e) => { console.warn("포인트 복구 실패:", e.message); return { restored: 0 }; });
+            pointsRestored = r.restored;
+        }
+
         // 전액 환불 시에만 사용한 쿠폰 복구
         if (rate === 1 && resData.usedCoupon && resData.usedCoupon.id && resData.kakaoUid) {
             await db.collection("members").doc(String(resData.kakaoUid))
@@ -186,6 +210,7 @@ exports.cancelReservation = onCall({ secrets: SECRETS }, async (request) => {
             success: true,
             refundRate: rate,
             refundAmount,
+            pointsRestored,
             message: rate === 1
                 ? "전액 환불 및 예약 취소가 완료되었습니다."
                 : `환불 규정(${label})에 따라 ${refundAmount.toLocaleString()}원이 환불되며 예약이 취소되었습니다.`,
@@ -239,9 +264,17 @@ exports.portoneWebhook = onRequest({ secrets: SECRETS }, async (req, res) => {
         const token = await getPortoneToken();
         // 웹훅 본문은 신뢰하지 않고 포트원 API로 다시 조회해서 판단한다
         const payment = await getPortonePayment(impUid, token);
+        const db = admin.firestore();
+
+        // 포트원 콘솔 등에서 환불/취소된 결제는 웹사이트 예약에도 반영한다
+        if (Number(payment.cancel_amount) > 0) {
+            const r = await applyCancellation(db, payment);
+            console.log("포트원 환불 웹훅 처리:", impUid, JSON.stringify(r));
+            res.status(200).send("cancel: " + r.result);
+            return;
+        }
         if (payment.status !== "paid") { res.status(200).send("ignored: " + payment.status); return; }
 
-        const db = admin.firestore();
         const resRef = db.collection("reservations").doc(impUid);
         const existing = await resRef.get();
         if (existing.exists) { res.status(200).send("already saved"); return; }
@@ -273,7 +306,12 @@ exports.portoneWebhook = onRequest({ secrets: SECRETS }, async (req, res) => {
             return;
         }
 
+        const holdSnap = await db.collection("point_holds").doc(payment.merchant_uid).get();
+        const pointUsed = holdSnap.exists ? holdSnap.data().amount : 0;
+
         await resRef.create({
+            approvalStatus: "pending",
+            pointUsed,
             kakaoUid: b.kakaoUid || null,
             kakaoName: b.kakaoName || null,
             bookingType: b.bookingType || "personal",
@@ -311,3 +349,351 @@ exports.portoneWebhook = onRequest({ secrets: SECRETS }, async (req, res) => {
         res.status(500).send("error");
     }
 });
+
+
+// ── 5. 포인트 ────────────────────────────────────────────────
+const ADMIN_ROLES = ["super_admin", "admin", "general_admin"];
+
+async function assertAdmin(request) {
+    if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+    if (request.auth.token.email) return; // 이메일 로그인 관리자(최고 관리자 대행)
+    const m = await admin.firestore().collection("members").doc(String(request.auth.uid)).get();
+    if (!m.exists || !ADMIN_ROLES.includes(m.data().role)) {
+        throw new HttpsError("permission-denied", "관리자 권한이 필요합니다.");
+    }
+}
+
+// 결제 직전 포인트 선차감. 결제 실패/중단 시 releasePoints 또는 스케줄러가 복구한다.
+exports.reservePoints = onCall(async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+    const { amount, merchantUid } = request.data || {};
+    if (typeof merchantUid !== "string" || !/^MNRY-\d+$/.test(merchantUid)) {
+        throw new HttpsError("invalid-argument", "결제 정보가 올바르지 않습니다.");
+    }
+    try {
+        const r = await points.reservePoints(admin.firestore(), {
+            uid: request.auth.uid, merchantUid, amount: Number(amount),
+        });
+        return { success: true, balance: r.balance };
+    } catch (e) {
+        throw new HttpsError("failed-precondition", e.message);
+    }
+});
+
+// 결제 실패/취소 시 선차감한 포인트 복구 (본인 + 아직 예약이 저장되지 않은 건만)
+exports.releasePoints = onCall(async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+    const { merchantUid } = request.data || {};
+    if (typeof merchantUid !== "string") throw new HttpsError("invalid-argument", "결제 정보가 올바르지 않습니다.");
+
+    const db = admin.firestore();
+    const hold = await db.collection("point_holds").doc(merchantUid).get();
+    if (!hold.exists) return { success: true, restored: 0 };
+    if (String(hold.data().uid) !== String(request.auth.uid)) {
+        throw new HttpsError("permission-denied", "권한이 없습니다.");
+    }
+    const saved = await db.collection("reservations").where("merchantUid", "==", merchantUid).limit(1).get();
+    if (!saved.empty) return { success: true, restored: 0 }; // 결제가 완료된 건은 취소 흐름으로만 복구
+    const r = await points.releaseHold(db, { merchantUid, rate: 1, memo: "결제 취소로 포인트 복구" });
+    return { success: true, restored: r.restored };
+});
+
+// 관리자: 예약 상태 변경. 이용완료 시 결제금액의 5% 적립, 관리자 취소 시 사용 포인트 전액 복구.
+exports.setReservationStatus = onCall(async (request) => {
+    await assertAdmin(request);
+    const { reservationId, newStatus } = request.data || {};
+    if (typeof reservationId !== "string" || !["completed", "cancelled"].includes(newStatus)) {
+        throw new HttpsError("invalid-argument", "요청이 올바르지 않습니다.");
+    }
+    const db = admin.firestore();
+    const resRef = db.collection("reservations").doc(reservationId);
+
+    const result = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(resRef);
+        if (!snap.exists) throw new HttpsError("not-found", "예약을 찾을 수 없습니다.");
+        const r = snap.data();
+        if (r.status !== "paid") {
+            throw new HttpsError("failed-precondition", "결제완료 상태의 예약만 변경할 수 있습니다.");
+        }
+        let earned = 0;
+        if (newStatus === "completed") {
+            earned = (await points.earnForReservation(db, tx, resRef, r)).earned;
+        }
+        tx.update(resRef, { status: newStatus, updatedAt: admin.firestore.Timestamp.now() });
+        return { merchantUid: r.merchantUid, earned };
+    });
+
+    let restored = 0;
+    if (newStatus === "cancelled" && result.merchantUid) {
+        restored = (await points.releaseHold(db, {
+            merchantUid: result.merchantUid, rate: 1, memo: "관리자 예약 취소로 포인트 복구",
+        })).restored;
+    }
+    return { success: true, earned: result.earned, restored };
+});
+
+// 관리자: 이용완료 후 환불이 생겼을 때 환불금액의 5%만큼 적립 포인트 회수
+exports.clawbackPoints = onCall(async (request) => {
+    await assertAdmin(request);
+    const { reservationId, refundAmount } = request.data || {};
+    if (typeof reservationId !== "string" || !(Number(refundAmount) > 0)) {
+        throw new HttpsError("invalid-argument", "요청이 올바르지 않습니다.");
+    }
+    try {
+        const r = await points.clawbackPoints(admin.firestore(), { reservationId, refundAmount: Number(refundAmount) });
+        return { success: true, ...r };
+    } catch (e) {
+        throw new HttpsError("failed-precondition", e.message);
+    }
+});
+
+// 결제 중 선차감만 되고 예약이 저장되지 않은 건(탭 닫기 등)을 30분마다 정리
+exports.releaseStalePointHolds = onSchedule("every 30 minutes", async () => {
+    const db = admin.firestore();
+    const cutoff = Date.now() - 60 * 60 * 1000;
+    const held = await db.collection("point_holds").where("status", "==", "held").get();
+    for (const doc of held.docs) {
+        if (doc.data().createdAt.toMillis() > cutoff) continue;
+        const saved = await db.collection("reservations").where("merchantUid", "==", doc.id).limit(1).get();
+        if (!saved.empty) {
+            await doc.ref.update({ status: "confirmed" });
+        } else {
+            await points.releaseHold(db, { merchantUid: doc.id, rate: 1, memo: "결제 미완료로 포인트 자동 복구" })
+                .catch((e) => console.warn("포인트 자동 복구 실패:", doc.id, e.message));
+        }
+    }
+});
+
+// ── 6. 환불 동기화(웹훅 보완) ────────────────────────────────
+// 포트원 V1 은 콘솔에서 직접 취소할 때 웹훅을 보내지 않는 경우가 있어서, 30분마다 결제완료/이용완료 예약을
+// 포트원에 조회해 환불된 건을 사이트에도 반영한다. (이미 반영된 건은 건드리지 않는다)
+exports.reconcilePortoneCancellations = onSchedule({ schedule: "every 30 minutes", secrets: SECRETS }, async () => {
+    const db = admin.firestore();
+    const snap = await db.collection("reservations").where("status", "in", ["paid", "completed"]).get();
+    const targets = snap.docs.filter((d) => String(d.data().impUid || "").startsWith("imp_"));
+    if (!targets.length) return;
+
+    const token = await getPortoneToken();
+    let applied = 0;
+    for (const doc of targets) {
+        try {
+            const payment = await getPortonePayment(doc.data().impUid, token);
+            if (Number(payment.cancel_amount) > 0) {
+                const r = await applyCancellation(db, payment);
+                if (r.result === "cancelled" || r.result === "partial") {
+                    applied++;
+                    console.log("환불 동기화:", doc.id, JSON.stringify(r));
+                }
+            }
+        } catch (e) {
+            console.warn("환불 동기화 조회 실패:", doc.id, e.message);
+        }
+    }
+    console.log(`환불 동기화 완료: 점검 ${targets.length}건, 반영 ${applied}건`);
+});
+
+
+// ── 7. 예약 알림(텔레그램) ───────────────────────────────────
+// Firestore 가 서울(asia-northeast3)에 있어서 트리거도 같은 지역에 둔다.
+// 알림 전송이 실패해도 예약 처리에는 영향이 없도록 오류는 로그만 남기고 삼킨다.
+async function pushTelegram(text) {
+    try {
+        await notify.sendTelegram(TELEGRAM_BOT_TOKEN.value(), TELEGRAM_CHAT_ID.value(), text);
+    } catch (e) {
+        console.error("텔레그램 알림 실패:", e.response ? JSON.stringify(e.response.data) : e.message);
+    }
+}
+
+exports.notifyNewReservation = onDocumentCreated(
+    { document: "reservations/{resId}", region: "asia-northeast3", secrets: TELEGRAM_SECRETS },
+    async (event) => {
+        const r = event.data && event.data.data();
+        if (!r || r.status !== "paid") return;
+        await pushTelegram(notify.newReservationMessage(r));
+    }
+);
+
+// 고객 문자 발송. 실패해도 예약 처리에는 영향 없고, 대표님께 텔레그램으로 알려 직접 연락할 수 있게 한다.
+async function pushSms(r, text, label) {
+    try {
+        await sms.sendSms({ apiKey: SOLAPI_API_KEY.value(), apiSecret: SOLAPI_API_SECRET.value(), to: r.phone, text });
+        return true;
+    } catch (e) {
+        const reason = e.response ? JSON.stringify(e.response.data) : e.message;
+        console.error(`고객 문자 실패(${label}):`, reason);
+        await pushTelegram(`⚠️ [모노리] 고객 문자 발송 실패 (${label})\n${r.guestName || "-"} / ${r.phone || "-"}\n직접 연락이 필요합니다.\n사유: ${String(reason).slice(0, 150)}`);
+        return false;
+    }
+}
+
+// 확정/전날 안내 문구 템플릿 (system_state/sms_templates: { confirm, reminder }). 없으면 기본 문구.
+async function loadSmsTemplates() {
+    try {
+        const d = await admin.firestore().collection("system_state").doc("sms_templates").get();
+        return d.exists ? d.data() : {};
+    } catch (e) {
+        console.warn("문자 템플릿 조회 실패:", e.message);
+        return {};
+    }
+}
+
+exports.notifyCancelledReservation = onDocumentUpdated(
+    { document: "reservations/{resId}", region: "asia-northeast3", secrets: NOTIFY_SECRETS },
+    async (event) => {
+        const before = event.data.before.data();
+        const after = event.data.after.data();
+        if (!before || !after || before.status === "cancelled" || after.status !== "cancelled") return;
+        await pushTelegram(notify.cancelledMessage(after));
+        // 승인 거절은 거절 안내 문구, 그 외 취소는 취소 안내 문구
+        await pushSms(after, after.rejected ? sms.rejectedText(after) : sms.cancelledText(after), after.rejected ? "승인 거절" : "예약 취소");
+    }
+);
+
+// 승인(대기 → 승인) 시 예약 확정 문자
+exports.notifyApprovedReservation = onDocumentUpdated(
+    { document: "reservations/{resId}", region: "asia-northeast3", secrets: NOTIFY_SECRETS },
+    async (event) => {
+        const before = event.data.before.data();
+        const after = event.data.after.data();
+        if (!before || !after) return;
+        if (before.approvalStatus === "approved" || after.approvalStatus !== "approved") return;
+        if (after.status !== "paid" || after.confirmSmsSentAt) return;
+        const tpl = await loadSmsTemplates();
+        const ok = await pushSms(after, sms.approvedText(after, tpl.confirm), "예약 확정");
+        if (ok) await event.data.after.ref.update({ confirmSmsSentAt: admin.firestore.FieldValue.serverTimestamp() });
+    }
+);
+
+
+// ── 8. 예약 승인 / 거절 ──────────────────────────────────────
+// 결제 후 예약은 "승인 대기"(approvalStatus: pending)로 들어오고, 관리자가 승인하면 확정 문자가 나간다.
+// approvalStatus 가 없는 예전 예약은 확정된 것으로 본다.
+exports.approveReservation = onCall(async (request) => {
+    await assertAdmin(request);
+    const { reservationId } = request.data || {};
+    if (typeof reservationId !== "string") throw new HttpsError("invalid-argument", "요청이 올바르지 않습니다.");
+    const ref = admin.firestore().collection("reservations").doc(reservationId);
+    await admin.firestore().runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) throw new HttpsError("not-found", "예약을 찾을 수 없습니다.");
+        const r = snap.data();
+        if (r.status !== "paid") throw new HttpsError("failed-precondition", "결제완료 상태의 예약만 승인할 수 있습니다.");
+        if (r.approvalStatus === "approved") throw new HttpsError("failed-precondition", "이미 승인된 예약입니다.");
+        tx.update(ref, {
+            approvalStatus: "approved",
+            approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+            approvedBy: String(request.auth.uid),
+        });
+    });
+    return { success: true };
+});
+
+// 승인 거절: 포트원에서 전액 환불 + 예약 취소 + 포인트/쿠폰 복구. (고객 문자는 취소 트리거가 보낸다)
+exports.rejectReservation = onCall({ secrets: SECRETS }, async (request) => {
+    await assertAdmin(request);
+    const { reservationId, reason = "운영 사정으로 승인 거절" } = request.data || {};
+    if (typeof reservationId !== "string") throw new HttpsError("invalid-argument", "요청이 올바르지 않습니다.");
+
+    const db = admin.firestore();
+    const ref = db.collection("reservations").doc(reservationId);
+    const snap = await ref.get();
+    if (!snap.exists) throw new HttpsError("not-found", "예약을 찾을 수 없습니다.");
+    const r = snap.data();
+    if (r.status !== "paid") throw new HttpsError("failed-precondition", "결제완료 상태의 예약만 거절할 수 있습니다.");
+    if (r.approvalStatus === "approved") throw new HttpsError("failed-precondition", "이미 승인된 예약은 '예약취소'로 처리해 주세요.");
+
+    const paid = Number(r.totalAmount) || 0;
+    const impUid = r.impUid;
+    const isFree = !impUid || String(impUid).startsWith("FREE-") || paid === 0;
+
+    try {
+        if (!isFree) {
+            const token = await getPortoneToken();
+            const resp = await axios.post(
+                "https://api.iamport.kr/payments/cancel",
+                { imp_uid: impUid, reason, amount: paid, checksum: paid },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (resp.data.code !== 0) throw new HttpsError("internal", `환불 실패: ${resp.data.message}`);
+        }
+    } catch (e) {
+        console.error("승인 거절 환불 오류:", e.response ? e.response.data : e);
+        if (e instanceof HttpsError) throw e;
+        throw new HttpsError("internal", "환불 처리 중 오류가 발생했습니다. 포트원에서 확인해 주세요.");
+    }
+
+    await ref.update({
+        status: "cancelled",
+        rejected: true,
+        cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+        cancelReason: reason,
+        refundRate: 1,
+        refundAmount: paid,
+        refundSource: "admin-reject",
+    });
+
+    // 사용한 포인트/쿠폰 복구 (전액 환불이므로 전부)
+    let pointsRestored = 0;
+    if (r.merchantUid) {
+        pointsRestored = (await points.releaseHold(db, { merchantUid: r.merchantUid, rate: 1, memo: "승인 거절로 포인트 복구" })
+            .catch((e) => { console.warn("포인트 복구 실패:", e.message); return { restored: 0 }; })).restored;
+    }
+    if (r.usedCoupon && r.usedCoupon.id && r.kakaoUid) {
+        await db.collection("members").doc(String(r.kakaoUid)).collection("coupons").doc(r.usedCoupon.id)
+            .update({ status: "active", isUsed: false, usedAt: admin.firestore.FieldValue.delete() })
+            .catch((e) => console.warn("쿠폰 복구 실패:", e.message));
+    }
+    return { success: true, refundAmount: paid, pointsRestored };
+});
+
+// ── 9. 이용 전날 리마인더 문자 (매일 오전 10시) ───────────────
+exports.sendReservationReminders = onSchedule(
+    { schedule: "0 10 * * *", timeZone: "Asia/Seoul", secrets: NOTIFY_SECRETS },
+    async () => {
+        const db = admin.firestore();
+        const snap = await db.collection("reservations").where("status", "==", "paid").get();
+        const now = Date.now();
+        const tpls = await loadSmsTemplates();
+        let sent = 0;
+        for (const doc of snap.docs) {
+            const r = doc.data();
+            if (r.approvalStatus !== "approved" || r.reminderSentAt) continue;
+            const useMs = parseReservationDate(r.date);
+            if (useMs === null || daysUntil(useMs, now) !== 1) continue;
+            if (await pushSms(r, sms.reminderText(r, tpls.reminder), "전날 안내")) {
+                await doc.ref.update({ reminderSentAt: admin.firestore.FieldValue.serverTimestamp() });
+                sent++;
+            }
+        }
+        console.log(`전날 안내 문자: ${sent}건 발송`);
+    }
+);
+
+
+// ── 10. 문자 잔액 부족 알림 ──────────────────────────────────
+// 솔라피 잔액이 LOW_BALANCE_WON 미만이면 텔레그램으로 알린다. 같은 상태에서는 하루에 한 번만 알리고,
+// 충전해서 기준 이상으로 돌아오면 다음에 또 떨어질 때 다시 알린다.
+const LOW_BALANCE_WON = 1000;
+
+exports.checkSmsBalance = onSchedule(
+    { schedule: "every 3 hours", timeZone: "Asia/Seoul", secrets: NOTIFY_SECRETS },
+    async () => {
+        const stateRef = admin.firestore().collection("system_state").doc("solapi_balance");
+        let balance;
+        try {
+            balance = await sms.getBalance({ apiKey: SOLAPI_API_KEY.value(), apiSecret: SOLAPI_API_SECRET.value() });
+        } catch (e) {
+            console.error("솔라피 잔액 조회 실패:", e.response ? JSON.stringify(e.response.data) : e.message);
+            return;
+        }
+        const state = (await stateRef.get()).data() || {};
+        if (balance >= LOW_BALANCE_WON) {
+            if (state.alertedAt) await stateRef.set({ alertedAt: null, balance, checkedAt: admin.firestore.FieldValue.serverTimestamp() });
+            return;
+        }
+        const last = state.alertedAt && state.alertedAt.toMillis ? state.alertedAt.toMillis() : 0;
+        if (Date.now() - last < 24 * 60 * 60 * 1000) return; // 24시간 안에 이미 알림
+        await pushTelegram(`⚠️ [모노리] 문자 잔액 부족\n현재 잔액 ${balance.toLocaleString("ko-KR")}원 (기준 ${LOW_BALANCE_WON.toLocaleString("ko-KR")}원 미만)\n솔라피에서 충전해 주세요. 소개팅 서비스와 잔액을 함께 쓰고 있어요.`);
+        await stateRef.set({ alertedAt: admin.firestore.FieldValue.serverTimestamp(), balance, checkedAt: admin.firestore.FieldValue.serverTimestamp() });
+    }
+);

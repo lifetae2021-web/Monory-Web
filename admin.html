@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Load FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="admin.css?v=1.3.105">
     <style>
         .edit-form-group { margin-bottom: 24px; }
         .edit-label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-secondary); }
@@ -63,14 +63,16 @@
             v1.3.65 (2026-04-12)
         </div>
     </aside>
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleAdminSidebar(false)"></div>
 
     <!-- Main Content -->
     <main class="main-content">
         <!-- Topbar -->
         <header class="topbar">
-            <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="topbar-left" style="display: flex; align-items: center; gap: 20px;">
+                <button type="button" class="mobile-menu-btn" onclick="toggleAdminSidebar()" aria-label="메뉴"><i class="fa-solid fa-bars"></i></button>
                 <h1 class="page-title" style="margin: 0;">대시보드 개요</h1>
-                <a href="https://monory-web.web.app" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; background: rgba(212, 175, 55, 0.1); border: 1px solid var(--accent-gold); color: var(--accent-gold); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease;" onmouseover="this.style.background='var(--accent-gold)'; this.style.color='var(--bg-main)';" onmouseout="this.style.background='rgba(212, 175, 55, 0.1)'; this.style.color='var(--accent-gold)';">
+                <a href="https://monory-web.web.app" target="_blank" class="site-link" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; background: rgba(212, 175, 55, 0.1); border: 1px solid var(--accent-gold); color: var(--accent-gold); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: all 0.3s ease;" onmouseover="this.style.background='var(--accent-gold)'; this.style.color='var(--bg-main)';" onmouseout="this.style.background='rgba(212, 175, 55, 0.1)'; this.style.color='var(--accent-gold)';">
                     <i class="fa-solid fa-arrow-up-right-from-square"></i> 실제 웹사이트(monory-web.web.app) 확인
                 </a>
             </div>
@@ -93,12 +95,12 @@
                 </div>
                 <div class="admin-profile">
                     <div class="avatar">M</div>
-                    <span style="font-size: 0.9rem; font-weight: 500;">관리자 님</span>
-                    <i class="fa-solid fa-chevron-down" style="font-size: 0.8rem; color: var(--text-secondary);"></i>
+                    <span class="mobile-hide" style="font-size: 0.9rem; font-weight: 500;">관리자 님</span>
+                    <i class="fa-solid fa-chevron-down mobile-hide" style="font-size: 0.8rem; color: var(--text-secondary);"></i>
                 </div>
                 <!-- 로그아웃 버튼 -->
                 <div class="admin-profile" id="btn-logout" style="cursor: pointer; margin-left: 10px; color: var(--text-secondary); padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; transition: 0.3s;" onmouseover="this.style.borderColor='var(--accent-gold)'; this.style.color='var(--accent-gold)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.color='var(--text-secondary)';">
-                    <i class="fa-solid fa-right-from-bracket" style="margin-right: 4px;"></i> 로그아웃
+                    <i class="fa-solid fa-right-from-bracket" style="margin-right: 4px;"></i><span class="mobile-hide">로그아웃</span>
                 </div>
             </div>
         </header>
@@ -852,6 +854,7 @@
     <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
     <script defer src="/__/firebase/10.8.0/firebase-storage-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-functions-compat.js"></script>
     <script defer src="/__/firebase/init.js"></script>
 
     <script>
@@ -929,7 +932,14 @@
 
     <script>
         // 섹션 전환
+        // 모바일: 사이드바 열기/닫기
+        function toggleAdminSidebar(force) {
+            const open = typeof force === 'boolean' ? force : !document.body.classList.contains('sidebar-open');
+            document.body.classList.toggle('sidebar-open', open);
+        }
+
         function showSection(name) {
+            toggleAdminSidebar(false);
             // 모든 섹션 숨기기
             document.getElementById('section-members') && (document.getElementById('section-members').style.display = 'none');
             document.getElementById('section-reservations') && (document.getElementById('section-reservations').style.display = 'none');
@@ -2295,16 +2305,26 @@
                             completed: { cls: 'status-completed', label: '🏁 이용완료' },
                             cancelled: { cls: 'status-cancelled', label: '❌ 취소됨'   },
                         };
-                        const s = statusMap[status] || { cls: 'status-pending', label: '⏳ 미확인' };
+                        const isPendingApproval = (status === 'paid' && r.approvalStatus === 'pending');
+                        const s = isPendingApproval
+                            ? { cls: 'status-pending', label: '⏳ 승인대기' }
+                            : (statusMap[status] || { cls: 'status-pending', label: '⏳ 미확인' });
 
                         // 관리 버튼 (이미 완료/취소면 비활성)
                         const isDone = (status === 'completed' || status === 'cancelled');
                         const actionBtns = isDone
                             ? `<span style="display:inline-block; padding:4px 10px; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); font-size:0.75rem; color:var(--text-secondary); white-space:nowrap;">${status === 'completed' ? '🏁 이용완료 처리됨' : '❌ 취소 처리됨'}</span>`
-                            : `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+                              + (status === 'completed' && r.pointsEarned > 0
+                                  ? `<div style="margin-top:6px;font-size:0.72rem;color:var(--accent-gold);">+${r.pointsEarned.toLocaleString()}P 적립${r.pointsClawed ? ` (-${r.pointsClawed.toLocaleString()}P 회수)` : ''}</div>
+                                     <button onclick="clawbackPoints('${docId}','${(r.guestName || '').replace(/'/g, '')}')" style="margin-top:4px;padding:3px 8px;font-size:0.7rem;border:1px solid #f59e0b;background:transparent;color:#f59e0b;border-radius:6px;cursor:pointer;">포인트 회수</button>`
+                                  : '')
+                            : (isPendingApproval ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                <button onclick="approveReservation('${docId}')" style="padding:4px 9px;font-size:0.75rem;border:1px solid #22c55e;background:rgba(34,197,94,0.15);color:#22c55e;border-radius:6px;cursor:pointer;">✅ 승인</button>
+                                <button onclick="rejectReservation('${docId}','${(r.guestName || '').replace(/'/g, '')}')" style="padding:4px 9px;font-size:0.75rem;border:1px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;border-radius:6px;cursor:pointer;">🚫 거절·환불</button>
+                              </div>` : `<div style="display:flex;gap:6px;flex-wrap:wrap;">
                                 <button onclick="updateReservationStatus('${docId}','completed')" style="padding:4px 9px;font-size:0.75rem;border:1px solid #22c55e;background:rgba(34,197,94,0.1);color:#22c55e;border-radius:6px;cursor:pointer;transition:0.2s;" onmouseover="this.style.background='#22c55e';this.style.color='#fff';" onmouseout="this.style.background='rgba(34,197,94,0.1)';this.style.color='#22c55e';">🏁 이용완료</button>
                                 <button onclick="updateReservationStatus('${docId}','cancelled')" style="padding:4px 9px;font-size:0.75rem;border:1px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;border-radius:6px;cursor:pointer;transition:0.2s;" onmouseover="this.style.background='#ef4444';this.style.color='#fff';" onmouseout="this.style.background='rgba(239,68,68,0.1)';this.style.color='#ef4444';">❌ 예약취소</button>
-                              </div>`;
+                              </div>`);
 
                         const row = document.createElement('tr');
                         if (status === 'cancelled') row.style.opacity = '0.55';
@@ -2352,14 +2372,46 @@
             if (!confirm(`이 예약을 '${icons[newStatus]} ${labels[newStatus]}'으로 처리하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
 
             if (typeof firebase === 'undefined') { alert('Firebase 연결 오류'); return; }
-            const db = firebase.firestore();
-            db.collection('reservations').doc(docId)
-              .update({ status: newStatus, updatedAt: firebase.firestore.Timestamp.now() })
-              .then(() => {
-                  console.log(`✅ 상태 업데이트: ${newStatus}`);
+            // 포인트 적립/복구가 함께 처리되도록 서버 함수로 변경한다
+            firebase.functions().httpsCallable('setReservationStatus')({ reservationId: docId, newStatus })
+              .then(res => {
+                  const d = res.data || {};
+                  if (d.earned > 0) alert(`이용완료 처리되었습니다.\n회원에게 ${d.earned.toLocaleString()}P가 적립되었습니다.`);
+                  else if (d.restored > 0) alert(`예약이 취소되었습니다.\n사용한 ${d.restored.toLocaleString()}P가 회원에게 복구되었습니다.`);
                   // onSnapshot이 자동으로 테이블 갱신함
               })
               .catch(e => alert('업데이트 실패: ' + e.message));
+        }
+
+        // 예약 승인: 승인하면 고객에게 예약 확정 문자가 자동 발송된다
+        function approveReservation(docId) {
+            if (!confirm('이 예약을 승인하시겠습니까?\n승인하면 고객에게 예약 확정 문자가 발송됩니다.')) return;
+            firebase.functions().httpsCallable('approveReservation')({ reservationId: docId })
+              .then(() => alert('승인되었습니다. 고객에게 확정 문자가 발송됩니다.'))
+              .catch(e => alert('승인 실패: ' + e.message));
+        }
+
+        // 승인 거절: 결제금액 전액을 포트원에서 환불하고 예약을 취소한다 (고객에게 안내 문자 발송)
+        function rejectReservation(docId, name) {
+            if (!confirm(`'${name}' 예약을 거절하시겠습니까?\n결제금액 전액이 환불되고 예약이 취소되며, 고객에게 안내 문자가 발송됩니다.\n이 작업은 되돌릴 수 없습니다.`)) return;
+            firebase.functions().httpsCallable('rejectReservation')({ reservationId: docId })
+              .then(res => alert(`거절 처리되었습니다.\n${(res.data.refundAmount || 0).toLocaleString()}원이 환불됩니다.`))
+              .catch(e => alert('거절 실패: ' + e.message));
+        }
+
+        // 이용완료 후 환불이 발생했을 때 환불금액의 5%만큼 적립 포인트 회수
+        function clawbackPoints(docId, name) {
+            const input = prompt(`'${name}' 예약의 환불 금액(원)을 입력하세요.\n환불금액의 5%만큼 적립 포인트가 회수됩니다.`);
+            if (input === null) return;
+            const refundAmount = parseInt(String(input).replace(/[^0-9]/g, ''));
+            if (!refundAmount) { alert('환불 금액을 올바르게 입력해주세요.'); return; }
+            firebase.functions().httpsCallable('clawbackPoints')({ reservationId: docId, refundAmount })
+              .then(res => {
+                  const d = res.data || {};
+                  alert(`${(d.clawed || 0).toLocaleString()}P를 회수했습니다.` +
+                        (d.shortfall > 0 ? `\n회원이 이미 사용해 회수하지 못한 ${d.shortfall.toLocaleString()}P는 별도로 확인해 주세요.` : ''));
+              })
+              .catch(e => alert('포인트 회수 실패: ' + e.message));
         }
 
         // ────────────────────────────────────────────────────────────

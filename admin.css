@@ -572,14 +572,228 @@ tr:hover td {
     }
 }
 
+.mobile-menu-btn { display: none; }
+.sidebar-overlay { display: none; }
+
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        z-index: 2000;
+        box-shadow: none;
     }
+    body.sidebar-open .sidebar {
+        transform: translateX(0);
+        box-shadow: 10px 0 40px rgba(0, 0, 0, 0.6);
+    }
+    .sidebar-overlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+        z-index: 1500;
+    }
+    body.sidebar-open .sidebar-overlay {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    body.sidebar-open { overflow: hidden; }
+
     .main-content {
         margin-left: 0;
+        min-width: 0;
+        width: 100%;
     }
-    .stats-grid {
-        grid-template-columns: 1fr;
+    .mobile-menu-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+        background: transparent;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        color: var(--accent-gold);
+        font-size: 1.1rem;
+        cursor: pointer;
     }
+
+    /* 상단바: 한 줄로 압축 */
+    .topbar {
+        height: 60px;
+        padding: 0 14px;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+    .topbar-left { gap: 10px !important; min-width: 0; }
+    .page-title { font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .site-link, .mobile-hide { display: none !important; }
+    .topbar-actions { gap: 10px; }
+    .topbar-actions .admin-profile { padding: 0 !important; margin-left: 0 !important; border: none !important; }
+    #btn-logout { padding: 8px 10px !important; border: 1px solid var(--border-color) !important; }
+    .notification-dropdown {
+        position: fixed;
+        top: 64px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+    }
+
+    .content-area { padding: 16px 14px; }
+    body { overflow-x: hidden; }
+    .tables-grid { grid-template-columns: minmax(0, 1fr); }
+    .panel, .stat-card { min-width: 0; }
+    .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { padding: 16px; }
+    .stat-value { font-size: 1.3rem; }
+    .panel { padding: 16px; }
+    .panel-header { margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+
+    /* 표는 가로 스크롤 + 터치 영역/글자 크기 조정 */
+    table { font-size: 0.82rem; }
+    th, td { padding: 10px 8px; }
+    div[style*="overflow-x"] { -webkit-overflow-scrolling: touch; }
+
+    /* 예약/회원 표: 모바일에서는 행을 카드로 보여준다 */
+    #members-table,
+    #members-table tbody { display: block; width: 100%; }
+    #members-table thead { display: none; }
+    #members-table tr {
+        display: block;
+        margin-bottom: 12px;
+        padding: 6px 14px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        background: var(--bg-panel);
+    }
+    #members-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        max-width: none !important;
+        text-align: right;
+        word-break: break-word;
+    }
+    #members-table td:last-child { border-bottom: none; }
+    #members-table td::before {
+        flex: 0 0 76px;
+        text-align: left;
+        color: var(--text-secondary);
+        font-size: 0.76rem;
+        font-weight: 600;
+    }
+    #members-table td[colspan] { display: block; text-align: center; }
+    #members-table td[colspan]::before { content: none; }
+    #members-table td:nth-child(1) { display: none; }
+    #members-table td:nth-child(2)::before { content: '프로필'; }
+    #members-table td:nth-child(3)::before { content: '이름'; }
+    #members-table td:nth-child(4)::before { content: '생년월일'; }
+    #members-table td:nth-child(5)::before { content: '등급'; }
+    #members-table td:nth-child(6)::before { content: '가입일'; }
+    #members-table td:nth-child(7)::before { content: '보유 쿠폰'; }
+    #members-table td:nth-child(8)::before { content: '관리'; }
+
+    /* 카드 형태에서는 마우스/터치 시 회색 강조 없음 */
+    #reservations-table tr:hover td, #members-table tr:hover td { background: transparent; }
+
+    /* 예약 카드: 머리줄(예약번호·상태) → 예약자 → 2열 정보 → 관리 버튼 → 요청사항 */
+    #reservations-table, #reservations-table tbody { display: block; width: 100%; }
+    #reservations-table thead { display: none; }
+    #reservations-table tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 14px 16px;
+        margin-bottom: 14px;
+        padding: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        background: var(--bg-panel);
+    }
+    #reservations-table td {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 0;
+        border: none;
+        max-width: none !important;
+        min-width: 0;
+        text-align: left;
+        font-size: 0.95rem;
+        line-height: 1.45;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+    }
+    #reservations-table td::before {
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+    }
+    #reservations-table td br { display: none; }
+    #reservations-table td[colspan] { display: block; grid-column: 1 / -1; text-align: center; }
+    #reservations-table td[colspan]::before { content: none; }
+    #reservations-table td:nth-child(1) { display: none; }
+
+    /* 머리줄 */
+    #reservations-table td:nth-child(2) { order: 1; flex-direction: row; align-items: center; gap: 8px; font-size: 0.8rem; white-space: nowrap; overflow-wrap: normal; }
+    #reservations-table td:nth-child(2)::before { content: 'No.'; white-space: nowrap; }
+    #reservations-table td:nth-child(2) span { white-space: nowrap; }
+    #reservations-table td:nth-child(8) { order: 2; align-items: flex-end; }
+    #reservations-table td:nth-child(8)::before { content: none; }
+    /* 예약자 */
+    #reservations-table td:nth-child(3) {
+        order: 3; grid-column: 1 / -1;
+        display: block;
+        font-size: 1.15rem; font-weight: 700;
+        padding: 12px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);
+    }
+    #reservations-table td:nth-child(3) > span { display: block; margin: 4px 0 0; font-size: 0.9rem; }
+    #reservations-table td:nth-child(3) > span:has(> i) { display: inline-block; margin: 0 0 0 8px; vertical-align: middle; }
+    /* 2열 정보 */
+    #reservations-table td:nth-child(4) { order: 4; }
+    #reservations-table td:nth-child(4)::before { content: '패키지'; }
+    #reservations-table td:nth-child(5) { order: 5; }
+    #reservations-table td:nth-child(5)::before { content: '예약일'; }
+    #reservations-table td:nth-child(6) { order: 6; text-align: left !important; }
+    #reservations-table td:nth-child(6)::before { content: '인원'; }
+    #reservations-table td:nth-child(7) { order: 7; font-size: 1.1rem !important; }
+    #reservations-table td:nth-child(7)::before { content: '결제금액'; }
+    #reservations-table td:nth-child(9) { order: 8; font-size: 0.88rem !important; color: var(--text-secondary); }
+    #reservations-table td:nth-child(9)::before { content: '결제일시'; }
+    #reservations-table td:nth-child(11) { order: 9; align-items: flex-start; }
+    #reservations-table td:nth-child(11)::before { content: '유형'; }
+    /* 관리 버튼: 크게, 한 줄에 나란히 */
+    #reservations-table td:nth-child(10) { order: 10; grid-column: 1 / -1; }
+    #reservations-table td:nth-child(10)::before { content: none; }
+    #reservations-table td:nth-child(10) > div { display: flex; gap: 10px; width: 100%; }
+    #reservations-table td:nth-child(10) button { flex: 1; min-height: 44px; font-size: 0.95rem !important; border-radius: 10px !important; }
+    /* 요청사항 */
+    #reservations-table td:nth-child(12) { order: 11; grid-column: 1 / -1; padding-top: 12px; border-top: 1px solid var(--border-color); color: var(--text-secondary); }
+    #reservations-table td:nth-child(12)::before { content: '요청사항'; }
+    #reservations-table td:nth-child(12) > div { max-height: none !important; }
+
+    /* 인라인으로 2~3열로 잡힌 그리드는 세로로 쌓기 (갤러리 자동 열 맞춤은 유지) */
+    [style*="repeat(3, 1fr)"],
+    [style*="grid-template-columns: 1fr 1fr"],
+    [style*="grid-template-columns: 1fr auto"],
+    [style*="grid-template-columns:1fr 1fr"] {
+        grid-template-columns: 1fr !important;
+    }
+    .edit-grid { gap: 16px; }
+
+    /* 모달/버튼 줄바꿈 */
+    button, .btn { min-height: 36px; }
+    input, select, textarea { font-size: 16px; } /* iOS 자동 확대 방지 */
+}
+
+@media (max-width: 420px) {
+    .stats-grid { grid-template-columns: minmax(0, 1fr); }
 }

@@ -290,11 +290,29 @@
         <div class="my-header">
             <h1 style="color: var(--accent-gold); margin-bottom: 10px;">마이페이지</h1>
             <p>나의 예약 내역을 한눈에 확인하세요.</p>
+            <div id="my-account" style="display:none; align-items:center; justify-content:center; gap:12px; margin-top:22px;">
+                <img id="my-account-img" src="" alt="" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid #FEE500;display:none;">
+                <div style="text-align:left;">
+                    <div id="my-account-name" style="font-size:1.05rem;font-weight:700;"></div>
+                    <div id="my-account-sub" style="font-size:0.8rem;opacity:0.65;margin-top:2px;"></div>
+                </div>
+            </div>
         </div>
 
         <div id="loading-state">
             <i class="fa-solid fa-spinner fa-spin" style="font-size: 2rem; margin-bottom: 15px; color: var(--accent-gold);"></i>
             <p>예약 내역을 불러오는 중입니다...</p>
+        </div>
+
+        <!-- 내 포인트 섹션 -->
+        <div id="point-container" style="background-color: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <h3 style="color: #FFD700; margin: 0; font-size: 18px;">💰 내 포인트</h3>
+            <span style="color: #FFD700; font-size: 22px; font-weight: bold;"><span id="point-balance">0</span> P</span>
+          </div>
+          <div id="point-expiry" style="color: #aaa; font-size: 12px; margin-bottom: 12px;"></div>
+          <div style="color: #888; font-size: 12px; margin-bottom: 14px; line-height: 1.5;">이용완료 후 실제 결제금액의 5%가 적립되며, 1,000P부터 예약 결제에 사용할 수 있습니다. (적립일로부터 12개월 유효)</div>
+          <div id="point-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
 
         <!-- 내 쿠폰함 섹션 -->
@@ -333,6 +351,7 @@
 
                     loadReservations(user);
                     loadCoupons(user);
+                    loadPoints(user);
                 }
             }, 100);
         });
@@ -372,11 +391,13 @@
                             packageKey:  pendingData.packageKey,
                             packageName: pendingData.packageName,
                             totalAmount: pendingData.totalAmount,
+                            pointUsed:   pendingData.pointUsed || 0,
                             usedCoupon:  pendingData.usedCoupon || null,
                             isWeekend:   pendingData.isWeekend,
                             impUid:      pendingData.impUid,
                             merchantUid: pendingData.merchantUid,
                             status:      'paid',
+                            approvalStatus: 'pending',
                             createdAt:   firebase.firestore.Timestamp.now()
                         });
                         console.log('✅ 모바일 결제 후 자동 저장 완료');
@@ -437,6 +458,52 @@
         }
 
         // 쿠폰 불러오기
+        // ── 포인트 잔액/내역 (읽기 전용, 적립·차감은 서버에서만) ──
+        async function loadPoints(user) {
+            const balEl = document.getElementById('point-balance');
+            const listEl = document.getElementById('point-list');
+            const expEl = document.getElementById('point-expiry');
+            try {
+                const memberRef = firebase.firestore().collection('members').doc(String(user.kakaoId));
+                const [lots, logs] = await Promise.all([
+                    memberRef.collection('point_lots').where('expiresAt', '>', firebase.firestore.Timestamp.now()).orderBy('expiresAt').get(),
+                    memberRef.collection('point_logs').orderBy('createdAt', 'desc').limit(20).get()
+                ]);
+                let balance = 0, nextExpiry = null;
+                lots.forEach(d => {
+                    const rem = d.data().remaining || 0;
+                    if (rem <= 0) return;
+                    balance += rem;
+                    if (!nextExpiry) nextExpiry = { date: d.data().expiresAt.toDate(), amount: rem };
+                });
+                balEl.textContent = balance.toLocaleString();
+                if (nextExpiry) {
+                    const dt = nextExpiry.date;
+                    expEl.textContent = `가장 빠른 소멸 예정: ${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')} (${nextExpiry.amount.toLocaleString()}P)`;
+                }
+                const labels = { earn: ['적립', '#4ade80', '+'], restore: ['복구', '#4ade80', '+'], use: ['사용', '#f87171', '-'], clawback: ['회수', '#f87171', '-'] };
+                if (logs.empty) {
+                    listEl.innerHTML = '<div style="color:#666;font-size:13px;">아직 포인트 내역이 없습니다.</div>';
+                    return;
+                }
+                listEl.innerHTML = '';
+                logs.forEach(d => {
+                    const l = d.data();
+                    const [label, color, sign] = labels[l.type] || [l.type, '#aaa', ''];
+                    const dt = l.createdAt && l.createdAt.toDate ? l.createdAt.toDate() : null;
+                    const dateStr = dt ? `${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}` : '';
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:8px 0;border-top:1px solid #2a2a2a;';
+                    row.innerHTML = `<div><span style="color:${color};font-weight:600;">${label}</span> <span style="color:#aaa;">${l.memo || ''}</span><div style="color:#666;font-size:11px;margin-top:2px;">${dateStr}</div></div>
+                                     <div style="color:${color};font-weight:700;">${sign}${(l.amount || 0).toLocaleString()}P</div>`;
+                    listEl.appendChild(row);
+                });
+            } catch (e) {
+                console.warn('포인트 조회 실패:', e.code || e);
+                listEl.innerHTML = '<div style="color:#666;font-size:13px;">포인트를 불러오지 못했습니다. 로그아웃 후 다시 로그인해 주세요.</div>';
+            }
+        }
+
         async function loadCoupons(user) {
             const listObj = document.getElementById('coupon-list');
             const countEl = document.getElementById('coupon-count');
@@ -567,7 +634,9 @@
                         canReview = true;
                     } 
                     else if (data.status === 'paid' && !isPast) {
-                        statusHtml = '<span class="res-status paid">예약 완료</span>';
+                        statusHtml = data.approvalStatus === 'pending'
+                            ? '<span class="res-status paid" style="background:rgba(212,175,55,0.15);color:#D4AF37;">승인 대기</span>'
+                            : '<span class="res-status paid">예약 확정</span>';
                         canCancel = true;
                     }
                     else if (data.status === 'cancelled') {
@@ -868,9 +937,9 @@
     <div id="paymentSuccessModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:999999; align-items:center; justify-content:center; backdrop-filter:blur(8px);">
         <div class="modal-content" style="max-width: 400px; text-align: center; border: 1px solid var(--accent-gold); box-shadow: 0 0 30px rgba(212,175,55,0.3);">
             <div style="font-size: 3rem; margin-bottom: 15px;">🎉</div>
-            <h2 style="font-family:var(--font-heading); color:var(--accent-gold); margin-bottom: 20px;">예약 완료!</h2>
+            <h2 style="font-family:var(--font-heading); color:var(--accent-gold); margin-bottom: 20px;">예약이 접수되었습니다!</h2>
             <p style="color:var(--text-primary); margin-bottom: 10px; font-weight: 500;">모노리에 오신 것을 환영합니다!</p>
-            <p style="color:var(--text-secondary); font-size: 0.9rem; margin-bottom: 30px; line-height: 1.5;">성공적으로 예약이 완료되었습니다.<br>아래 페이지에서 예약 내역과 스마트 도어락 키를 확인하실 수 있습니다.</p>
+            <p style="color:var(--text-secondary); font-size: 0.9rem; margin-bottom: 30px; line-height: 1.5;">결제가 완료되어 예약이 접수되었습니다.<br>운영자가 확인 후 승인하면 <b>예약 확정 문자</b>를 보내드립니다.<br>아래 페이지에서 예약 내역을 확인하실 수 있습니다.</p>
             <button class="btn-submit" onclick="closeSuccessModal()">예약 내역 확인하기</button>
         </div>
     </div>
@@ -941,6 +1010,17 @@
                 img.style.display = user.profileImage ? 'block' : 'none';
             }
             if (nameEl) nameEl.textContent = user.name + ' 님';
+
+            // 마이페이지 상단 계정 표시
+            const acc = document.getElementById('my-account');
+            if (acc) {
+                const accImg = document.getElementById('my-account-img');
+                accImg.src = user.profileImage || '';
+                accImg.style.display = user.profileImage ? 'block' : 'none';
+                document.getElementById('my-account-name').textContent = user.name + ' 님';
+                document.getElementById('my-account-sub').textContent = '카카오 계정으로 로그인 중' + (user.email ? ' · ' + user.email : '');
+                acc.style.display = 'flex';
+            }
 
             // 쿠폰 알림 체크 추가
             checkHeaderCouponAlert(user.kakaoId);

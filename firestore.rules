@@ -39,6 +39,16 @@ service cloud.firestore {
       allow update: if isFirebaseAuthAdmin() || (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) || (isKakaoSuperAdmin() && isGeneralAdminToggle());
       allow delete: if isFirebaseAuthAdmin();
       
+      // 포인트 적립 묶음/내역: 본인과 관리자만 읽기. 쓰기는 서버(Cloud Functions)만 가능
+      match /point_lots/{lotId} {
+        allow read: if request.auth != null && (request.auth.uid == userId || isGeneralAdmin());
+        allow write: if false;
+      }
+      match /point_logs/{logId} {
+        allow read: if request.auth != null && (request.auth.uid == userId || isGeneralAdmin());
+        allow write: if false;
+      }
+
       // 사용자 본인의 쿠폰함 규칙
       match /coupons/{couponId} {
         allow read: if true;
@@ -52,6 +62,11 @@ service cloud.firestore {
         );
         allow delete: if isGeneralAdmin();
       }
+    }
+
+    // 결제 중 포인트 선차감 기록: 클라이언트 접근 불가(서버 전용)
+    match /point_holds/{holdId} {
+      allow read, write: if false;
     }
 
     // 리뷰 컬렉션 규칙
@@ -77,10 +92,16 @@ service cloud.firestore {
     match /reservations/{resId} {
       // 본인 예약이거나 관리자면 읽을 수 있음
       allow read: if true; // 클라이언트 조회를 위해 오픈. 실제 운영시 본인/관리자만 가능하게 변경 권장
-      allow create: if true; 
-      
-      // 예약 내용/상태 변경: 관리자 권한 필수
-      allow update: if true; // (현재는 클라이언트에서 자유롭게 업데이트하므로 true, 추후 isGeneralAdmin()으로 묶는 것 추천)
+      // 새 예약은 승인 대기로만 만들 수 있다 (승인·거절·문자 발송 상태를 클라이언트가 직접 정하지 못하게)
+      allow create: if request.resource.data.get('approvalStatus', 'pending') == 'pending'
+                    && !('approvedAt' in request.resource.data)
+                    && !('rejected' in request.resource.data)
+                    && !('confirmSmsSentAt' in request.resource.data)
+                    && !('reminderSentAt' in request.resource.data);
+
+      // 예약 수정: 관리자, 또는 이용자의 후기 작성 표시(hasReview)만 가능. 상태/승인 변경은 서버 함수(Admin)가 처리
+      allow update: if isGeneralAdmin()
+                    || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['hasReview']);
       allow delete: if isFirebaseAuthAdmin();
     }
 

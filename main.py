@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import sqlite3
@@ -154,6 +154,27 @@ def get_admin_data():
     return {"reservations": rows}
 
 app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+
+# 로컬 개발용: Firebase Hosting 예약 경로(/__/firebase/*)를 운영 호스팅에서 그대로 가져온다.
+# (주의) 로컬에서도 운영 Firebase(DB/Auth)에 연결되므로 읽기/쓰기가 실제 데이터에 반영된다.
+_fb_cache = {}
+
+@app.get("/__/firebase/{path:path}")
+def firebase_reserved(path: str):
+    if path not in _fb_cache:
+        import ssl, urllib.request, urllib.error
+        try:
+            import certifi
+            ctx = ssl.create_default_context(cafile=certifi.where())
+        except ImportError:
+            ctx = None
+        try:
+            with urllib.request.urlopen(f"https://monory-web.web.app/__/firebase/{path}", timeout=10, context=ctx) as r:
+                _fb_cache[path] = (r.read(), r.headers.get_content_type())
+        except urllib.error.URLError:
+            raise HTTPException(status_code=404, detail="Firebase file not found")
+    body, ctype = _fb_cache[path]
+    return Response(content=body, media_type=ctype)
 
 @app.get("/{filename}.css")
 def get_css(filename: str):
