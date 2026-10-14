@@ -1653,12 +1653,21 @@
 
         const HOURLY_MIN = 3;
         const HOURLY_FIRST = 10;   // 첫 칸 10:00
-        const HOURLY_LAST_END = 33; // 마지막 종료 익일 09:00 (칸은 10 ~ 32)
+        const HOURLY_GRID_LAST = 33; // 시간표는 10시 ~ 익일 9시(24칸). 그 뒤 시간은 다시 첫 칸(10시)부터 이어서 표시
+        const HOURLY_LAST_END = 57; // 이용 종료 시각 상한 (시작이 가장 늦어도 24시간 뒤)
+        const HOURLY_MAX = 24;      // 한 번에 최대 24시간
 
         // 선택한 날짜에 이 시간대를 쓸 수 있는지 (날짜를 아직 안 골랐으면 모두 가능)
         function hourlyRangeFree(start, end) {
             if (!selectedDateObj) return true;
-            return !hasBookingConflict(selectedDateObj, start, end);
+            if (hasBookingConflict(selectedDateObj, start, end)) return false;
+            // 24시간 한 바퀴를 넘겨 첫 칸부터 이어지는 시간은, 시간표에서 마감/정리로 잠긴 칸에 닿기 전까지만 허용
+            // (잠긴 칸이 선택된 것처럼 보이는 혼란을 막는다)
+            for (let j = Math.max(start, HOURLY_GRID_LAST + 1); j < end; j++) {
+                const b = j - 24;
+                if (b <= HOURLY_GRID_LAST && hasBookingConflict(selectedDateObj, b, b + 1, true)) return false;
+            }
+            return true;
         }
 
         let tlMsgTimer = null;
@@ -1677,7 +1686,14 @@
             calculatePrice();
         }
 
-        // 시간표 그리기: 칸 하나 = 1시간(i ~ i+1). 예약된 칸은 "마감", 예약 앞뒤 정리 시간 칸은 "정리"로 잠기고, 선택 범위는 금색
+        // 한 칸(i = 10 ~ 33)이 현재 선택 범위에 들어 있는지. 24시간을 넘기면 다시 첫 칸부터 이어지므로 i 와 i+24 를 모두 본다
+        function cellSelected(i) {
+            const sel = hourlySelection;
+            if (sel.start === null) return false;
+            return (i >= sel.start && i < sel.end) || (i + 24 >= sel.start && i + 24 < sel.end);
+        }
+
+        // 시간표 그리기: 칸 하나 = 1시간. 10시 ~ 익일 9시 24칸이 한 바퀴이고, 예약된 칸은 "마감", 정리 시간 칸은 "정리", 선택 범위는 금색
         function renderHourlyTimeline() {
             const grid = document.getElementById('hourly-timeline');
             if (!grid) return;
@@ -1685,25 +1701,25 @@
             const sel = hourlySelection;
             let html = '';
             let anyFree = false;
-            for (let i = HOURLY_FIRST; i < HOURLY_LAST_END; i++) {
+            for (let i = HOURLY_FIRST; i <= HOURLY_GRID_LAST; i++) {
                 const reserved = hasDate && hasBookingConflict(selectedDateObj, i, i + 1, false); // 실제 예약
                 const blocked  = hasDate && hasBookingConflict(selectedDateObj, i, i + 1, true);  // 정리 시간 포함
                 const cleaning = blocked && !reserved;
-                const h = i >= 24 ? i - 24 : i;
-                const inSel = sel.start !== null && i >= sel.start && i < sel.end;
+                const h = i % 24;
+                const inSel = cellSelected(i);
                 const tooShort = hasDate && !blocked && !hourlyRangeFree(i, i + HOURLY_MIN);
-                if (hasDate && !blocked && !tooShort && i + HOURLY_MIN <= HOURLY_LAST_END) anyFree = true;
+                if (hasDate && !blocked && !tooShort) anyFree = true;
                 const cls = ['tl-cell'];
                 if (reserved) cls.push('booked');
                 else if (cleaning) cls.push('cleaning');
-                else if (tooShort || i + HOURLY_MIN > HOURLY_LAST_END) cls.push('short');
+                else if (tooShort) cls.push('short');
                 if (i >= 24) cls.push('next');
                 if (inSel) cls.push('sel');
-                if (inSel && i === sel.start) cls.push('sel-start');
-                if (inSel && i === sel.end - 1) cls.push('sel-end');
+                if (inSel && (i === sel.start || (i + 24 === sel.start))) cls.push('sel-start');
+                if (inSel && (i === sel.end - 1 || i + 24 === sel.end - 1)) cls.push('sel-end');
                 const sub = reserved ? '<span class="tl-r">마감</span>' : (cleaning ? '<span class="tl-r">정리</span>' : '');
-                html += `<button type="button" class="${cls.join(' ')}" data-i="${i}" ${blocked ? 'disabled' : ''} aria-label="${formatHourLabel(i)}${reserved ? ' 예약됨' : (cleaning ? ' 정리 시간' : '')}">
-                            <span class="tl-h">${i >= 24 ? '<em>익일</em>' : ''}${h}시</span>${sub}
+                html += `<button type="button" class="${cls.join(' ')}" data-i="${i}" ${(blocked && !inSel) ? 'disabled' : ''} aria-label="${h}시${reserved ? ' 예약됨' : (cleaning ? ' 정리 시간' : '')}">
+                            <span class="tl-h">${h}시</span>${sub}
                          </button>`;
             }
             grid.innerHTML = html;
@@ -1717,7 +1733,7 @@
                     const dur = sel.end - sel.start;
                     document.getElementById('tl-dur').textContent = dur + '시간';
                     document.getElementById('tl-minus').disabled = dur <= HOURLY_MIN;
-                    document.getElementById('tl-plus').disabled = (sel.end + 1 > HOURLY_LAST_END) || !hourlyRangeFree(sel.start, sel.end + 1);
+                    document.getElementById('tl-plus').disabled = (sel.end + 1 > HOURLY_LAST_END) || (sel.end + 1 - sel.start > HOURLY_MAX) || !hourlyRangeFree(sel.start, sel.end + 1);
                 }
             }
             const notice = document.getElementById('hourly-full-notice');
@@ -1726,7 +1742,7 @@
 
         // 시작 시간을 새로 고른다 (3시간이 자동으로 잡힘). 불가능하면 기존 선택을 그대로 둔다
         function setHourlyStart(i) {
-            if (i + HOURLY_MIN > HOURLY_LAST_END || !hourlyRangeFree(i, i + HOURLY_MIN)) {
+            if (i > HOURLY_GRID_LAST || !hourlyRangeFree(i, i + HOURLY_MIN)) {
                 tlNotice('이 시간부터는 최소 3시간을 이용할 수 없어요. (다른 예약 또는 정리 시간) 다른 시간을 선택해 주세요.');
                 return false;
             }
@@ -1741,6 +1757,7 @@
             if (sel.start === null) return;
             const newEnd = sel.end + delta;
             if (newEnd < sel.start + HOURLY_MIN) { tlNotice('최소 3시간부터 이용할 수 있어요.'); return; }
+            if (newEnd - sel.start > HOURLY_MAX) { tlNotice('최대 24시간까지 이용할 수 있어요.'); return; }
             if (newEnd > HOURLY_LAST_END || !hourlyRangeFree(sel.start, newEnd)) {
                 tlNotice('더 늘릴 수 없어요. 다음 예약(또는 정리 시간)이 있어요.');
                 return;
@@ -1751,23 +1768,36 @@
         }
 
         // 칸을 눌렀을 때
-        //  - 아직 선택이 없거나, 선택한 시간 안쪽/앞쪽 칸을 누르면: 그 칸이 새 시작 시간 (3시간 자동 선택)
-        //  - 선택한 시간 뒤쪽 칸을 누르면: 그 칸까지 끝나는 시간을 늘림
+        //  - 아직 선택이 없거나, 이미 선택된 칸이거나, 시작보다 앞 칸이면: 그 칸이 새 시작 시간 (3시간 자동 선택)
+        //  - 선택한 시간 뒤쪽 칸이면: 그 칸까지 끝나는 시간을 늘림
+        //  - 선택이 시간표 끝(익일 9시)까지 이어진 상태에서 첫 칸들을 누르면: 다음 날로 이어서 늘림 (10시 → 11시 …)
         function onTimelineTap(i) {
             if (!selectedDateObj) { tlNotice('먼저 위에서 날짜를 선택해 주세요.'); return; }
             const sel = hourlySelection;
-            if (sel.start === null || i < sel.end) {
+            if (sel.start === null || cellSelected(i)) {
                 if (!setHourlyStart(i)) return;
+            } else if (i >= sel.end) {
+                if (!extendHourlyTo(i + 1)) return;
+            } else if (i < sel.start && sel.end > HOURLY_GRID_LAST) {
+                if (!extendHourlyTo(i + 24 + 1)) return;     // 한 바퀴 돌아서 이어지는 시간
             } else {
-                const newEnd = i + 1;
-                if (newEnd > HOURLY_LAST_END || !hourlyRangeFree(sel.start, newEnd)) {
-                    tlNotice('그 시간까지는 다른 예약(또는 정리 시간)과 겹쳐 이용할 수 없어요.');
-                    return;
-                }
-                sel.end = newEnd;
+                if (!setHourlyStart(i)) return;
             }
             renderHourlyTimeline();
             calculatePrice();
+        }
+
+        // 끝나는 시간을 newEnd 까지 늘린다 (불가능하면 안내만 하고 그대로 둔다)
+        function extendHourlyTo(newEnd) {
+            const sel = hourlySelection;
+            if (newEnd <= sel.end) return true;
+            if (newEnd - sel.start > HOURLY_MAX) { tlNotice('최대 24시간까지 이용할 수 있어요.'); return false; }
+            if (newEnd > HOURLY_LAST_END || !hourlyRangeFree(sel.start, newEnd)) {
+                tlNotice('그 시간까지는 다른 예약(또는 정리 시간)과 겹쳐 이용할 수 없어요.');
+                return false;
+            }
+            sel.end = newEnd;
+            return true;
         }
 
         document.addEventListener('click', function (e) {
@@ -1791,7 +1821,7 @@
 
         function formatHourLabel(idx) {
             if (idx < 24) return `${String(idx).padStart(2, '0')}:00`;
-            const nextDayHour = idx - 24;
+            const nextDayHour = (idx - 24) % 24;
             return `익일 ${String(nextDayHour).padStart(2, '0')}:00`;
         }
 
@@ -2228,7 +2258,7 @@
         // dateObj 날짜를 기준 시각(0시)으로 한 기존 예약 구간들을 돌려준다. 전날/다음날 예약도 같은 기준으로 환산한다.
         function bookedIntervalsFor(dateObj) {
             const out = [];
-            [-1, 0, 1].forEach(offset => {
+            [-1, 0, 1, 2].forEach(offset => {
                 const dt = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate() + offset);
                 const list = bookedMap[dt.getFullYear() + '-' + (dt.getMonth() + 1) + '-' + dt.getDate()] || [];
                 list.forEach(([bs, be]) => out.push([bs + offset * 24, be + offset * 24]));
@@ -2408,7 +2438,7 @@
                     const duration = endIdx - startIdx;
                     let totalBase = 0;
                     for (let i = startIdx; i < endIdx; i++) {
-                        const h = i >= 24 ? i - 24 : i;
+                        const h = i % 24;
                         totalBase += getHourlyRate(h, isWeekend);
                     }
                     basePrice = totalBase;

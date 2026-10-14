@@ -84,13 +84,22 @@ DEV_RELOAD_SNIPPET = r"""
     }
 
     // ── 화면 상태 저장/복원 (전체 새로고침이 필요할 때) ──
+    // 예약 팝업 안에서 작업 중이던 상태(날짜·이용 방식·시간 선택·입력값·스크롤)를 그대로 되살린다
     function saveState() {
         var st = { ts: Date.now(), vals: {}, open: [], step2: false, scroll: {} };
         Array.prototype.forEach.call(document.querySelectorAll('input[id], textarea[id], select[id]'), function (el) {
             st.vals[el.id] = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value;
         });
         Array.prototype.forEach.call(document.querySelectorAll('.modal-overlay.active'), function (el) { if (el.id) st.open.push(el.id); });
+        var bm = document.getElementById('bookingModal');
+        if (bm && /flex|block/.test(getComputedStyle(bm).display) && st.open.indexOf('bookingModal') < 0) st.open.push('bookingModal');
         var inner = document.getElementById('booking-steps-inner'); st.step2 = !!(inner && inner.classList.contains('step-2'));
+        try {
+            if (typeof selectedDateObj !== 'undefined' && selectedDateObj) st.date = [selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate()];
+            if (typeof currentReservationMode !== 'undefined') st.mode = currentReservationMode;
+            if (typeof hourlySelection !== 'undefined') st.hourly = { start: hourlySelection.start, end: hourlySelection.end };
+            if (typeof currentBookingType !== 'undefined') st.btype = currentBookingType;
+        } catch (e) {}
         var mc = document.querySelector('.booking-modal-container'); if (mc) st.scroll.modal = mc.scrollTop;
         st.scroll.page = window.scrollY;
         try { sessionStorage.setItem('__devState', JSON.stringify(st)); } catch (e) {}
@@ -98,20 +107,46 @@ DEV_RELOAD_SNIPPET = r"""
     function restoreState() {
         var raw; try { raw = sessionStorage.getItem('__devState'); sessionStorage.removeItem('__devState'); } catch (e) {}
         if (!raw) return; var st; try { st = JSON.parse(raw); } catch (e) { return; }
-        if (Date.now() - st.ts > 15000) return;
-        setTimeout(function () {
-            (st.open || []).forEach(function (id) { if (typeof openModal === 'function') { try { openModal(id); } catch (e) {} } });
-            var inner = document.getElementById('booking-steps-inner');
-            if (st.step2 && inner) { inner.classList.add('step-2'); var t = document.getElementById('booking-modal-title'); if (t) t.textContent = '예약자 정보 입력'; }
-            Object.keys(st.vals || {}).forEach(function (id) {
-                var el = document.getElementById(id); if (!el) return;
-                if (el.type === 'checkbox' || el.type === 'radio') el.checked = st.vals[id]; else el.value = st.vals[id];
+        if (Date.now() - st.ts > 20000) return;
+        var tries = 0;
+        (function go() {
+            // 페이지 스크립트가 준비될 때까지 기다렸다가 한 번에 복원
+            var ready = document.getElementById('calendar-grid') && (typeof openModal === 'function') && (typeof renderCalendar === 'function');
+            if (!ready && tries++ < 60) { setTimeout(go, 100); return; }
+            try {
+                (st.open || []).forEach(function (id) { try { openModal(id); } catch (e) {} });
+                if (st.date) {
+                    var y = st.date[0], m = st.date[1], d = st.date[2];
+                    try { currentCalDate = new Date(y, m, 1); renderCalendar(currentCalDate); } catch (e) {}
+                    var cell = Array.prototype.find.call(document.querySelectorAll('.cal-day:not(.disabled)'), function (c) { return c.textContent.trim() === String(d); });
+                    if (cell) cell.click();
+                }
+                if (st.btype && typeof setBookingType === 'function') setBookingType(st.btype);
+                if (st.mode && typeof setReservationMode === 'function') setReservationMode(st.mode);
+                ['booking-package', 'guest-count', 'review-promise', 'booking-coupon'].forEach(function (id) {
+                    var el = document.getElementById(id); if (!el || !(id in st.vals)) return;
+                    if (el.type === 'checkbox') el.checked = st.vals[id]; else el.value = st.vals[id];
+                });
+                if (st.hourly && typeof hourlySelection !== 'undefined') {
+                    hourlySelection.start = st.hourly.start; hourlySelection.end = st.hourly.end;
+                    if (typeof renderHourlyTimeline === 'function') renderHourlyTimeline();
+                }
+                if (typeof calculatePrice === 'function') calculatePrice();
+                var inner = document.getElementById('booking-steps-inner');
+                if (st.step2 && inner) { inner.classList.add('step-2'); var t = document.getElementById('booking-modal-title'); if (t) t.textContent = '예약자 정보 입력'; }
+                Object.keys(st.vals || {}).forEach(function (id) {
+                    var el = document.getElementById(id); if (!el) return;
+                    if (el.type === 'checkbox' || el.type === 'radio') el.checked = st.vals[id]; else el.value = st.vals[id];
+                });
+            } catch (e) {}
+            // 팝업 안 내용이 그려진 뒤 스크롤 위치 복원
+            [150, 500, 1100].forEach(function (ms) {
+                setTimeout(function () {
+                    var mc = document.querySelector('.booking-modal-container'); if (mc && st.scroll) mc.scrollTop = st.scroll.modal || 0;
+                    if (st.scroll) window.scrollTo(0, st.scroll.page || 0);
+                }, ms);
             });
-            setTimeout(function () {
-                var mc = document.querySelector('.booking-modal-container'); if (mc && st.scroll) mc.scrollTop = st.scroll.modal || 0;
-                if (st.scroll) window.scrollTo(0, st.scroll.page || 0);
-            }, 300);
-        }, 1200);
+        })();
     }
     function fullReload() { saveState(); location.reload(); }
 
