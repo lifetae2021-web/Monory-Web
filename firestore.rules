@@ -88,7 +88,7 @@ service cloud.firestore {
       allow create: if request.auth != null
                     && request.resource.data.keys().hasOnly(['reservationId', 'kakaoUid', 'bank', 'account', 'holder', 'consent', 'consentAt', 'createdAt'])
                     && request.resource.data.kakaoUid == int(request.auth.uid)
-                    && request.resource.data.get('consent', true) == true
+                    && request.resource.data.get('consent', false) == true
                     && exists(/databases/$(database)/documents/reservations/$(id))
                     && get(/databases/$(database)/documents/reservations/$(id)).data.get('kakaoUid', null) == int(request.auth.uid)
                     && request.resource.data.account is string && request.resource.data.account.size() <= 20
