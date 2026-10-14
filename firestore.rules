@@ -18,11 +18,25 @@ service cloud.firestore {
       return isSuperAdmin() || get(/databases/$(database)/documents/members/$(request.auth.uid)).data.role == 'admin' || get(/databases/$(database)/documents/members/$(request.auth.uid)).data.role == 'general_admin';
     }
 
+    // 카카오로 로그인한 최고 관리자인지 확인 (members 문서 ID = 카카오 ID = auth uid)
+    function isKakaoSuperAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/members/$(request.auth.uid)).data.get('role', 'user') == 'super_admin';
+    }
+
+    // 카카오 최고 관리자가 허용되는 권한 변경: 일반 관리자 승격/해제만 가능 (최고 관리자 대상·최고 관리자 부여 불가)
+    function isGeneralAdminToggle() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'updatedAt'])
+        && request.resource.data.role in ['general_admin', 'user']
+        && resource.data.get('role', 'user') != 'super_admin';
+    }
+
     // members 컬렉션 규칙
     match /members/{userId} {
       allow read: if true;
       allow create: if true;
-      allow update: if isFirebaseAuthAdmin() || (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+      allow update: if isFirebaseAuthAdmin() || (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])) || (isKakaoSuperAdmin() && isGeneralAdminToggle());
       allow delete: if isFirebaseAuthAdmin();
       
       // 사용자 본인의 쿠폰함 규칙

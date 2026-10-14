@@ -21,7 +21,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.3.24">
+    <link rel="stylesheet" href="style.css?v=1.3.26">
     <!-- Kakao SDK (integrity 없이 로드 - 해시 불일치 시 로드 차단됨) -->
     <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" defer></script>
 </head>
@@ -748,6 +748,19 @@
         if (typeof checkHeaderCouponAlert === 'function') {
             checkHeaderCouponAlert(user.kakaoId);
         }
+        checkAdminMenu(user.kakaoId);
+    }
+
+    // ─── 관리자 계정이면 햄버거 메뉴에 관리자페이지 노출 ─────────────
+    function checkAdminMenu(kakaoId) {
+        const item = document.getElementById('mobile-admin-link');
+        if (!item || typeof firebase === 'undefined' || !kakaoId) return;
+        try {
+            firebase.firestore().collection('members').doc(String(kakaoId)).get().then(function (doc) {
+                const role = doc.exists ? doc.data().role : null;
+                item.style.display = (role === 'super_admin' || role === 'general_admin') ? '' : 'none';
+            }).catch(function () {});
+        } catch (e) {}
     }
 
     // ─── 로그아웃 ────────────────────────────────────────────────
@@ -755,6 +768,8 @@
         // 세션 파기
         localStorage.removeItem('monory_user');
         signOutFirebase();
+        const adminItem = document.getElementById('mobile-admin-link');
+        if (adminItem) adminItem.style.display = 'none';
         
         const loggedout = document.getElementById('auth-loggedout');
         const loggedin  = document.getElementById('auth-loggedin');
@@ -1112,10 +1127,11 @@
                 이미 계정이 있으신가요? <a onclick="switchModal('registerModal', 'loginModal')">로그인</a>
             </div>
             <div class="sns-login">
-                <button onclick="loginWithKakao();" class="sns-btn sns-kakaotalk" title="카카오로 가입하기">
-                    <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
+                <button onclick="loginWithKakao();" class="sns-btn sns-kakaotalk sns-btn-wide" title="카카오로 간편 가입">
+                    <svg width="20" height="20" viewBox="0 0 18 18" fill="none" style="flex-shrink:0;">
                         <path d="M9 1C4.582 1 1 3.896 1 7.47c0 2.28 1.513 4.278 3.808 5.424l-.97 3.605 4.2-2.774c.637.09 1.29.135 1.962.135 4.418 0 8-2.896 8-6.47C18 3.896 13.418 1 9 1z" fill="#3C1E1E"/>
                     </svg>
+                    카카오로 간편 가입
                 </button>
             </div>
         </div>
@@ -2354,6 +2370,7 @@
             <li><a href="community.html" onclick="closeMobileMenu()">커뮤니티</a></li>
             <li><a href="#reservation" onclick="closeMobileMenu()">예약하기</a></li>
             <li><a href="#location" onclick="closeMobileMenu()">오시는길</a></li>
+            <li id="mobile-admin-link" style="display:none;"><a href="login.html" onclick="closeMobileMenu()">관리자페이지</a></li>
         </ul>
     </div>
 </body>
