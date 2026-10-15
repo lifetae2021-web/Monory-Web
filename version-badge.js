@@ -16,8 +16,10 @@
             const doc = await firebase.firestore().collection('members').doc(String(user.kakaoId)).get();
             if (!doc.exists || !ADMIN_ROLES.includes(doc.data().role)) return;
             const res = await fetch('version.json?t=' + Date.now());
+            if (!res.ok) return;
             const data = await res.json();
-            el.innerText = `v${data.version} (${data.buildDate})`;
+            if (!data || !data.version) return; // 읽지 못했을 때 "undefined"가 보이지 않게 한다
+            el.innerText = `v${data.version} (${data.buildDate || '-'})`;
             el.style.display = '';
         } catch (e) { console.warn('버전 표시 실패', e); }
     }

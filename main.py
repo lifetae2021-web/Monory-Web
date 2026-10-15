@@ -401,6 +401,13 @@ def get_html(filename: str):
         return html_response(f"{filename}.html")
     raise HTTPException(status_code=404, detail="File not found")
 
+@app.get("/version.json")
+def serve_version():
+    # 하단 버전 표시(관리자 전용)가 로컬에서도 동작하도록 버전 파일을 내준다
+    if os.path.exists("version.json"):
+        return FileResponse("version.json", media_type="application/json", headers={"Cache-Control": "no-store"})
+    raise HTTPException(status_code=404, detail="File not found")
+
 @app.get("/{filename}.js")
 def get_js(filename: str):
     if os.path.exists(f"{filename}.js"):
