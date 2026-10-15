@@ -219,6 +219,7 @@
     <script src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
     <script src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
     <script src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="/__/firebase/10.8.0/firebase-functions-compat.js"></script>
     <script src="/__/firebase/init.js"></script>
 
     <script>
@@ -261,9 +262,23 @@
             const checkFirebase = setInterval(() => {
                 if (typeof firebase !== 'undefined' && firebase.firestore) {
                     clearInterval(checkFirebase);
-                    loadReservationDetail();
+                    confirmFromRedirect().finally(loadReservationDetail);
                 }
             }, 100);
+
+            // 모바일 결제는 결제창에서 이 페이지로 바로 돌아오므로, 여기서 서버에 결제 확인·예약 확정을 요청한다
+            // (PC 는 이미 확정된 뒤 이동하므로 merchant_uid 가 없어 건너뛴다)
+            async function confirmFromRedirect() {
+                if (!impUid || !merchantUid || urlParams.get('imp_success') === 'false') return;
+                try {
+                    await new Promise(function (res) { const t = setTimeout(res, 8000); const un = firebase.auth().onAuthStateChanged(function () { clearTimeout(t); try { un(); } catch (e) {} res(); }); });
+                    await firebase.functions().httpsCallable('confirmBooking')({ merchantUid: merchantUid, impUid: impUid });
+                    try { sessionStorage.removeItem('monory_pending_booking'); } catch (e) {}
+                } catch (e) {
+                    console.warn('예약 확정 요청 실패:', e);
+                    if (e && e.code === 'functions/failed-precondition') alert(e.message);
+                }
+            }
 
             async function loadReservationDetail() {
                 try {

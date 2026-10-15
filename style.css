@@ -1575,8 +1575,9 @@ footer p {
 
 @media (max-width: 600px) {
     .guest-info-text {
-        font-size: 0.72rem; /* 모바일에서 더 작게 조절하여 한 줄 유지 */
-        white-space: nowrap;
+        font-size: 0.72rem; /* 모바일에서 더 작게 조절 (문구는 줄바꿈으로 나눠 두 줄) */
+        white-space: normal;
+        word-break: keep-all;
         letter-spacing: -0.3px;
     }
 }
@@ -1748,77 +1749,53 @@ textarea.s2-input {
     line-height: 1.6;
 }
 
-/* 2단계 요약 박스 */
+/* 2단계 요약 박스: 항목별 한 줄씩, 값은 오른쪽 정렬 (시간제 시간이 줄바꿈되지 않게) */
 .s2-summary-bar {
     display: flex;
-    gap: 10px;
+    flex-direction: column;
+    gap: 0;
     background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
     border-radius: 12px;
-    padding: 16px 18px;
+    padding: 6px 18px;
     margin-bottom: 20px;
-    flex-wrap: nowrap;
-    align-items: center;
-    justify-content: space-between;
 }
 
 .s2-summary-bar .s2-sum-item {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1;
-    min-width: 0; /* Allow shrinking below text content size if needed */
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
 }
+.s2-summary-bar .s2-sum-item:last-child { border-bottom: none; }
 
-/* 1번: 날짜 - 너비 대폭 할당 (YY.MM.DD 요일 한 줄 유지) */
-.s2-summary-bar .s2-sum-item:first-child {
-    flex: 1.5;
-    min-width: 105px;
-}
-.s2-summary-bar .s2-sum-item:first-child span:last-child {
+.s2-summary-bar .s2-sum-item span:first-child {
+    font-size: 0.84rem;
+    color: rgba(255,255,255,0.55);
     white-space: nowrap;
 }
 
-/* 3번: 인원 - 너비 최소화 (공간 절약) */
-.s2-summary-bar .s2-sum-item:nth-child(3) {
-    flex: 0.6;
-    min-width: 45px;
-}
-
-/* 초소형 모바일 (400px 내외) 대응: 겹침 방지 */
-@media (max-width: 420px) {
-    .s2-summary-bar {
-        gap: 5px;
-        padding: 14px 10px;
-    }
-    .s2-summary-bar .s2-sum-item span:first-child {
-        font-size: 0.65rem;
-        letter-spacing: -0.2px;
-    }
-    .s2-summary-bar .s2-sum-item span:last-child {
-        font-size: 0.8rem;
-    }
-    .s2-summary-bar .s2-sum-price {
-        font-size: 0.95rem !important;
-    }
-}
-
-.s2-summary-bar .s2-sum-item span:first-child {
-    font-size: 0.72rem;
-    color: rgba(255,255,255,0.45);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
 .s2-summary-bar .s2-sum-item span:last-child {
-    font-size: 0.88rem;
-    font-weight: 600;
+    font-size: 1rem;
+    font-weight: 700;
     color: #fff;
+    text-align: right;
+    line-height: 1.35;
+}
+.s2-summary-bar .s2-sum-item span:last-child small {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.55);
 }
 
 .s2-summary-bar .s2-sum-price {
     color: var(--accent-gold) !important;
-    font-size: 1.1rem !important;
-    font-weight: 700 !important;
+    font-size: 1.35rem !important;
+    font-weight: 800 !important;
     white-space: nowrap;
 }
 
@@ -1877,8 +1854,6 @@ textarea.s2-input {
 /* 모바일 대응 */
 @media (max-width: 768px) {
     .booking-step2-header h3 { font-size: 1.2rem; }
-    .s2-summary-bar { padding: 12px 15px; }
-    .s2-summary-bar .s2-sum-item { min-width: 60px; }
     .btn-pay { font-size: 1rem; padding: 14px; }
     .booking-type-toggle button { padding: 10px 0; font-size: 0.9rem; }
 }
@@ -2263,8 +2238,6 @@ textarea.s2-input {
     .price-summary-box .summary-row > div:last-child { text-align: right; margin-left: auto; }
     #summary-coupon-discount { white-space: normal; text-align: right; }
 
-    /* 2단계 상단 요약바 */
-    .s2-summary-bar { flex-wrap: wrap; gap: 10px 14px; }
 }
 
 /* ── 드롭다운/선택 UI 정리 ──────────────────────────────────── */
@@ -2464,3 +2437,52 @@ textarea.s2-input {
 .consent-check { display: flex; align-items: flex-start; gap: 8px; font-size: 0.84rem; font-weight: 600; color: #1a1a1a; line-height: 1.5; cursor: pointer; }
 .consent-check input { width: 20px; height: 20px; margin-top: 1px; accent-color: var(--accent-gold); flex-shrink: 0; }
 .consent-check a { color: #8a6d1b; font-weight: 500; text-decoration: underline; margin-left: 4px; white-space: nowrap; }
+
+
+/* 추가 옵션 카드 (파티션 사용 / 청소 대행) */
+.option-group label.addon-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 10px;
+    padding: 14px;
+    border: 1px solid #e3e3e3;
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.15s, background 0.15s;
+}
+.option-group label.addon-card:has(input:checked) { border-color: var(--accent-gold); background: rgba(212, 175, 55, 0.06); }
+.option-group label.addon-card input[type="checkbox"] { width: 20px; height: 20px; min-width: 20px; margin: 2px 0 0; padding: 0; flex: 0 0 20px; cursor: pointer; accent-color: var(--accent-gold); }
+.addon-body { flex: 1; min-width: 0; }
+.addon-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.addon-name { font-size: 0.98rem; font-weight: 700; color: #1a1a1a; }
+.addon-price { font-size: 0.95rem; font-weight: 700; color: var(--accent-gold); white-space: nowrap; }
+.addon-desc { margin: 4px 0 0; font-size: 0.78rem; line-height: 1.5; color: #777; word-break: keep-all; }
+
+
+/* 내 정보 저장 카드: 아이콘 + 설명 + 켜기/끄기 스위치 */
+.s2-group label.save-profile-card {
+    display: flex; flex-direction: row; align-items: center; gap: 14px;
+    margin: 0; padding: 14px 16px; border: 1px solid #ece6cf; border-radius: 14px;
+    background: linear-gradient(135deg, #fffdf5 0%, #fbf6e3 100%); cursor: pointer; user-select: none;
+}
+.save-profile-card .sp-icon {
+    flex: 0 0 38px; width: 38px; height: 38px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(212, 175, 55, 0.18); color: var(--accent-gold); font-size: 1rem;
+}
+.save-profile-card .sp-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.save-profile-card .sp-title { font-size: 0.92rem; font-weight: 700; color: #1a1a1a; letter-spacing: -0.2px; }
+.save-profile-card .sp-desc { font-size: 0.74rem; line-height: 1.5; color: #8a8470; word-break: keep-all; }
+.s2-group label.save-profile-card input.sp-switch {
+    appearance: none; -webkit-appearance: none; flex: 0 0 46px; width: 46px; height: 28px; min-width: 46px; margin: 0; padding: 0;
+    border-radius: 999px; background: #d9d5c4; position: relative; cursor: pointer; transition: background 0.2s; border: none; outline: none;
+}
+.s2-group label.save-profile-card input.sp-switch::after {
+    content: ''; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.2s;
+}
+.s2-group label.save-profile-card input.sp-switch:checked { background: var(--accent-gold); }
+.s2-group label.save-profile-card input.sp-switch:checked::after { transform: translateX(18px); }

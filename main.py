@@ -85,7 +85,7 @@ DEV_RELOAD_SNIPPET = r"""
 
     // ── 화면 상태 저장/복원 (전체 새로고침이 필요할 때) ──
     // 예약 팝업 안에서 작업 중이던 상태(날짜·이용 방식·시간 선택·입력값·스크롤)를 그대로 되살린다
-    function saveState() {
+    function captureState() {
         var st = { ts: Date.now(), vals: {}, open: [], step2: false, scroll: {} };
         Array.prototype.forEach.call(document.querySelectorAll('input[id], textarea[id], select[id]'), function (el) {
             st.vals[el.id] = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value;
@@ -102,19 +102,41 @@ DEV_RELOAD_SNIPPET = r"""
         } catch (e) {}
         var mc = document.querySelector('.booking-modal-container'); if (mc) st.scroll.modal = mc.scrollTop;
         st.scroll.page = window.scrollY;
+        return st;
+    }
+    function saveState() {
+        var st = captureState();
         try { sessionStorage.setItem('__devState', JSON.stringify(st)); } catch (e) {}
+    }
+    // 쿠폰 목록은 서버에서 늦게(그리고 여러 번) 불러오므로, 목록이 생긴 뒤에 선택을 되살리고
+    // 목록이 다시 그려져 선택이 풀리면 몇 초 동안 다시 적용한 뒤 금액을 다시 계산한다
+    function restoreCoupon(val) {
+        if (!val || val === 'none') return;
+        var n = 0;
+        (function wait() {
+            var el = document.getElementById('booking-coupon');
+            var has = el && Array.prototype.some.call(el.options, function (o) { return o.value === val; });
+            if (!has && n % 25 === 5 && typeof loadMyCoupons === 'function') { try { loadMyCoupons(); } catch (e) {} } // 로그인 복원 전에 조회가 끝났다면 다시 불러온다
+            if (has && el.value !== val) { el.value = val; if (typeof calculatePrice === 'function') calculatePrice(); }
+            if (n++ < 150) setTimeout(wait, 100);
+        })();
     }
     function restoreState() {
         var raw; try { raw = sessionStorage.getItem('__devState'); sessionStorage.removeItem('__devState'); } catch (e) {}
         if (!raw) return; var st; try { st = JSON.parse(raw); } catch (e) { return; }
         if (Date.now() - st.ts > 20000) return;
+        applyState(st, false);
+    }
+    // soft=true: 화면 일부만 새로 갈아 끼운 직후. 팝업은 이미 열려 있으므로 다시 열지 않고,
+    // 갈아 끼우면서 초기값(0원 등)으로 돌아간 계산 결과·달력·시간표를 현재 선택 상태로 다시 그린다
+    function applyState(st, soft) {
         var tries = 0;
         (function go() {
             // 페이지 스크립트가 준비될 때까지 기다렸다가 한 번에 복원
             var ready = document.getElementById('calendar-grid') && (typeof openModal === 'function') && (typeof renderCalendar === 'function');
             if (!ready && tries++ < 60) { setTimeout(go, 100); return; }
             try {
-                (st.open || []).forEach(function (id) { try { openModal(id); } catch (e) {} });
+                if (!soft) (st.open || []).forEach(function (id) { try { openModal(id); } catch (e) {} });
                 if (st.date) {
                     var y = st.date[0], m = st.date[1], d = st.date[2];
                     try { currentCalDate = new Date(y, m, 1); renderCalendar(currentCalDate); } catch (e) {}
@@ -123,7 +145,7 @@ DEV_RELOAD_SNIPPET = r"""
                 }
                 if (st.btype && typeof setBookingType === 'function') setBookingType(st.btype);
                 if (st.mode && typeof setReservationMode === 'function') setReservationMode(st.mode);
-                ['booking-package', 'guest-count', 'review-promise', 'booking-coupon'].forEach(function (id) {
+                ['booking-package', 'guest-count', 'review-promise', 'opt-partition', 'opt-cleaning'].forEach(function (id) {
                     var el = document.getElementById(id); if (!el || !(id in st.vals)) return;
                     if (el.type === 'checkbox') el.checked = st.vals[id]; else el.value = st.vals[id];
                 });
@@ -132,10 +154,11 @@ DEV_RELOAD_SNIPPET = r"""
                     if (typeof renderHourlyTimeline === 'function') renderHourlyTimeline();
                 }
                 if (typeof calculatePrice === 'function') calculatePrice();
+                restoreCoupon(st.vals['booking-coupon']);
                 var inner = document.getElementById('booking-steps-inner');
                 if (st.step2 && inner) { inner.classList.add('step-2'); var t = document.getElementById('booking-modal-title'); if (t) t.textContent = '예약자 정보 입력'; }
-                Object.keys(st.vals || {}).forEach(function (id) {
-                    var el = document.getElementById(id); if (!el) return;
+                if (!soft) Object.keys(st.vals || {}).forEach(function (id) {
+                    var el = document.getElementById(id); if (!el || id === 'booking-coupon') return;
                     if (el.type === 'checkbox' || el.type === 'radio') el.checked = st.vals[id]; else el.value = st.vals[id];
                 });
             } catch (e) {}
@@ -143,7 +166,7 @@ DEV_RELOAD_SNIPPET = r"""
             [150, 500, 1100].forEach(function (ms) {
                 setTimeout(function () {
                     var mc = document.querySelector('.booking-modal-container'); if (mc && st.scroll) mc.scrollTop = st.scroll.modal || 0;
-                    if (st.scroll) window.scrollTo(0, st.scroll.page || 0);
+                    if (!soft && st.scroll) window.scrollTo(0, st.scroll.page || 0);
                 }, ms);
             });
         })();
@@ -177,6 +200,7 @@ DEV_RELOAD_SNIPPET = r"""
             Array.prototype.forEach.call(prevDoc.querySelectorAll('[id]'), function (o) { if (!newDoc.getElementById(o.id)) removed.push(o.id); });
             if (removed.length) { fullReload(); return; }
             var set = {}; changed.forEach(function (id) { set[id] = true; });
+            var before = changed.length ? captureState() : null;
             for (var i = 0; i < changed.length; i++) {
                 var id = changed[i], live = document.getElementById(id), fresh = newDoc.getElementById(id);
                 if (!live || !fresh) { fullReload(); return; }
@@ -199,6 +223,7 @@ DEV_RELOAD_SNIPPET = r"""
                 });
             }
             prevDoc = newDoc;
+            if (before) applyState(before, true);
         }).catch(function () { fullReload(); });
     }
 

@@ -21,7 +21,7 @@
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=1.3.36">
+    <link rel="stylesheet" href="style.css?v=1.3.42">
     <!-- Kakao SDK (integrity 없이 로드 - 해시 불일치 시 로드 차단됨) -->
     <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" defer></script>
 </head>
@@ -504,15 +504,13 @@
             if (impSuccess === 'true') {
                 // 결제 성공 처리
                 const savedBooking = JSON.parse(sessionStorage.getItem('monory_pending_booking') || 'null');
-                if (savedBooking) {
-                    sessionStorage.removeItem('monory_pending_booking');
-                    savedBooking.impUid = impUid;
-                    savedBooking.merchantUid = merchantUid || savedBooking.merchantUid;
-                    saveReservationToFirestore(savedBooking);
-                    showPaymentSuccess(savedBooking.guestName, savedBooking.totalAmount, savedBooking.packageName);
-                } else {
-                    // 임시 데이터 없어도 성공 토스트 표시
-                    showPaymentSuccess('고객', 0, '패키지');
+                const mUid = merchantUid || (savedBooking && savedBooking.merchantUid);
+                sessionStorage.removeItem('monory_pending_booking');
+                if (mUid) {
+                    // 서버가 결제를 확인하고 예약을 확정한다
+                    ensureFirebaseSession().then(() => confirmBookingOnServer(mUid, impUid))
+                        .then(() => showPaymentSuccess('고객', (savedBooking && savedBooking.amount) || 0, '예약'))
+                        .catch(e => alert((e && e.message) || '예약 확정 중 문제가 발생했습니다. 마이페이지에서 확인해 주세요.'));
                 }
             } else if (paymentReturn && impSuccess !== 'false') {
                 // payment_return은 있지만 imp_success가 없는 경우 (취소/실패)
@@ -695,27 +693,7 @@
                     });
                     console.log('✅ 신규 회원 등록:', user.name);
 
-                    // 신규 가입 환영 쿠폰 자동 발급 (고정 금액 1만원, 무제한)
-                    const unlimitedExpiry = firebase.firestore.Timestamp.fromDate(new Date('2099-12-31T23:59:59'));
-                    docRef.collection('coupons').doc('WELCOME_10K').set({
-                        couponId:       'WELCOME_10K',
-                        title:          '신규 가입 감사 쿠폰 (10,000원)',
-                        name:           '신규 가입 감사 쿠폰 (10,000원)',
-                        // ── 할인 타입 (admin 발급 쿠폰과 동일 구조) ──
-                        discountType:   'fixed',      // 고정 금액 할인
-                        discountValue:  10000,         // 10,000원
-                        discountAmount: 10000,         // 기존 호환성
-                        discountRate:   0,             // 기존 호환성
-                        // ── 상태 ──────────────────────────────────────
-                        isUsed:         false,
-                        status:         'active',
-                        isUnlimited:    true,          // 무제한 표시용 플래그
-                        // ── 날짜 (2099 = 무제한) ──────────────────────
-                        issuedAt:       now,
-                        createdAt:      now,
-                        expireAt:       unlimitedExpiry,
-                        expiryDate:     unlimitedExpiry
-                    });
+                    // 가입 환영 쿠폰은 서버(Cloud Functions)가 회원 문서 생성을 감지해 자동 지급한다
                 } else {
                     docRef.update({ lastLoginAt: now });
                 }
@@ -1206,7 +1184,7 @@
                                             <button type="button" class="tl-reset" id="tl-reset" onclick="clearHourlySelection()" style="display:none;"><i class="fa-solid fa-rotate-left"></i> 초기화</button>
                                         </div>
                                         <ol class="tl-steps">
-                                            <li><b>시작 시간</b>을 누르세요. <span>3시간이 먼저 선택돼요 (최소 3시간)</span></li>
+                                            <li><b>시작 시간</b>을 누르세요.</li>
                                             <li>더 이용하려면 <b>끝나는 시간</b>을 누르거나 <b>+</b> 버튼을 누르세요.</li>
                                             <li>시간을 다시 고르려면 원하는 <b>시작 시간</b>을 다시 누르세요.</li>
                                         </ol>
@@ -1290,7 +1268,25 @@
                                         <input type="number" id="guest-count" value="8" min="1" max="20" readonly>
                                         <button id="guest-plus"><i class="fa-solid fa-plus"></i></button>
                                     </div>
-                                    <div class="guest-info-text">* 기본 8인 / 1인 초과 시 10,000원 추가결제</div>
+                                    <div class="guest-info-text">* 기본 6인 + 2인 무료 추가 이벤트 진행 중 (8인까지 기본요금)<br>* 8인 초과 시 1인당 10,000원 추가결제</div>
+                                </div>
+
+                                <div class="option-group" style="margin-top:20px;">
+                                    <label>추가 옵션</label>
+                                    <label class="addon-card">
+                                        <input type="checkbox" id="opt-partition" onchange="calculatePrice()">
+                                        <div class="addon-body">
+                                            <div class="addon-head"><span class="addon-name">파티션 사용</span><span class="addon-price">+20,000원</span></div>
+                                            <p class="addon-desc">높이 1.8m 길이 5m 파티션 1개<br>1.5m 파티션 6개</p>
+                                        </div>
+                                    </label>
+                                    <label class="addon-card">
+                                        <input type="checkbox" id="opt-cleaning" onchange="calculatePrice()">
+                                        <div class="addon-body">
+                                            <div class="addon-head"><span class="addon-name">청소 대행</span><span class="addon-price" id="opt-cleaning-price">+50,000원</span></div>
+                                            <p class="addon-desc">모든 청소는 모노리에게 맡겨주세요!<br>청소 대행과 보증금은 별도입니다.<br>10인 이하 50,000원 · 20인 이하 100,000원</p>
+                                        </div>
+                                    </label>
                                 </div>
 
                                 <div class="option-group" id="coupon-group" style="display:none; margin-top:20px;">
@@ -1330,6 +1326,14 @@
                                     <div class="summary-row" style="margin-top: 10px;">
                                         <span>인원 추가액 확정</span>
                                         <span id="summary-extra-price">0원</span>
+                                    </div>
+                                    <div class="summary-row" id="summary-partition-row" style="margin-top: 10px; display:none;">
+                                        <span>파티션 사용</span>
+                                        <span id="summary-partition-price">0원</span>
+                                    </div>
+                                    <div class="summary-row" id="summary-cleaning-row" style="margin-top: 10px; display:none;">
+                                        <span>청소 대행</span>
+                                        <span id="summary-cleaning-price">0원</span>
                                     </div>
                                     <div class="summary-row" id="summary-coupon-row" style="margin-top: 10px; display:none; color:var(--accent-gold);">
                                         <span>쿠폰 할인</span>
@@ -1371,14 +1375,14 @@
                                 <span id="s2-sum-date">-</span>
                             </div>
                             <div class="s2-sum-item">
-                                <span>패키지</span>
+                                <span id="s2-sum-pkg-label">패키지</span>
                                 <span id="s2-sum-pkg">-</span>
                             </div>
                             <div class="s2-sum-item">
                                 <span>인원</span>
                                 <span id="s2-sum-guests">-</span>
                             </div>
-                            <div class="s2-sum-item">
+                            <div class="s2-sum-item s2-sum-total-row">
                                 <span>결제금액</span>
                                 <span id="s2-sum-total" class="s2-sum-price">- 원</span>
                             </div>
@@ -1388,8 +1392,8 @@
                         <div class="s2-group">
                             <label>예약 유형 <span class="required">*</span></label>
                             <div class="booking-type-toggle">
-                                <button id="type-btn-personal" class="active" onclick="setBookingType('personal')">🙋 개인</button>
-                                <button id="type-btn-corporate" onclick="setBookingType('corporate')">🏢 기업</button>
+                                <button id="type-btn-personal" class="active" onclick="setBookingType('personal')">개인</button>
+                                <button id="type-btn-corporate" onclick="setBookingType('corporate')">기업</button>
                             </div>
                         </div>
 
@@ -1405,10 +1409,11 @@
                             <input id="s2-name" type="text" class="s2-input" placeholder="홍길동">
                         </div>
 
-                        <!-- 연락처 (자동 하이픈) -->
+                        <!-- 연락처 (숫자만) -->
                         <div class="s2-group">
                             <label>연락처 <span class="required">*</span></label>
-                            <input id="s2-phone" type="tel" class="s2-input" placeholder="010-0000-0000" maxlength="13" oninput="autoHyphen(this)">
+                            <input id="s2-phone" type="tel" inputmode="numeric" class="s2-input" placeholder="01012345678" maxlength="11" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                            <div style="margin-top:6px;font-size:0.78rem;color:#888;">'-' 없이 숫자만 입력해 주세요.</div>
                         </div>
 
                         <!-- 요청사항 -->
@@ -1423,8 +1428,8 @@
                             <textarea id="s2-purpose" class="s2-input" style="min-height:70px;" placeholder="사용 용도 (예: 생일파티, 로테이션 소개팅, 모임, 파티, 영화, 보드게임 등)"></textarea>
                         </div>
 
-                        <!-- 청소 보증금 반환 계좌 -->
-                        <div class="s2-group">
+                        <!-- 청소 보증금 반환 계좌 (청소 대행을 선택하면 보증금을 받지 않으므로 숨김) -->
+                        <div class="s2-group" id="s2-refund-group">
                             <label>청소 보증금 반환 계좌 <span class="required">*</span></label>
                             <p style="font-size:0.76rem;color:#888;margin:0 0 8px;line-height:1.4;">보증금은 이용 후 확인을 거쳐 아래 계좌로 환급해 드립니다. 환급 후 지체 없이 파기됩니다.</p>
                             <div id="s2-bank-chips" class="bank-chips">
@@ -1443,14 +1448,9 @@
                             <input id="s2-account" type="text" inputmode="numeric" class="s2-input" placeholder="계좌번호 (- 없이 숫자만)" maxlength="20" oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="margin-bottom:8px;">
                             <input id="s2-holder" type="text" class="s2-input" placeholder="예금주">
                             <div class="consent-box">
-                                <div class="consent-title">개인정보 수집·이용 동의 <span class="required">(필수)</span></div>
-                                <ul>
-                                    <li><b>수집 항목</b> 은행명, 계좌번호, 예금주</li>
-                                    <li><b>이용 목적</b> 청소 보증금 환급</li>
-                                    <li><b>보관 기간</b> 환급을 마치는 즉시 삭제하며, 늦어도 이용일로부터 14일 후 자동 삭제됩니다.</li>
-                                    <li><b>동의 거부</b> 동의하지 않을 수 있으나, 보증금 환급 계좌를 확인할 수 없어 예약을 진행할 수 없습니다. 다른 방법은 고객센터(010-9130-1577)로 문의해 주세요.</li>
+                                <ul style="margin-bottom:0;">
+                                    <li><b>환급 시기</b> 공간 사용 확인 후 24시간 내에 환급</li>
                                 </ul>
-                                <label class="consent-check"><input type="checkbox" id="s2-consent"> 위 내용에 동의합니다. <a href="privacy.html" target="_blank" rel="noopener">개인정보처리방침 보기</a></label>
                             </div>
                         </div>
 
@@ -1466,15 +1466,27 @@
                             </div>
                         </div>
 
+                        <!-- 내 정보 저장 (다음 예약 자동 입력) -->
+                        <div class="s2-group">
+                            <label class="save-profile-card" for="s2-save-profile">
+                                <span class="sp-icon"><i class="fa-solid fa-bolt"></i></span>
+                                <span class="sp-text">
+                                    <span class="sp-title">다음 예약엔 자동으로 채워 드려요</span>
+                                    <span class="sp-desc">이름 · 연락처 · 방문 경로 · 환급 계좌<br>끄고 예약하면 저장된 정보는 삭제돼요.</span>
+                                </span>
+                                <input type="checkbox" id="s2-save-profile" class="sp-switch" checked>
+                            </label>
+                        </div>
+
                         <!-- 취소/환불 규정 -->
                         <div class="s2-group policy-notice" style="margin-top:20px; background: rgba(239, 68, 68, 0.05); padding: 15px; border-radius: 10px; border: 1px dashed rgba(239, 68, 68, 0.3);">
                             <h4 style="font-size: 0.9rem; color: #ef4444; margin-bottom: 8px;"><i class="fa-solid fa-circle-exclamation"></i> 취소 및 환불 규정 (필독)</h4>
                             <p style="font-size: 0.78rem; color: #444; line-height: 1.5; margin-bottom: 5px;">파티룸 단독 대관 공간 특성상 예약 확정 후 취소 시 다른 고객의 예약이 불가능하므로 환불 규정이 적용됩니다.</p>
                             <ul style="font-size: 0.78rem; color: #444; line-height: 1.5; padding-left: 15px; margin-bottom: 8px;">
-                                <li>결제 후 1시간 이내 취소: 100% 환불 (당일/전일 결제건 제외)</li>
+                                <li>결제 후 1시간 이내 취소: 100% 환불<br>(당일/전일 결제건 제외)</li>
                                 <li>이용일 8일 전 자정까지 취소: 100% 환불</li>
-                                <li>이용일 7일 전 ~ 4일 전 취소: 50% 환불 (위약금 50%)</li>
-                                <li>이용일 3일 전 ~ 당일 취소: 환불 불가 (위약금 100%)</li>
+                                <li>이용일 7일 전 ~ 4일 전 취소: 50% 환불</li>
+                                <li>이용일 3일 전 ~ 당일 취소: 환불 불가</li>
                             </ul>
                             <p style="font-size: 0.75rem; color: #888; line-height: 1.4;">
                                 * 모든 환불 기준 시간은 <strong>밤 12시(자정)</strong>입니다.<br>
@@ -1558,7 +1570,7 @@
             if (!selectedDateObj) { alert('캘린더에서 예약하실 날짜를 지정해주세요.'); return; }
             if (!checkAvailabilityReady()) return;
             
-            let pkgName = '';
+            let pkgName = '', pkgSub = '', pkgLabel = '패키지';
             let totalAmount = parseInt(document.getElementById('summary-total-price').innerText.replace(/[^0-9]/g, ''));
 
             if (currentReservationMode === 'package') {
@@ -1566,6 +1578,8 @@
                 if (pkg === 'none') { alert('이용하실 패키지를 선택해주세요.'); return; }
                 const pkgLabels = { day:'데이', night:'나이트', allnight:'올나잇' };
                 pkgName = pkgLabels[pkg] || pkg;
+                const PKG_TIME = { day: '10:00 ~ 17:00', night: '18:00 ~ 24:00', allnight: '18:00 ~ 익일 09:00' };
+                pkgSub = PKG_TIME[pkg] || '';
             } else {
                 if (hourlySelection.start === null || hourlySelection.end === null) {
                     alert('이용하실 시간을 선택해주세요.'); return;
@@ -1574,7 +1588,9 @@
                 if (duration < 3) {
                     alert('최소 3시간 이상 예약 가능합니다.'); return;
                 }
-                pkgName = `시간제 (${hourlySelection.start}시~${hourlySelection.end}시)`;
+                pkgLabel = '이용 시간';
+                pkgName = `${formatHourLabel(hourlySelection.start)} ~ ${formatHourLabel(hourlySelection.end)}`;
+                pkgSub = `시간제 · ${duration}시간 이용`;
                 if (hasBookingConflict(selectedDateObj, hourlySelection.start, hourlySelection.end)) {
                     alert('선택하신 시간에 이미 예약이 있습니다. 다른 시간을 선택해주세요.'); return;
                 }
@@ -1584,7 +1600,10 @@
 
             // 2단계 요약바 채우기
             document.getElementById('s2-sum-date').textContent    = document.getElementById('selected-date-display').innerText;
-            document.getElementById('s2-sum-pkg').textContent     = pkgName;
+            document.getElementById('s2-sum-pkg-label').textContent = pkgLabel;
+            const pkgEl = document.getElementById('s2-sum-pkg');
+            pkgEl.textContent = pkgName;
+            if (pkgSub) { const sub = document.createElement('small'); sub.textContent = pkgSub; pkgEl.appendChild(sub); }
             document.getElementById('s2-sum-guests').textContent  = document.getElementById('guest-count').value + '명';
             document.getElementById('s2-sum-total').textContent   = totalAmount.toLocaleString() + '원';
 
@@ -1598,7 +1617,41 @@
 
             // 모달 스크롤 초기화
             document.querySelector('.booking-modal-container').scrollTop = 0;
+
+            prefillSavedProfile();
         }
+
+        // ── 저장해 둔 내 정보(이름·연락처·방문 경로·환급 계좌)로 예약자 정보 자동 입력 ──
+        // 사용자가 이미 입력한 칸은 덮어쓰지 않는다. 저장 정보가 있으면 "저장" 체크박스도 켜 둔다(끄고 예약하면 삭제).
+        let savedProfileCache; // undefined: 아직 안 불러옴, null: 없음
+        async function prefillSavedProfile() {
+            try {
+                const me = JSON.parse(localStorage.getItem('monory_user') || 'null');
+                if (!me || !me.kakaoId || typeof firebase === 'undefined') return;
+                if (savedProfileCache === undefined) {
+                    if (!(await ensureFirebaseSession())) return;
+                    const snap = await firebase.firestore().collection('members').doc(String(me.kakaoId)).collection('booking_profile').doc('default').get();
+                    savedProfileCache = snap.exists ? snap.data() : null;
+                }
+                const p = savedProfileCache;
+                if (!p) return;
+                const fill = (id, v) => { const el = document.getElementById(id); if (el && !el.value && v) el.value = v; };
+                fill('s2-name', p.name);
+                fill('s2-phone', p.phone ? String(p.phone).replace(/[^0-9]/g, '') : '');
+                fill('s2-account', p.account);
+                fill('s2-holder', p.holder);
+                if (p.bank && !document.getElementById('s2-bank').value) {
+                    const chip = Array.from(document.querySelectorAll('.bank-chip')).find(c => c.dataset.bank === p.bank);
+                    if (chip) chip.click();
+                    else { const other = document.querySelector('.bank-chip[data-bank="__other"]'); if (other) other.click(); document.getElementById('s2-bank').value = p.bank; }
+                }
+                if (Array.isArray(p.visitSource) && !document.querySelector('input[name="s2-source"]:checked')) {
+                    document.querySelectorAll('input[name="s2-source"]').forEach(cb => { cb.checked = p.visitSource.includes(cb.value); });
+                }
+                const save = document.getElementById('s2-save-profile'); if (save) save.checked = true;
+            } catch (e) { console.warn('저장된 정보 불러오기 실패:', e); }
+        }
+
 
         function goToStep1() {
             document.getElementById('booking-steps-inner').classList.remove('step-2');
@@ -1634,9 +1687,11 @@
                 if (el) el.value = '';
             });
             document.querySelectorAll('input[name="s2-source"]').forEach(cb => { cb.checked = false; });
-            const consentEl = document.getElementById('s2-consent'); if (consentEl) consentEl.checked = false;
             document.querySelectorAll('.bank-chip').forEach(c => c.classList.remove('selected'));
             const bankInput = document.getElementById('s2-bank'); if (bankInput) bankInput.style.display = 'none';
+            savedProfileCache = undefined;
+            const spChk = document.getElementById('s2-save-profile'); if (spChk) spChk.checked = true;
+            ['opt-partition','opt-cleaning'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
             setBookingType('personal');
         }
 
@@ -1877,7 +1932,7 @@
             const requests = document.getElementById('s2-requests').value.trim();
 
             if (!name)  { alert('예약자 성함을 입력해주세요.'); return; }
-            if (!phone || phone.length < 12) { alert('올바른 연락처를 입력해주세요. (010-XXXX-XXXX)'); return; }
+            if (!/^010\d{7,8}$/.test(phone)) { alert("올바른 연락처를 입력해주세요. ('-' 없이 숫자만, 예: 01012345678)"); return; }
             if (currentBookingType === 'corporate' && !company) { alert('회사명을 입력해주세요.'); return; }
 
             // 결제 전에 서버 로그인과 예약 현황을 확인한다 (둘 중 하나라도 없으면 결제로 넘어가지 않는다)
@@ -1890,13 +1945,13 @@
             const refundHolder = document.getElementById('s2-holder').value.trim();
             const visitSource  = Array.from(document.querySelectorAll('input[name="s2-source"]:checked')).map(cb => cb.value);
             if (!usagePurpose) { alert('사용 용도를 작성해주세요.'); return; }
-            if (!refundBank || refundAccount.length < 8 || !refundHolder) { alert('청소 보증금 반환 계좌(은행명, 계좌번호, 예금주)를 정확히 입력해주세요.'); return; }
-            if (!document.getElementById('s2-consent').checked) { alert('청소 보증금 환급 계좌 수집·이용에 동의해 주세요.'); return; }
+            if ((!refundBank || refundAccount.length < 8 || !refundHolder)) { alert('청소 보증금 반환 계좌(은행명, 계좌번호, 예금주)를 정확히 입력해주세요.'); return; }
             if (visitSource.length === 0) { alert('방문 경로를 한 가지 이상 선택해주세요.'); return; }
 
             const pkg        = document.getElementById('booking-package').value;
             const guestCount = parseInt(document.getElementById('guest-count').value);
-            const totalAmount = parseInt(document.getElementById('summary-total-price').innerText.replace(/[^0-9]/g, ''));
+            // (2단계에서는 1단계 영역이 숨겨져 있어 innerText 는 빈 값이 된다 → textContent 로 읽는다)
+            const totalAmount = parseInt(document.getElementById('summary-total-price').textContent.replace(/[^0-9]/g, ''));
             const pkgLabels  = { day:'데이 패키지 (10:00~17:00)', night:'나이트 패키지 (18:00~24:00)', allnight:'올나잇 패키지 (18:00~익일 09:00)' };
             // ★ 시간제 예약은 패키지 드롭다운이 'none'이라 pkgLabels[pkg]가 undefined가 되어 Firestore 저장이 거부됐다
             if (currentReservationMode === 'hourly') {
@@ -1907,105 +1962,90 @@
             if (selectedDateObj && wantRange && hasBookingConflict(selectedDateObj, wantRange[0], wantRange[1])) {
                 alert('선택하신 시간에 이미 예약이 있습니다. 다른 날짜/시간을 선택해주세요.'); return;
             }
-            const merchantUid = 'MNRY-' + Date.now();
+            const couponSelect = document.getElementById('booking-coupon');
+            const couponId = couponSelect && couponSelect.value && couponSelect.value !== 'none' ? couponSelect.value : null;
+            const reviewPromiseVal = document.getElementById('review-promise')?.checked || false;
 
-            // 포인트 사용 시 결제 직전에 서버에서 선차감 (결제 실패/중단 시 복구됨)
-            const pointUsed = currentPointUse;
-            if (pointUsed > 0) {
-                const pb = document.getElementById('btn-pay');
-                if (pb) pb.disabled = true; // 선차감 중 중복 클릭 방지
-                try {
-                    await firebase.functions().httpsCallable('reservePoints')({ amount: pointUsed, merchantUid });
-                } catch (e) {
-                    if (pb) pb.disabled = false;
-                    alert('포인트 사용 실패: ' + (e.message || '잠시 후 다시 시도해주세요.'));
-                    return;
-                }
+            const payBtn = document.getElementById('btn-pay');
+            const resetPayBtn = () => {
+                payBtn.disabled = false;
+                payBtn.innerHTML = '<i class="fa-solid fa-lock" style="font-size:0.9rem;opacity:0.8;"></i> 안전하게 결제하기';
+            };
+            payBtn.disabled = true;
+            payBtn.textContent = '예약 정보 확인 중...';
+
+            // ★ 요금은 서버가 직접 계산한다 (포인트 선차감도 서버가 함께 처리). 결제는 서버가 알려준 금액으로만 진행한다.
+            let prep;
+            try {
+                prep = (await firebase.functions().httpsCallable('prepareBooking')({
+                    bookingType: currentBookingType, companyName: company, guestName: name, phone: phone, requests: requests,
+                    date: document.getElementById('selected-date-display').textContent.trim(),
+                    guestCount: guestCount,
+                    reservationMode: currentReservationMode,
+                    packageKey: pkg,
+                    startTime: currentReservationMode === 'hourly' ? hourlySelection.start : null,
+                    endTime:   currentReservationMode === 'hourly' ? hourlySelection.end : null,
+                    couponId: couponId, reviewPromise: reviewPromiseVal, pointUsed: currentPointUse,
+                    optPartition: !!document.getElementById('opt-partition')?.checked, optCleaning: !!document.getElementById('opt-cleaning')?.checked,
+                    saveProfile: !!document.getElementById('s2-save-profile')?.checked,
+                    usagePurpose: usagePurpose, visitSource: visitSource,
+                    refundBank: refundBank, refundAccount: refundAccount, refundHolder: refundHolder
+                })).data;
+            } catch (e) {
+                resetPayBtn();
+                alert('예약을 진행할 수 없습니다: ' + (e.message || '잠시 후 다시 시도해 주세요.'));
+                return;
             }
+            const merchantUid = prep.merchantUid;
+            const payAmount = prep.amount;
+            const pointUsed = prep.pointUsed;
             const releasePointsIfUsed = () => {
                 if (pointUsed > 0) firebase.functions().httpsCallable('releasePoints')({ merchantUid }).catch(() => {});
             };
 
-            const couponSelect = document.getElementById('booking-coupon');
-            const usedCoupon = couponSelect && couponSelect.value !== 'none' ? {
-                id: couponSelect.value,
-                name: couponSelect.options[couponSelect.selectedIndex].text,
-                discount: parseInt(couponSelect.options[couponSelect.selectedIndex].dataset.amount || '0'),
-                rate: parseInt(couponSelect.options[couponSelect.selectedIndex].dataset.rate || '0')
-            } : null;
+            if (payAmount !== totalAmount) {
+                if (!confirm('서버에서 계산한 결제 금액은 ' + payAmount.toLocaleString() + '원입니다. (화면 표시 금액: ' + totalAmount.toLocaleString() + '원)\n이 금액으로 결제를 진행할까요?')) {
+                    releasePointsIfUsed();
+                    resetPayBtn();
+                    return;
+                }
+            }
 
-            const reviewPromiseVal = document.getElementById('review-promise')?.checked || false;
-
-            // ★ 모바일 리다이렉트 대비: 결제 정보를 sessionStorage에 미리 저장
-            const pendingBooking = {
-                bookingType:  currentBookingType,
-                companyName:  company,
-                guestName:    name,
-                phone:        phone,
-                requests:     requests,
-                date:         document.getElementById('selected-date-display').innerText,
-                guestCount:   guestCount,
-                packageKey:   currentReservationMode === 'hourly' ? 'hourly' : pkg,
-                packageName:  pkgLabels[pkg],
-                totalAmount:  totalAmount,
-                usedCoupon:   usedCoupon,
-                pointUsed:    pointUsed,
-                usagePurpose: usagePurpose,
-                visitSource:  visitSource,
-                refundBank:   refundBank,
-                refundAccount: refundAccount,
-                refundHolder: refundHolder,
-                refundConsent: true,
-                reviewPromise: reviewPromiseVal,
-                reservationMode: currentReservationMode,
-                startTime:    currentReservationMode === 'hourly' ? hourlySelection.start : null,
-                endTime:      currentReservationMode === 'hourly' ? hourlySelection.end : null,
-                totalHours:   currentReservationMode === 'hourly' ? (hourlySelection.end - hourlySelection.start) : null,
-                isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false,
-                merchantUid:  merchantUid
-            };
-            sessionStorage.setItem('monory_pending_booking', JSON.stringify(pendingBooking));
-
-            // 결제 버튼 비활성화 (중복 방지)
-            const payBtn = document.getElementById('btn-pay');
-            payBtn.disabled = true;
+            // ★ 모바일 리다이렉트 대비: 주문번호만 sessionStorage에 저장 (예약 내용은 서버가 이미 보관 중)
+            sessionStorage.setItem('monory_pending_booking', JSON.stringify({ merchantUid: merchantUid, pointUsed: pointUsed, amount: payAmount }));
             payBtn.textContent = '결제 진행 중...';
 
-            // 0원 결제 처리: 결제 모듈 생략하고 즉시 저장
-            if (totalAmount === 0) {
-                console.log('💰 0원 결제: 즉시 저장 프로세스 시작');
-                saveReservationToFirestore({
-                    impUid:       'FREE-' + merchantUid,
-                    merchantUid:  merchantUid,
-                    bookingType:  currentBookingType,
-                    companyName:  company,
-                    guestName:    name,
-                    phone:        phone,
-                    requests:     requests,
-                    date:         document.getElementById('selected-date-display').innerText,
-                    guestCount:   guestCount,
-                    packageKey:   currentReservationMode === 'hourly' ? 'hourly' : pkg,
-                    packageName:  pkgLabels[pkg],
-                    totalAmount:  0,
-                    pointUsed:    pointUsed,
-                    usagePurpose: usagePurpose, visitSource: visitSource,
-                    refundBank: refundBank, refundAccount: refundAccount, refundHolder: refundHolder,
-                    usedCoupon:   usedCoupon,
-                    reviewPromise: reviewPromiseVal,
-                    isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false
-                }).finally(() => {
-                    // ★ Firestore 저장이 끝난 뒤에 페이지를 이동해야 저장 요청이 끊기지 않는다
+            // 서버가 결제를 확인하고 예약을 확정한 뒤 성공 페이지로 이동
+            const finishBooking = async (impUid) => {
+                try {
+                    const r = await confirmBookingOnServer(merchantUid, impUid);
+                    sessionStorage.removeItem('monory_pending_booking');
                     closeModal('bookingModal');
-                    window.location.href = 'payment-success.html?imp_uid=FREE-' + merchantUid;
-                });
+                    window.location.href = 'payment-success.html?imp_uid=' + encodeURIComponent(r.reservationId || impUid);
+                } catch (e) {
+                    if (e && (e.code === 'functions/internal' || e.code === 'functions/unavailable' || e.code === 'functions/deadline-exceeded')) {
+                        // 결제는 끝났고 서버가 곧 자동으로 예약을 확정한다 (포트원 알림)
+                        alert('결제는 완료되었습니다. 예약 확정이 조금 지연되고 있어요. 잠시 후 마이페이지에서 확인해 주세요.');
+                        window.location.href = 'mypage.html';
+                        return;
+                    }
+                    sessionStorage.removeItem('monory_pending_booking');
+                    alert((e && e.message) || '예약을 확정하지 못했습니다.');
+                    resetPayBtn();
+                }
+            };
+
+            // 0원 결제: 결제 모듈 없이 서버가 바로 확정
+            if (payAmount === 0) {
+                await finishBooking(null);
                 return;
             }
 
             // PortOne SDK 초기화
             if (typeof IMP === 'undefined') {
                 alert('결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해주세요.');
-                payBtn.disabled = false;
-                payBtn.innerHTML = '<i class="fa-solid fa-lock" style="font-size:0.9rem;opacity:0.8;"></i> 안전하게 결제하기';
+                releasePointsIfUsed();
+                resetPayBtn();
                 return;
             }
 
@@ -2015,141 +2055,40 @@
                 pg:           'kcp.IPAEX', // 실서비스 운영 PG (NHN KCP, 사이트코드 IPAEX)
                 pay_method:   'card',
                 merchant_uid:  merchantUid,
-                name:         `모노리 ${pkgLabels[pkg]}`,
-                amount:        totalAmount,
+                name:         `모노리 ${currentReservationMode === 'hourly' ? '시간제' : pkgLabels[pkg].split(' (')[0]}`,
+                amount:        payAmount,
                 buyer_name:    name,
                 buyer_tel:     phone,
                 // ★ 모바일: 결제 완료 후 이 URL로 리다이렉트 (imp_uid, merchant_uid, imp_success 파라미터 자동 포함)
-                m_redirect_url: window.location.origin + '/payment-success.html',
-                // 브라우저에서 예약 저장이 실패해도 서버(포트원 웹훅)가 같은 정보로 예약을 복구할 수 있도록 함께 전달
-                custom_data: JSON.stringify({
-                    kakaoUid: (JSON.parse(localStorage.getItem('monory_user') || '{}')).kakaoId || null,
-                    kakaoName: (JSON.parse(localStorage.getItem('monory_user') || '{}')).name || null,
-                    bookingType: currentBookingType, companyName: company, guestName: name, phone: phone, requests: requests,
-                    date: pendingBooking.date, guestCount: guestCount,
-                    packageKey: pendingBooking.packageKey, packageName: pkgLabels[pkg],
-                    totalAmount: totalAmount, pointUsed: pointUsed, usagePurpose: usagePurpose, visitSource: visitSource, usedCoupon: usedCoupon, reviewPromise: reviewPromiseVal,
-                    reservationMode: currentReservationMode,
-                    startTime: pendingBooking.startTime, endTime: pendingBooking.endTime, totalHours: pendingBooking.totalHours,
-                    isWeekend: pendingBooking.isWeekend
-                })
+                m_redirect_url: window.location.origin + '/payment-success.html'
             }, function(rsp) {
                 // PC 콜백 (모바일은 페이지 이동이라 이 콜백이 실행되지 않음)
-                sessionStorage.removeItem('monory_pending_booking'); // 저장 데이터 정리
                 if (rsp.success) {
-                    saveReservationToFirestore({
-                        impUid:       rsp.imp_uid,
-                        merchantUid:  merchantUid,
-                        bookingType:  currentBookingType,
-                        companyName:  company,
-                        guestName:    name,
-                        phone:        phone,
-                        requests:     requests,
-                        date:         document.getElementById('selected-date-display').innerText,
-                        guestCount:   guestCount,
-                        packageKey:   currentReservationMode === 'hourly' ? 'hourly' : pkg,
-                        packageName:  pkgLabels[pkg],
-                        totalAmount:  totalAmount,
-                        pointUsed:    pointUsed,
-                        usagePurpose: usagePurpose, visitSource: visitSource,
-                        refundBank: refundBank, refundAccount: refundAccount, refundHolder: refundHolder,
-                        usedCoupon:   usedCoupon, // 결제성공시 쿠폰 처리용 데이터 추가
-                        reviewPromise: reviewPromiseVal,
-                        reservationMode: currentReservationMode,
-                        startTime:    currentReservationMode === 'hourly' ? hourlySelection.start : null,
-                        endTime:      currentReservationMode === 'hourly' ? hourlySelection.end : null,
-                        totalHours:   currentReservationMode === 'hourly' ? (hourlySelection.end - hourlySelection.start) : null,
-                        isWeekend:    typeof isWeekend !== 'undefined' ? isWeekend : false
-                    }).finally(() => {
-                        // ★ Firestore 저장이 끝난 뒤에 페이지를 이동해야 저장 요청이 끊기지 않는다
-                        closeModal('bookingModal');
-                        // PC 결제 성공 시 payment-success.html로 이동
-                        window.location.href = 'payment-success.html?imp_uid=' + rsp.imp_uid;
-                    });
+                    finishBooking(rsp.imp_uid);
                 } else {
+                    sessionStorage.removeItem('monory_pending_booking');
                     releasePointsIfUsed();
                     if (rsp.error_msg && !rsp.error_msg.includes('취소')) {
                         alert('결제 오류: ' + rsp.error_msg);
                     }
-                    payBtn.disabled = false;
-                    payBtn.innerHTML = '<i class="fa-solid fa-lock" style="font-size:0.9rem;opacity:0.8;"></i> 안전하게 결제하기';
+                    resetPayBtn();
                 }
             });
         }
 
-        // ── Firestore reservations 저장 ──────────────────────────────
-        // ★ 반환된 Promise가 끝나기 전에 페이지를 이동하면 저장 요청이 끊길 수 있으므로,
-        //   호출부에서는 반드시 이 Promise가 끝난 뒤 페이지 이동을 진행해야 한다.
-        function saveReservationToFirestore(data) {
-            if (typeof firebase === 'undefined') { console.warn('Firebase 미연결'); return Promise.resolve(); }
-            try {
-                const db = firebase.firestore();
-                const user = JSON.parse(localStorage.getItem('monory_user') || '{}');
-                // 문서 ID를 impUid로 고정해 포트원 웹훅(서버 복구)과 중복 저장되지 않게 한다
-                const resRef = db.collection('reservations').doc(String(data.impUid));
-                // (예약 문서는 본인/관리자만 읽을 수 있으므로 "이미 있는지" 읽어 보지 않고 바로 쓴다.
-                //  이미 웹훅이 저장한 예약이면 규칙이 덮어쓰기를 막으므로 permission-denied → 정상으로 본다)
-                return Promise.resolve().then(() => {
-                    return resRef.set({
-                    kakaoUid:    user.kakaoId   || null,
-                    kakaoName:   user.name      || null,
-                    bookingType: data.bookingType,
-                    companyName: data.companyName  || null,
-                    guestName:   data.guestName,
-                    phone:       data.phone,
-                    requests:    data.requests  || '',
-                    date:        data.date,
-                    guestCount:  data.guestCount,
-                    packageKey:  data.packageKey,
-                    packageName: data.packageName,
-                    totalAmount: data.totalAmount,
-                    pointUsed:   data.pointUsed || 0,
-                    usagePurpose: data.usagePurpose || '',
-                    visitSource:  data.visitSource || [],
-                    usedCoupon:  data.usedCoupon || null,
-                    reviewPromise: data.reviewPromise || false,
-                    reservationMode: data.reservationMode || 'package',
-                    startTime:    data.startTime || null,
-                    endTime:      data.endTime || null,
-                    totalHours:   data.totalHours || null,
-                    isWeekend:    data.isWeekend,
-                    impUid:      data.impUid,
-                    merchantUid: data.merchantUid,
-                    status:      'paid',
-                    approvalStatus: 'pending',
-                    createdAt:   firebase.firestore.Timestamp.now()
-                    }).then(() => ({ id: resRef.id })).catch(e => {
-                        if (e && e.code === 'permission-denied') { console.warn('예약이 이미 저장되어 있습니다(또는 서버가 복구 저장함).'); return { id: resRef.id, existed: true }; }
-                        throw e;
-                    });
-                }).then(ref => {
-                    console.log('✅ 예약 저장 완료:', ref.id);
-                    // 환급 계좌는 관리자만 읽을 수 있는 별도 문서에 저장 (예약 문서는 공개 조회가 가능해서 분리)
-                    // ★ 페이지 이동 전에 끝나도록 Promise 로 묶어서 반환한다
-                    const tasks = [];
-                    if (data.refundAccount && !ref.existed) {
-                        tasks.push(db.collection('reservation_private').doc(String(data.impUid)).set({
-                            reservationId: String(data.impUid),
-                            kakaoUid: user.kakaoId || null,
-                            bank: data.refundBank || '', account: data.refundAccount || '', holder: data.refundHolder || '',
-                            consent: true, consentAt: firebase.firestore.Timestamp.now(),
-                            createdAt: firebase.firestore.Timestamp.now()
-                        }).catch(e => console.warn('환급 계좌 저장 실패:', e.code || e)));
-                    }
-                    // 쿠폰 사용 상태 변경
-                    if (data.usedCoupon && data.usedCoupon.id) {
-                        tasks.push(db.collection('members').doc(String(user.kakaoId)).collection('coupons').doc(data.usedCoupon.id)
-                          .update({ 
-                            status: 'used', 
-                            isUsed: true, 
-                            usedAt: firebase.firestore.Timestamp.now() 
-                          })
-                          .catch(e => console.error('쿠폰 상태 업데이트 실패', e)));
-                    }
-                    return Promise.all(tasks);
-                })
-                  .catch(e  => console.error('예약 저장 실패:', e));
-            } catch(e) { console.error('Firestore 오류:', e); return Promise.resolve(); }
+        // 서버에 결제 확인·예약 확정을 요청한다. 일시적 오류(네트워크·서버 지연)는 몇 번 더 시도한다.
+        async function confirmBookingOnServer(merchantUid, impUid) {
+            const call = firebase.functions().httpsCallable('confirmBooking');
+            let lastErr;
+            for (let k = 0; k < 3; k++) {
+                try { return (await call({ merchantUid: merchantUid, impUid: impUid || null })).data; }
+                catch (e) {
+                    lastErr = e;
+                    if (!(e && (e.code === 'functions/internal' || e.code === 'functions/unavailable' || e.code === 'functions/deadline-exceeded'))) break;
+                    await new Promise(r => setTimeout(r, 1500));
+                }
+            }
+            throw lastErr;
         }
 
         // ── X버튼 및 메인 복귀 시 끊긴 결제(모바일 등) 검증 처리 ──
@@ -2176,21 +2115,23 @@
             try {
                 if (typeof firebase !== 'undefined' && firebase.functions) {
                     const functions = firebase.functions();
-                    const checkPaymentStatus = functions.httpsCallable('checkPaymentStatus');
-                    
-                    const res = await checkPaymentStatus({ merchantUid: pendingParams.merchantUid });
-                    if(res.data && res.data.success && res.data.status === 'paid') {
-                        // 실제 결제 성공했다면 저장 후 마이페이지
-                        pendingParams.impUid = res.data.data.imp_uid;
-                        // ★ Firestore 저장이 끝난 뒤에 페이지를 이동해야 저장 요청이 끊기지 않는다
-                        await saveReservationToFirestore(pendingParams);
+                    if (pendingParams.amount === 0) {
+                        const r0 = await confirmBookingOnServer(pendingParams.merchantUid, null);
                         sessionStorage.removeItem('monory_pending_booking');
-                        // 검증 성공 시 마이페이지 대신 성공 페이지로 이동
-                        window.location.href = 'payment-success.html?imp_uid=' + res.data.data.imp_uid;
+                        window.location.href = 'payment-success.html?imp_uid=' + encodeURIComponent(r0.reservationId);
                         return;
                     }
-                    // 결제가 완료되지 않았다면 선차감한 포인트 복구
-                    if (pendingParams.pointUsed > 0) {
+                    const checkPaymentStatus = functions.httpsCallable('checkPaymentStatus');
+                    const res = await checkPaymentStatus({ merchantUid: pendingParams.merchantUid });
+                    if(res.data && res.data.success && res.data.status === 'paid') {
+                        // 실제 결제 성공: 서버가 결제를 확인하고 예약을 확정한 뒤 성공 페이지로 이동
+                        const r = await confirmBookingOnServer(pendingParams.merchantUid, res.data.data.imp_uid);
+                        sessionStorage.removeItem('monory_pending_booking');
+                        window.location.href = 'payment-success.html?imp_uid=' + encodeURIComponent(r.reservationId || res.data.data.imp_uid);
+                        return;
+                    }
+                    // 결제가 완료되지 않았다면 선차감한 포인트 복구 (결제 진행 중(ready)이면 건드리지 않는다)
+                    if (res.data && res.data.status !== 'ready' && pendingParams.pointUsed > 0) {
                         await functions.httpsCallable('releasePoints')({ merchantUid: pendingParams.merchantUid }).catch(() => {});
                     }
                 }
@@ -2519,13 +2460,20 @@
 
             const baseTotal = basePrice + extraPrice;
 
+            // 추가 옵션 (서버 요금표와 같은 값). 쿠폰 할인은 옵션 금액에는 적용되지 않는다
+            const optPartition = document.getElementById('opt-partition')?.checked ? 20000 : 0;
+            const optCleaning  = document.getElementById('opt-cleaning')?.checked ? (guestCount <= 10 ? 50000 : 100000) : 0;
+            const cleaningLabel = document.getElementById('opt-cleaning-price');
+            if (cleaningLabel) cleaningLabel.innerText = '+' + (guestCount <= 10 ? 50000 : 100000).toLocaleString() + '원';
+
             // 1. 리뷰 약속 할인 (10,000원)
             if (reviewPromiseCheckbox && reviewPromiseCheckbox.checked) {
                 reviewDiscount = 10000;
             }
 
             // 2. 쿠폰 할인 적용
-            if (couponSelect && couponSelect.value !== 'none') {
+            // (쿠폰 목록이 아직 로드되지 않아 선택이 비어 있는 경우(selectedIndex -1)에는 쿠폰 없음으로 계산한다)
+            if (couponSelect && couponSelect.value && couponSelect.value !== 'none' && couponSelect.selectedIndex >= 0) {
                 const opt = couponSelect.options[couponSelect.selectedIndex];
                 const amount = parseInt(opt.dataset.amount || '0');
                 const rate = parseInt(opt.dataset.rate || '0');
@@ -2537,8 +2485,8 @@
                 }
             }
 
-            let total = baseTotal - discount - reviewDiscount;
-            if (total < 0) total = 0;
+            discount = Math.min(discount, baseTotal);
+            let total = Math.max(0, baseTotal - discount - reviewDiscount) + optPartition + optCleaning;
 
             // 3. 포인트 사용 (1,000P 이상, 보유 한도·결제금액 이내)
             const pointInput = document.getElementById('booking-points');
@@ -2557,6 +2505,10 @@
 
             document.getElementById('summary-pkg-price').innerText   = basePrice.toLocaleString() + '원';
             document.getElementById('summary-extra-price').innerText = extraPrice.toLocaleString() + '원';
+            const partRow = document.getElementById('summary-partition-row');
+            if (partRow) { partRow.style.display = optPartition > 0 ? 'flex' : 'none'; document.getElementById('summary-partition-price').innerText = '+' + optPartition.toLocaleString() + '원'; }
+            const cleanRow = document.getElementById('summary-cleaning-row');
+            if (cleanRow) { cleanRow.style.display = optCleaning > 0 ? 'flex' : 'none'; document.getElementById('summary-cleaning-price').innerText = '+' + optCleaning.toLocaleString() + '원'; }
             
             const couponRow = document.getElementById('summary-coupon-row');
             if (discount > 0 || reviewDiscount > 0) {
@@ -2651,8 +2603,8 @@
                         opt.value = doc.id;
                         
                         // 데이터 저장
-                        const amount = data.discountAmount || 0;
-                        const rate = data.discountRate || 0;
+                        const rate = Number(data.discountRate) || (data.discountType === 'percent' ? Number(data.discountValue) || 0 : 0);
+                        const amount = Number(data.discountAmount) || (data.discountType === 'fixed' ? Number(data.discountValue) || 0 : 0);
                         opt.dataset.amount = amount;
                         opt.dataset.rate = rate;
 

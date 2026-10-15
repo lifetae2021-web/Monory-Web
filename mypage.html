@@ -415,65 +415,13 @@
                 history.pushState(null, '', window.location.pathname);
 
                 if (impSuccess && pendingStr) {
-                    // 모바일 PG사를 거쳐서 되돌아왔고 성공했을 경우 Firestore 저장 수행
+                    // 모바일 결제 후 돌아온 경우: 서버가 결제를 확인하고 예약을 확정한다
                     const pendingData = JSON.parse(pendingStr);
-                    pendingData.impUid = impUid;
-                    
                     try {
-                        const db = firebase.firestore();
-                        const resRef = db.collection('reservations').doc(String(pendingData.impUid));
-                        let alreadySaved = false;
-                        try { await resRef.set({
-                            kakaoUid:    user.kakaoId   || null,
-                            kakaoName:   user.name      || null,
-                            bookingType: pendingData.bookingType,
-                            companyName: pendingData.companyName  || null,
-                            guestName:   pendingData.guestName,
-                            phone:       pendingData.phone,
-                            requests:    pendingData.requests  || '',
-                            date:        pendingData.date,
-                            guestCount:  pendingData.guestCount,
-                            packageKey:  pendingData.packageKey,
-                            packageName: pendingData.packageName,
-                            totalAmount: pendingData.totalAmount,
-                            pointUsed:   pendingData.pointUsed || 0,
-                            usagePurpose: pendingData.usagePurpose || '',
-                            visitSource:  pendingData.visitSource || [],
-                            usedCoupon:  pendingData.usedCoupon || null,
-                            isWeekend:   pendingData.isWeekend,
-                            impUid:      pendingData.impUid,
-                            merchantUid: pendingData.merchantUid,
-                            status:      'paid',
-                            approvalStatus: 'pending',
-                            createdAt:   firebase.firestore.Timestamp.now()
-                        }); } catch (setErr) {
-                            // 이미 저장된 예약(웹훅 등)이면 규칙이 다시 쓰는 것을 막는다 → 정상이므로 넘어간다
-                            if (setErr && setErr.code === 'permission-denied') { alreadySaved = true; }
-                            else throw setErr;
-                        }
-                        if (!alreadySaved) console.log('✅ 모바일 결제 후 자동 저장 완료');
-
-                        // 환급 계좌는 관리자만 읽을 수 있는 별도 문서에 저장
-                        if (!alreadySaved && pendingData.refundAccount) {
-                            await db.collection('reservation_private').doc(String(pendingData.impUid)).set({
-                                reservationId: String(pendingData.impUid),
-                                kakaoUid: user.kakaoId || null,
-                                bank: pendingData.refundBank || '', account: pendingData.refundAccount || '', holder: pendingData.refundHolder || '',
-                                consent: true, consentAt: firebase.firestore.Timestamp.now(),
-                                createdAt: firebase.firestore.Timestamp.now()
-                            }).catch(e => console.warn('환급 계좌 저장 실패:', e.code || e));
-                        }
-
-                        // 적용된 쿠폰 소진 처리
-                            db.collection('members').doc(String(user.kakaoId)).collection('coupons').doc(pendingData.usedCoupon.id)
-                              .update({ 
-                                status: 'used',
-                                isUsed: true, 
-                                usedAt: firebase.firestore.Timestamp.now() 
-                              })
-                              .catch(e => console.error('쿠폰 상태 변경 실패:', e));
-                    } catch(e) {
-                        console.error('모바일 결제 데이터 저장 실패:', e);
+                        await firebase.functions().httpsCallable('confirmBooking')({ merchantUid: pendingData.merchantUid, impUid: impUid });
+                    } catch (e) {
+                        console.error('예약 확정 요청 실패:', e);
+                        if (e && e.code === 'functions/failed-precondition') alert(e.message);
                     }
                     sessionStorage.removeItem('monory_pending_booking');
                 }
@@ -944,12 +892,10 @@
                     await db.collection('reservations').doc(targetResId).update({ hasReview: true });
                 }
 
-                // 4. 자동 쿠폰 발급
-                await issueReviewCoupon(user);
-
+                // 4. 리뷰 쿠폰은 서버가 자동 지급한다 (잠시 후 쿠폰함 새로고침)
                 closeReviewModal();
                 loadReservations(user);
-                loadCoupons(user);
+                setTimeout(() => loadCoupons(user), 2500);
 
                 Swal.fire({
                     icon: 'success',
@@ -965,28 +911,6 @@
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '리뷰 등록하고 쿠폰 받기';
-            }
-        }
-
-        async function issueReviewCoupon(user) {
-            const db = firebase.firestore();
-            try {
-                const couponData = {
-                    title: '리뷰 감사 쿠폰 (5,000원)',
-                    discountType: 'fixed',
-                    discountValue: 5000,
-                    status: 'active',
-                    isUnlimited: true,
-                    expireAt: firebase.firestore.Timestamp.fromDate(new Date('2099-12-31')),
-                    createdAt: firebase.firestore.Timestamp.now(),
-                    issuedBy: 'system_review_reward'
-                };
-                
-                await db.collection('members').doc(String(user.kakaoId)).collection('coupons').add(couponData);
-                console.log('✅ 리뷰 보상 쿠폰 발급 완료');
-            } catch(e) {
-                console.error('❌ 쿠폰 발급 실패:', e);
-                throw e;
             }
         }
     </script>

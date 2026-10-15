@@ -9,6 +9,8 @@ const sms = require("./sms");
 const slots = require("./slots");
 const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { applyPortoneCancellation: applyCancellation } = require("./cancellation");
+const couponSvc = require("./coupons");
+const booking = require("./booking");
 
 admin.initializeApp();
 
@@ -268,10 +270,119 @@ exports.checkPaymentStatus = onCall({ secrets: SECRETS }, async (request) => {
     }
 });
 
+// ── 3-1. 서버 예약 확정 (요금은 서버가 계산, 예약 문서는 서버만 만든다) ──
+// 결제 직전: 예약 내용을 보내면 서버가 요금을 계산해 저장하고, 결제해야 할 금액을 알려준다
+exports.prepareBooking = onCall(async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+    const db = admin.firestore();
+    const uid = request.auth.uid;
+    let created;
+    try {
+        const m = await db.collection("members").doc(String(uid)).get();
+        created = await booking.createIntent(db, { uid, input: request.data, memberName: m.exists ? m.data().name || null : null });
+    } catch (e) {
+        if (e instanceof booking.BookingError) throw new HttpsError("failed-precondition", e.message);
+        console.error("prepareBooking error:", e);
+        throw new HttpsError("internal", "예약 준비 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+    if (created.pointUsed > 0) {
+        try {
+            await points.reservePoints(db, { uid, merchantUid: created.merchantUid, amount: created.pointUsed });
+        } catch (e) {
+            await db.collection("booking_intents").doc(created.merchantUid).delete().catch(() => {});
+            throw new HttpsError("failed-precondition", e.message);
+        }
+    }
+    const q = created.quote;
+    return {
+        merchantUid: created.merchantUid, amount: created.amount, pointUsed: created.pointUsed,
+        breakdown: { base: q.base, extra: q.extra, optPartition: q.optPartition, optCleaning: q.optCleaning, couponOff: q.couponOff, reviewOff: q.reviewOff, total: q.total },
+    };
+});
+
+// 결제는 됐는데 예약을 만들 수 없는 경우(금액 불일치·그 사이 다른 예약 선점): 전액 자동 환불 + 대표님께 알림
+async function refundUnbookable(db, { merchantUid, payment, reason, detail }) {
+    const impUid = payment && payment.imp_uid;
+    let refunded = false;
+    if (impUid) {
+        try {
+            const token = await getPortoneToken();
+            const resp = await axios.post("https://api.iamport.kr/payments/cancel",
+                { imp_uid: impUid, reason, checksum: Number(payment.amount) }, { headers: { Authorization: `Bearer ${token}` } });
+            refunded = resp.data.code === 0;
+        } catch (e) { console.error("자동 환불 실패:", impUid, e.response ? JSON.stringify(e.response.data) : e.message); }
+    }
+    await points.releaseHold(db, { merchantUid, rate: 1, memo: "예약 불가로 포인트 복구" }).catch(() => {});
+    await db.collection("booking_intents").doc(merchantUid).update({ status: refunded || !impUid ? "refunded" : "refund_failed", refund: admin.firestore.FieldValue.delete() }).catch(() => {});
+    await db.collection("payment_alerts").doc(impUid || merchantUid).set({
+        impUid: impUid || null, merchantUid, amount: payment ? Number(payment.amount) : 0, reason, detail: detail || null,
+        autoRefunded: refunded, createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    await pushTelegram(`⚠️ [모노리] 예약 자동 처리 실패\n사유: ${reason}\n주문번호 ${merchantUid}\n${refunded ? "결제는 자동 전액 환불되었습니다." : impUid ? "자동 환불 실패! 포트원에서 직접 환불해 주세요." : "결제 전 단계였습니다."}`);
+    return refunded;
+}
+
+// 저장해 둔 예약 내용 + 포트원 결제 확인 결과로 예약을 확정한다. 웹훅과 confirmBooking 이 같이 쓴다.
+async function settleBooking(db, { merchantUid, uid = null, payment = null }) {
+    const r = await booking.finalizeIntent(db, { merchantUid, uid, payment });
+    if (r.result === "no-intent" && payment) {
+        await db.collection("payment_alerts").doc(payment.imp_uid).set({
+            impUid: payment.imp_uid, merchantUid, amount: payment.amount, buyerName: payment.buyer_name || null,
+            reason: "paid_without_reservation", createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        await pushTelegram(`⚠️ [모노리] 결제는 됐는데 예약 정보가 없습니다\n${payment.buyer_name || "-"} / ${Number(payment.amount).toLocaleString("ko-KR")}원\n주문번호 ${merchantUid}\n포트원에서 확인해 주세요.`);
+    } else if (r.result === "amount-mismatch") {
+        await refundUnbookable(db, { merchantUid, payment, reason: "결제 금액 불일치", detail: `결제 ${r.paid}원 / 서버 계산 ${r.expected}원` });
+    } else if (r.result === "hold-lost") {
+        await refundUnbookable(db, { merchantUid, payment, reason: "사용하기로 한 포인트가 이미 복구되어 예약을 확정할 수 없음" });
+    } else if (r.result === "conflict") {
+        await refundUnbookable(db, { merchantUid, payment, reason: "결제 중 같은 시간에 다른 예약이 먼저 확정됨" });
+    }
+    return r;
+}
+
+// 결제 후: 브라우저가 호출. 서버가 포트원에서 결제를 직접 확인하고 예약을 확정한다 (이미 확정됐으면 그대로 돌려줌)
+exports.confirmBooking = onCall({ secrets: [...SECRETS, ...TELEGRAM_SECRETS] }, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+    const { merchantUid, impUid } = request.data || {};
+    if (typeof merchantUid !== "string" || !/^MNRY-\d+$/.test(merchantUid)) throw new HttpsError("invalid-argument", "결제 정보가 올바르지 않습니다.");
+    const db = admin.firestore();
+    const uid = request.auth.uid;
+    try {
+        const it = await db.collection("booking_intents").doc(merchantUid).get();
+        if (!it.exists) throw new HttpsError("not-found", "예약 준비 정보를 찾을 수 없습니다.");
+        if (String(it.data().uid) !== String(uid)) throw new HttpsError("permission-denied", "본인의 예약만 확인할 수 있습니다.");
+        let payment = null;
+        if (it.data().amount > 0) {
+            const token = await getPortoneToken();
+            if (impUid) {
+                payment = await getPortonePayment(String(impUid), token);
+            } else {
+                const resp = await axios.get(`https://api.iamport.kr/payments/find/${encodeURIComponent(merchantUid)}`, { headers: { Authorization: `Bearer ${token}` } });
+                if (resp.data.code !== 0) throw new HttpsError("failed-precondition", "결제 내역을 찾을 수 없습니다.");
+                payment = resp.data.response;
+            }
+        }
+        const r = await settleBooking(db, { merchantUid, uid, payment });
+        if (r.result === "created" || r.result === "exists") return { success: true, reservationId: r.id };
+        const msg = {
+            "payment-invalid": "결제가 완료되지 않았습니다.",
+            "amount-mismatch": "결제 금액이 올바르지 않아 자동 환불 처리되었습니다. 다시 시도해 주세요.",
+            "hold-lost": "포인트 사용 상태가 변경되어 결제가 자동 환불되었습니다. 다시 예약해 주세요.",
+            "conflict": "결제하는 사이 같은 시간에 다른 예약이 먼저 확정되어 결제가 자동 환불되었습니다. 다른 시간으로 다시 예약해 주세요.",
+        }[r.result] || "예약을 확정하지 못했습니다.";
+        throw new HttpsError("failed-precondition", msg);
+    } catch (e) {
+        if (e instanceof HttpsError) throw e;
+        console.error("confirmBooking error:", e.response ? JSON.stringify(e.response.data) : e);
+        throw new HttpsError("internal", "예약 확정 중 오류가 발생했습니다. 마이페이지에서 예약을 확인해 주세요.");
+    }
+});
+
 // ── 4. 포트원 웹훅: 결제는 됐는데 브라우저에서 예약 저장이 안 된 경우 서버가 복구 ──
 // 포트원 콘솔 > 결제 연동 > 결제알림(Webhook) 에 이 함수 URL을 등록해야 동작한다.
 // 클라이언트가 IMP.request_pay의 custom_data에 예약 정보를 실어 보낸다.
-exports.portoneWebhook = onRequest({ secrets: SECRETS }, async (req, res) => {
+exports.portoneWebhook = onRequest({ secrets: [...SECRETS, ...TELEGRAM_SECRETS] }, async (req, res) => {
     if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
     const impUid = req.body && req.body.imp_uid;
     if (!impUid) { res.status(400).send("imp_uid required"); return; }
@@ -299,69 +410,11 @@ exports.portoneWebhook = onRequest({ secrets: SECRETS }, async (req, res) => {
         const dup = await db.collection("reservations").where("impUid", "==", impUid).limit(1).get();
         if (!dup.empty) { res.status(200).send("already saved"); return; }
 
-        let b = {};
-        try { b = JSON.parse(payment.custom_data || "{}"); } catch (e) { b = {}; }
-        if (!b.date || !b.guestName) {
-            console.error("웹훅: custom_data 없음 → 수동 확인 필요", impUid, payment.merchant_uid);
-            await db.collection("payment_alerts").doc(impUid).set({
-                impUid, merchantUid: payment.merchant_uid, amount: payment.amount,
-                buyerName: payment.buyer_name || null, reason: "paid_without_reservation",
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true });
-            res.status(200).send("alert recorded");
-            return;
-        }
-        if (Number(b.totalAmount) !== Number(payment.amount)) {
-            console.error("웹훅: 금액 불일치", impUid, b.totalAmount, payment.amount);
-            await db.collection("payment_alerts").doc(impUid).set({
-                impUid, merchantUid: payment.merchant_uid, amount: payment.amount,
-                claimedAmount: b.totalAmount, reason: "amount_mismatch",
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            }, { merge: true });
-            res.status(200).send("amount mismatch");
-            return;
-        }
-
-        const holdSnap = await db.collection("point_holds").doc(payment.merchant_uid).get();
-        const pointUsed = holdSnap.exists ? holdSnap.data().amount : 0;
-
-        await resRef.create({
-            approvalStatus: "pending",
-            usagePurpose: b.usagePurpose || "",
-            visitSource: Array.isArray(b.visitSource) ? b.visitSource : [],
-            pointUsed,
-            kakaoUid: b.kakaoUid || null,
-            kakaoName: b.kakaoName || null,
-            bookingType: b.bookingType || "personal",
-            companyName: b.companyName || null,
-            guestName: b.guestName,
-            phone: b.phone || "",
-            requests: b.requests || "",
-            date: b.date,
-            guestCount: b.guestCount || 0,
-            packageKey: b.packageKey || null,
-            packageName: b.packageName || null,
-            totalAmount: Number(payment.amount),
-            usedCoupon: b.usedCoupon || null,
-            reviewPromise: !!b.reviewPromise,
-            reservationMode: b.reservationMode || "package",
-            startTime: b.startTime ?? null,
-            endTime: b.endTime ?? null,
-            totalHours: b.totalHours ?? null,
-            isWeekend: !!b.isWeekend,
-            impUid,
-            merchantUid: payment.merchant_uid,
-            status: "paid",
-            source: "webhook",
-            createdAt: admin.firestore.Timestamp.now(),
-        });
-
-        if (b.usedCoupon && b.usedCoupon.id && b.kakaoUid) {
-            await db.collection("members").doc(String(b.kakaoUid)).collection("coupons").doc(b.usedCoupon.id)
-                .update({ status: "used", isUsed: true, usedAt: admin.firestore.Timestamp.now() })
-                .catch((e) => console.warn("웹훅 쿠폰 처리 실패:", e.message));
-        }
-        res.status(200).send("saved");
+        // 예약 내용은 결제 전에 서버가 저장해 둔 것(booking_intents)만 믿고 만든다. 브라우저가 보낸 custom_data 는 쓰지 않는다
+        if (!/^MNRY-\d+$/.test(String(payment.merchant_uid || ""))) { res.status(200).send("ignored: not monory"); return; }
+        const r = await settleBooking(db, { merchantUid: payment.merchant_uid, payment });
+        console.log("웹훅 예약 확정:", impUid, r.result);
+        res.status(200).send(r.result);
     } catch (e) {
         console.error("portoneWebhook error:", e.response ? e.response.data : e);
         res.status(500).send("error");
@@ -468,6 +521,9 @@ exports.clawbackPoints = onCall(async (request) => {
 // 결제 중 선차감만 되고 예약이 저장되지 않은 건(탭 닫기 등)을 30분마다 정리
 exports.releaseStalePointHolds = onSchedule("every 30 minutes", async () => {
     const db = admin.firestore();
+    // 3일 넘게 결제가 이어지지 않은 예약 준비 정보 정리 (환급 계좌 등 개인정보가 들어 있어 오래 두지 않는다)
+    const staleIntents = await db.collection("booking_intents").where("createdAt", "<", admin.firestore.Timestamp.fromMillis(Date.now() - 3 * 24 * 60 * 60 * 1000)).get();
+    for (const d of staleIntents.docs) await d.ref.delete().catch(() => {});
     const cutoff = Date.now() - 60 * 60 * 1000;
     const held = await db.collection("point_holds").where("status", "==", "held").get();
     for (const doc of held.docs) {
@@ -521,6 +577,27 @@ async function pushTelegram(text) {
         console.error("텔레그램 알림 실패:", e.response ? JSON.stringify(e.response.data) : e.message);
     }
 }
+
+// ── 쿠폰 자동 지급 (서버 전용) ──
+// 신규 회원이 만들어지면 가입 환영 쿠폰을 서버가 지급한다
+exports.grantWelcomeCoupon = onDocumentCreated(
+    { document: "members/{uid}", region: "asia-northeast3" },
+    async (event) => {
+        const r = await couponSvc.issueWelcomeCoupon(admin.firestore(), event.params.uid);
+        console.log("가입 쿠폰:", event.params.uid, r.result);
+    }
+);
+
+// 리뷰가 등록되면(본인 예약 + 사진 포함) 리뷰 보상 쿠폰을 서버가 지급한다
+exports.grantReviewCoupon = onDocumentCreated(
+    { document: "reviews/{reviewId}", region: "asia-northeast3" },
+    async (event) => {
+        const review = event.data && event.data.data();
+        if (!review) return;
+        const r = await couponSvc.issueReviewCoupon(admin.firestore(), review);
+        console.log("리뷰 쿠폰:", event.params.reviewId, r.result);
+    }
+);
 
 exports.notifyNewReservation = onDocumentCreated(
     { document: "reservations/{resId}", region: "asia-northeast3", secrets: TELEGRAM_SECRETS },
