@@ -38,6 +38,16 @@ function cancelledMessage(r) {
     return lines.join("\n");
 }
 
+// 부분 환불 (예약은 유지, 환불 금액만 기록된 경우)
+function partialRefundMessage(r) {
+    const lines = ["💸 [모노리] 부분 환불", "", ...bookingLines(r)];
+    const refund = Number(r.refundAmount) || 0;
+    lines.push(`결제 ${won(r.totalAmount)} → 환불 ${won(refund)} (실결제 ${won(Math.max(0, (Number(r.totalAmount) || 0) - refund))})`);
+    lines.push(`연락처 ${r.phone || "-"}`);
+    lines.push("", "예약은 유지됩니다. (고객에게 따로 문자는 가지 않습니다)");
+    return lines.join("\n");
+}
+
 async function sendTelegram(token, chatId, text) {
     await axios.post(`https://api.telegram.org/bot${token}/sendMessage`, {
         chat_id: chatId,
@@ -46,4 +56,4 @@ async function sendTelegram(token, chatId, text) {
     }, { timeout: 10000 });
 }
 
-module.exports = { newReservationMessage, cancelledMessage, sendTelegram };
+module.exports = { newReservationMessage, cancelledMessage, partialRefundMessage, sendTelegram };

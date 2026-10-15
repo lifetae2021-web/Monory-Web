@@ -608,6 +608,20 @@ exports.notifyNewReservation = onDocumentCreated(
     }
 );
 
+// 부분 환불(포트원 콘솔 등에서 일부만 환불)이 사이트에 반영되면 대표님께만 텔레그램으로 알린다 (고객 문자는 보내지 않음)
+// 환불 금액이 바뀔 때만 한 번 알리고, 전액 취소는 notifyCancelledReservation 이 따로 알린다.
+exports.notifyPartialRefund = onDocumentUpdated(
+    { document: "reservations/{resId}", region: "asia-northeast3", secrets: TELEGRAM_SECRETS },
+    async (event) => {
+        const before = event.data.before.data();
+        const after = event.data.after.data();
+        if (!before || !after || after.status === "cancelled" || after.partialRefund !== true) return;
+        const prev = before.partialRefund === true ? Number(before.refundAmount) || 0 : 0;
+        if (!(Number(after.refundAmount) > 0) || Number(after.refundAmount) === prev) return;
+        await pushTelegram(notify.partialRefundMessage(after));
+    }
+);
+
 // 고객 문자 발송. 실패해도 예약 처리에는 영향 없고, 대표님께 텔레그램으로 알려 직접 연락할 수 있게 한다.
 async function pushSms(r, text, label) {
     try {

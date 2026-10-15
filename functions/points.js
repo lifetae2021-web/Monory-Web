@@ -114,7 +114,9 @@ async function releaseHold(db, { merchantUid, rate = 1, memo = "포인트 사용
 // tx 안에서 호출: 모든 읽기를 먼저 하고 마지막에 쓰기를 한다.
 async function earnForReservation(db, tx, resRef, resData, nowMs = Date.now()) {
     const uid = resData.kakaoUid;
-    const base = Number(resData.totalAmount) || 0;
+    // 실제 결제금액 기준: 이용 완료 전에 부분 환불된 금액은 빼고 계산한다
+    const refunded = resData.partialRefund ? Number(resData.refundAmount) || 0 : 0;
+    const base = Math.max(0, (Number(resData.totalAmount) || 0) - refunded);
     const points = Math.floor(base * EARN_RATE);
     if (!uid || points <= 0 || resData.pointsEarned) return { earned: 0 };
 

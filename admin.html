@@ -2359,8 +2359,8 @@
                             <td style="font-size:0.85rem;line-height:1.4;">${(r.packageName||'-').replace(' (','<br><span style="font-size:0.75rem;opacity:0.6;">').replace(')','</span>')}</td>
                             <td style="font-size:0.85rem; white-space:nowrap;">${(r.date||'-').replace(/20(\d{2})년\s*(\d{1,2})월\s*(\d{1,2})일/g, '$1.$2.$3')}</td>
                             <td style="text-align:center;font-weight:600;">${r.guestCount||'-'}명</td>
-                            <td style="color:var(--accent-gold);font-weight:700;font-size:0.95rem;white-space:nowrap;">${r.totalAmount ? r.totalAmount.toLocaleString()+'원' : '-'}</td>
-                            <td><span class="status-badge ${s.cls}" style="font-size:0.8rem;white-space:nowrap;">${s.label}</span></td>
+                            <td style="color:var(--accent-gold);font-weight:700;font-size:0.95rem;white-space:nowrap;">${r.totalAmount ? r.totalAmount.toLocaleString()+'원' : '-'}${(r.partialRefund && r.refundAmount > 0 && status !== 'cancelled') ? `<div style="font-size:0.74rem;font-weight:500;color:var(--text-secondary);margin-top:2px;">실결제 ${Math.max(0, (r.totalAmount||0) - r.refundAmount).toLocaleString()}원</div>` : ''}</td>
+                            <td><span class="status-badge ${s.cls}" style="font-size:0.8rem;white-space:nowrap;">${s.label}</span>${(r.partialRefund && r.refundAmount > 0 && status !== 'cancelled') ? `<div style="margin-top:5px;font-size:0.74rem;font-weight:600;color:#f59e0b;white-space:nowrap;">부분 환불 ${r.refundAmount.toLocaleString()}원</div>` : ''}</td>
                             <td style="font-size:0.82rem;color:var(--text-secondary);">${fmtDt(createdAt)}</td>
                             <td>${actionBtns}</td>
                         `;
