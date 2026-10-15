@@ -443,12 +443,6 @@ tr:last-child td {
     word-break: break-all;
 }
 
-/* 관리 버튼 셀 */
-#reservations-table td:nth-child(12) {
-    min-width: 130px;
-    white-space: nowrap;
-}
-
 /* 회원 명단 테이블 */
 #members-table th,
 #members-table td {
@@ -768,17 +762,16 @@ tr:hover td {
     #reservations-table td:nth-child(7)::before { content: '결제금액'; }
     #reservations-table td:nth-child(9) { order: 8; font-size: 0.88rem !important; color: var(--text-secondary); }
     #reservations-table td:nth-child(9)::before { content: '결제일시'; }
-    #reservations-table td:nth-child(11) { order: 9; align-items: flex-start; }
-    #reservations-table td:nth-child(11)::before { content: '유형'; }
     /* 관리 버튼: 크게, 한 줄에 나란히 */
     #reservations-table td:nth-child(10) { order: 10; grid-column: 1 / -1; }
     #reservations-table td:nth-child(10)::before { content: none; }
     #reservations-table td:nth-child(10) > div { display: flex; gap: 10px; width: 100%; }
     #reservations-table td:nth-child(10) button { flex: 1; min-height: 44px; font-size: 0.95rem !important; border-radius: 10px !important; }
-    /* 요청사항 */
-    #reservations-table td:nth-child(12) { order: 11; grid-column: 1 / -1; padding-top: 12px; border-top: 1px solid var(--border-color); color: var(--text-secondary); }
-    #reservations-table td:nth-child(12)::before { content: '요청사항'; }
-    #reservations-table td:nth-child(12) > div { max-height: none !important; }
+    /* 요청사항·유형 등 부가 정보 줄: 위 예약 카드에 이어 붙인다 */
+    #reservations-table tr:has(+ tr.res-detail) { margin-bottom: 0; border-bottom: none; border-radius: 14px 14px 0 0; }
+    #reservations-table tr.res-detail { display: block; margin-top: 0; border-top: none; border-radius: 0 0 14px 14px; padding-top: 0; }
+    #reservations-table tr.res-detail td:nth-child(2) { display: block; order: 0; font-size: 0.9rem; white-space: normal; overflow-wrap: anywhere; padding-top: 12px; border-top: 1px solid var(--border-color); }
+    #reservations-table tr.res-detail td:nth-child(2)::before { content: none; }
 
     /* 인라인으로 2~3열로 잡힌 그리드는 세로로 쌓기 (갤러리 자동 열 맞춤은 유지) */
     [style*="repeat(3, 1fr)"],

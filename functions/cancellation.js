@@ -16,7 +16,8 @@ async function applyPortoneCancellation(db, payment, nowMs = Date.now()) {
     if (found.empty) return { result: "no-reservation" };
     const resRef = found.docs[0].ref;
 
-    const isFull = payment.status === "cancelled" || cancelAmount >= Number(payment.amount);
+    // 포트원은 부분 환불을 해도 status 를 "cancelled" 로 표시하므로, 상태가 아니라 금액으로만 전액 여부를 판단한다
+    const isFull = cancelAmount >= Number(payment.amount);
     const history = Array.isArray(payment.cancel_history) ? payment.cancel_history : [];
     const lastReason = history.length ? (history[history.length - 1].reason || "") : "";
 
