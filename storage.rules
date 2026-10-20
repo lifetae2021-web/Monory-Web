@@ -42,7 +42,7 @@ service firebase.storage {
     // 그 외 모든 경로(갤러리, 대표 이미지, 소개 이미지 등): 누구나 읽기, 쓰기는 관리자만
     //  - 파티 신청 사진(party_private/)은 공개 읽기에서 뺀다 (규칙은 하나라도 허용하면 통과되므로 여기서 제외해야 한다)
     match /{allPaths=**} {
-      allow read: if !allPaths.matches('party_private/.*');
+      allow read: if !resource.name.matches('party_private/.*');
       allow write: if isAdmin();
     }
   }
