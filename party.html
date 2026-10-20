@@ -137,6 +137,15 @@
         .summary div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
         .summary div span:first-child { color: var(--sub); flex-shrink: 0; }
         .summary div span:last-child { text-align: right; word-break: break-all; }
+        .pay-box { margin-top: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: grid; gap: 8px; font-size: 0.93rem; }
+        .pay-box div { display: flex; justify-content: space-between; gap: 12px; }
+        .pay-box div span:first-child { color: var(--sub); }
+        .pay-box .was { color: var(--sub); text-decoration: line-through; }
+        .pay-box .disc { color: var(--gold); }
+        .pay-box .total { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 2px; align-items: baseline; }
+        .pay-box .total span:first-child { color: var(--text); font-weight: 700; }
+        .pay-box .total span:last-child { color: var(--gold); font-size: 1.3rem; font-weight: 800; }
+        .pay-box .note { display: block; color: var(--sub); font-size: 0.8rem; }
         details.privacy { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-top: 16px; font-size: 0.86rem; color: var(--sub); }
         details.privacy summary { cursor: pointer; color: #d6d6da; }
         details.privacy table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -273,6 +282,15 @@
                 const a = await db.collection('party_applications').doc(`${partyId}_${user.uid}`).get();
                 if (a.exists) myApp = { id: a.id, ...a.data() };
             } catch (e) { /* 신청서가 없으면 권한 오류로 돌아온다 */ }
+        }
+        // 포스터를 먼저 받아 둔 뒤 그린다 (글이 먼저 떴다가 포스터가 뒤늦게 끼어들며 밀리는 현상 방지, 최대 4초 대기)
+        if (party.posterUrl) {
+            await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = img.onerror = resolve;
+                setTimeout(resolve, 4000);
+                img.src = party.posterUrl;
+            });
         }
         renderParty();
     }
@@ -438,7 +456,7 @@
         {
             key: 'gender',
             render: () => `<h2>성별을 알려주세요</h2><p class="hint">참가비와 성비 구성에 사용돼요.</p>
-                <div class="choice">${['female', 'male'].map((g) => { const pi = priceInfo(party, g); return `<button type="button" class="${form.gender === g ? 'sel' : ''}" onclick="pickGender('${g}')">${GENDER[g]}<small>${won(pi.amount)}${pi.early ? ' · 얼리버드' : ''}</small></button>`; }).join('')}</div>`,
+                <div class="choice">${['female', 'male'].map((g) => `<button type="button" class="${form.gender === g ? 'sel' : ''}" onclick="pickGender('${g}')">${GENDER[g]}</button>`).join('')}</div>`,
             valid: () => form.gender ? '' : '성별을 선택해 주세요.',
         },
         {
@@ -508,6 +526,7 @@
             key: 'confirm',
             render: () => {
                 const pi = priceInfo(party, form.gender);
+                const orig = Math.max(Number(party['originalPrice' + (form.gender === 'female' ? 'Female' : 'Male')]) || 0, pi.base);
                 return `<h2>마지막으로 확인해 주세요</h2><p class="hint">제출 후 심사 중에는 언제든 고칠 수 있어요.</p>
                 <div class="summary">
                     <div><span>파티</span><span>${esc(party.title)}</span></div>
@@ -517,7 +536,13 @@
                     <div><span>직업</span><span>${esc(form.job)}</span></div>
                     <div><span>인스타그램</span><span>${form.instagram ? '@' + esc(form.instagram) : '없음'}</span></div>
                     <div><span>사진</span><span>${form.photos.length}장</span></div>
-                    <div><span>예상 참가비</span><span>${won(pi.amount)} (승인 후 결제)</span></div>
+                </div>
+                <div class="pay-box">
+                    ${orig > pi.amount ? `<div><span>원래 금액</span><span class="was">${won(orig)}</span></div>` : ''}
+                    ${orig > pi.base ? `<div><span>할인</span><span class="disc">-${won(orig - pi.base)}</span></div>` : ''}
+                    ${pi.early ? `<div><span>얼리버드 추가 할인</span><span class="disc">-${won(pi.base - pi.amount)}</span></div>` : ''}
+                    <div class="total"><span>결제할 금액</span><span>${won(pi.amount)}</span></div>
+                    <span class="note">승인 후 결제해요.${pi.early ? ` 얼리버드는 ${esc(party.earlyUntil.slice(5).replace('-', '/'))}까지 신청 시 적용돼요.` : ''}</span>
                 </div>
                 <details class="privacy"><summary>개인정보 수집·이용 안내 (필수)</summary>
                     <table>
