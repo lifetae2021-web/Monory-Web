@@ -468,15 +468,21 @@
         },
         {
             key: 'birth',
-            render: () => `<h2>생년월일을 알려주세요</h2><p class="hint">연령 확인에 사용돼요. ${THIS_YEAR - MIN_AGE}년생까지 참여할 수 있어요.</p>
-                <input class="field" id="f-birth" inputmode="numeric" maxlength="8" placeholder="예: 19970315" value="${esc(form.birth)}">`,
-            read: () => { form.birth = $('f-birth').value.replace(/\D/g, ''); },
+            render: () => `<h2>생년월일을 알려주세요</h2><p class="hint">연령 확인에 사용돼요. ${String(THIS_YEAR - MIN_AGE).slice(2)}년생까지 참여할 수 있어요.</p>
+                <input class="field" id="f-birth" inputmode="numeric" maxlength="6" placeholder="예: 970315" value="${esc(form.birth.length === 8 ? form.birth.slice(2) : form.birth)}">`,
+            // 6자리(YYMMDD)로 받고 8자리로 바꿔 저장한다. 올해보다 뒤가 되는 연도는 1900년대로 본다 (서버는 8자리를 받는다)
+            read: () => {
+                const v = $('f-birth').value.replace(/\D/g, '');
+                if (v.length !== 6) { form.birth = v; return; }
+                const yy = +v.slice(0, 2);
+                form.birth = String(2000 + yy > THIS_YEAR ? 1900 + yy : 2000 + yy) + v.slice(2);
+            },
             valid: () => {
                 const m = form.birth.match(/^(\d{4})(\d{2})(\d{2})$/);
-                if (!m) return '생년월일 8자리를 입력해 주세요.';
+                if (!m) return '생년월일 6자리를 입력해 주세요. (예: 970315)';
                 const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
                 if (d.getUTCMonth() !== +m[2] - 1 || d.getUTCDate() !== +m[3] || THIS_YEAR - +m[1] > 80) return '생년월일이 올바르지 않아요.';
-                if (THIS_YEAR - +m[1] < MIN_AGE) return `청소년은 참여할 수 없어요. (${THIS_YEAR - MIN_AGE}년생까지 참여 가능)`;
+                if (THIS_YEAR - +m[1] < MIN_AGE) return `청소년은 참여할 수 없어요. (${String(THIS_YEAR - MIN_AGE).slice(2)}년생까지 참여 가능)`;
                 return '';
             },
         },
