@@ -62,16 +62,23 @@
                         <div id="header-coupon-badge" class="coupon-alert-badge">쿠폰 있어요!</div>
                         <a href="mypage.html" class="mobile-nav-link">마이페이지</a>
                     </div>
-                    <button onclick="kakaoLogout()" class="auth-btn" style="background:none;border:1px solid #ccc;cursor:pointer;">로그아웃</button>
+                    <!-- 관리자페이지(관리자만)·로그아웃은 햄버거 메뉴 안에 둔다 -->
+                    <div class="pc-more" id="pc-more">
+                        <button type="button" class="pc-more-btn" aria-label="메뉴" onclick="event.stopPropagation(); document.getElementById('pc-more').classList.toggle('open');"><span></span><span></span><span></span></button>
+                        <div class="pc-more-menu">
+                            <a href="admin.html" id="pc-admin-link" onclick="enterAdminPage()" style="display:none;">관리자페이지</a>
+                            <a href="#" onclick="kakaoLogout(); return false;">로그아웃</a>
+                        </div>
+                    </div>
                 </div>
                 
-                <!-- 모바일 전용 헤더: [마이페이지+쿠폰] - [로그아웃] -->
+                <!-- 모바일 전용 헤더: [파티 신청] - [마이페이지+쿠폰], 관리자페이지·로그아웃은 햄버거 메뉴 안 -->
                 <div class="mobile-only">
+                    <a href="party.html" class="mobile-nav-link">파티 신청</a>
                     <div class="coupon-badge-container">
                         <div id="header-coupon-badge-mobile" class="coupon-alert-badge">쿠폰 있어요!</div>
                         <a href="mypage.html" class="mobile-nav-link">마이페이지</a>
                     </div>
-                    <a href="#" onclick="kakaoLogout(); return false;" class="mobile-nav-link">로그아웃</a>
                 </div>
             </div>
         </div>
@@ -724,6 +731,8 @@
 
         loggedout.style.display = 'none';
         loggedin.style.display  = 'flex';
+        const logoutItem = document.getElementById('mobile-logout-link');
+        if (logoutItem) logoutItem.style.display = '';
 
         if (img) {
             img.src           = user.profileImage || '';
@@ -742,6 +751,12 @@
     let adminMenuInfo = null;
 
     // 이미 관리자로 확인된 계정은 관리자 로그인 화면을 거치지 않고 바로 관리자페이지로 이동한다
+    // PC 햄버거 메뉴: 바깥을 누르면 닫는다
+    document.addEventListener('click', function () {
+        const m = document.getElementById('pc-more');
+        if (m) m.classList.remove('open');
+    });
+
     function enterAdminPage() {
         if (adminMenuInfo) {
             try { sessionStorage.setItem('monory_admin_session', JSON.stringify(adminMenuInfo)); } catch (e) {}
@@ -759,6 +774,10 @@
                 item.style.display = isAdmin ? '' : 'none';
                 const link = item.querySelector('a');
                 if (link) link.textContent = role === 'party_manager' ? '파티 운영 페이지' : '관리자페이지';
+                ['pc-admin-link'].forEach(function (id) {
+                    const el = document.getElementById(id);
+                    if (el) { el.style.display = isAdmin ? '' : 'none'; el.textContent = link ? link.textContent : '관리자페이지'; }
+                });
                 adminMenuInfo = isAdmin ? { kakaoId: kakaoId, role: role, name: doc.data().name || '' } : null;
             }).catch(function () {});
         } catch (e) {}
@@ -771,6 +790,10 @@
         signOutFirebase();
         const adminItem = document.getElementById('mobile-admin-link');
         if (adminItem) adminItem.style.display = 'none';
+        ['pc-admin-link', 'mobile-logout-link'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
         adminMenuInfo = null;
         sessionStorage.removeItem('monory_admin_session');
         
@@ -2737,6 +2760,7 @@
             <li><a href="#reservation" onclick="closeMobileMenu()">예약하기</a></li>
             <li><a href="#location" onclick="closeMobileMenu()">오시는길</a></li>
             <li id="mobile-admin-link" style="display:none;"><a href="admin.html" onclick="enterAdminPage()">관리자페이지</a></li>
+            <li id="mobile-logout-link" style="display:none;"><a href="#" onclick="closeMobileMenu(); kakaoLogout(); return false;">로그아웃</a></li>
         </ul>
     </div>
 </body>

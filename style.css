@@ -870,6 +870,16 @@ footer p {
     font-family: var(--font-heading);
     color: var(--accent-gold);
 }
+/* PC 헤더 햄버거 (로그아웃 등) */
+.pc-more { position: relative; }
+.pc-more-btn { display: flex; flex-direction: column; justify-content: space-between; width: 36px; height: 36px; padding: 11px 9px; background: none; border: 1px solid #ccc; border-radius: 50%; cursor: pointer; }
+.pc-more-btn span { display: block; height: 2px; background: #1a1a1a; border-radius: 2px; }
+.pc-more-btn:hover { border-color: #1a1a1a; }
+.pc-more-menu { display: none; position: absolute; top: calc(100% + 8px); right: 0; min-width: 120px; background: #fff; border: 1px solid #e5e5e5; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 6px; z-index: 1001; }
+.pc-more.open .pc-more-menu { display: block; }
+.pc-more-menu a { display: block; padding: 10px 14px; border-radius: 6px; font-size: 0.9rem; color: #1a1a1a; white-space: nowrap; }
+.pc-more-menu a:hover { background: #f5f5f5; }
+
 /* Mobile Menu Trigger */
 .menu-trigger {
     display: none;
