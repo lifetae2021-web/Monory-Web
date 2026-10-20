@@ -50,6 +50,10 @@
         /* 파티 소개 */
         .poster { width: 100%; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
         .poster img { width: 100%; display: block; }
+        /* 사진 포스터: 첫 화면에 제목·타이머·가격이 보이도록 높이를 화면 절반 정도로 제한, 남는 양옆은 같은 사진을 흐리게 깐다 */
+        .poster.has-img { position: relative; }
+        .poster.has-img .poster-bg { position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(22px) brightness(0.45); }
+        .poster.has-img img { position: relative; width: auto; max-width: 100%; max-height: 46vh; margin: 0 auto; }
         .poster-fallback { aspect-ratio: 4 / 3; display: flex; flex-direction: column; justify-content: flex-end; padding: 28px; background: radial-gradient(120% 90% at 80% 0%, rgba(212, 175, 55, 0.28), transparent 60%), radial-gradient(90% 80% at 0% 100%, rgba(249, 115, 22, 0.18), transparent 60%), var(--panel); }
         .poster-fallback .eyebrow { font-family: 'Outfit', sans-serif; letter-spacing: 0.2em; font-size: 0.75rem; color: var(--gold); }
         .poster-fallback .ttl { font-size: 1.9rem; font-weight: 700; line-height: 1.25; margin-top: 6px; }
@@ -145,6 +149,8 @@
         .pay-box .total { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 2px; align-items: baseline; }
         .pay-box .total span:first-child { color: var(--text); font-weight: 700; }
         .pay-box .total span:last-child { color: var(--gold); font-size: 1.3rem; font-weight: 800; }
+        .pay-box .pay-cd { display: block; text-align: center; background: var(--gold-soft); border: 1px solid rgba(212, 175, 55, 0.45); border-radius: 10px; padding: 9px; color: var(--gold); font-size: 0.88rem; }
+        .pay-box .pay-cd b { font-family: 'Outfit', sans-serif; font-variant-numeric: tabular-nums; font-size: 1rem; margin-left: 4px; }
         .pay-box .note { display: block; color: var(--sub); font-size: 0.8rem; }
         details.privacy { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-top: 16px; font-size: 0.86rem; color: var(--sub); }
         details.privacy summary { cursor: pointer; color: #d6d6da; }
@@ -366,13 +372,30 @@
         cdTimer = setInterval(tick, 1000);
     }
 
+    // 신청서 확인 화면의 얼리버드 마감 타이머 (화면에서 사라지면 스스로 멈춘다)
+    let payCdTimer = null;
+    function startPayCountdown() {
+        clearInterval(payCdTimer);
+        const end = party.earlyUntil ? kstMs(party.earlyUntil, '23:59') + 60000 : null;
+        const tick = () => {
+            const el = $('pay-cd');
+            if (!el || !end) { clearInterval(payCdTimer); return; }
+            const t = Math.max(0, end - Date.now());
+            if (!t) { el.textContent = '얼리버드가 마감되었어요'; clearInterval(payCdTimer); return; }
+            const dd = Math.floor(t / 86400000), p2 = (n) => String(n).padStart(2, '0');
+            el.innerHTML = `⚡ 얼리버드 마감까지 <b>${dd ? dd + '일 ' : ''}${p2(Math.floor(t % 86400000 / 3600000))}:${p2(Math.floor(t % 3600000 / 60000))}:${p2(Math.floor(t % 60000 / 1000))}</b>`;
+        };
+        tick();
+        payCdTimer = setInterval(tick, 1000);
+    }
+
     const rulesOf = (p) => { const r = String(p.rules || '').split('\n').map((s) => s.trim()).filter(Boolean); return r.length ? r : DEFAULT_RULES; };
 
     function renderParty() {
         const p = party;
         document.title = `${p.title || '파티'} | Monory`;
         const poster = p.posterUrl
-            ? `<div class="poster"><img src="${esc(p.posterUrl)}" alt="${esc(p.title)}"></div>`
+            ? `<div class="poster has-img"><div class="poster-bg" style="background-image:url('${esc(p.posterUrl)}')"></div><img src="${esc(p.posterUrl)}" alt="${esc(p.title)}"></div>`
             : `<div class="poster"><div class="poster-fallback"><div class="eyebrow">MONORY PARTY</div><div class="ttl">${esc(p.title)}</div></div></div>`;
         const started = kstMs(p.date, p.startTime) !== null && Date.now() >= kstMs(p.date, p.startTime);
         $('app').innerHTML = `
@@ -548,6 +571,7 @@
                     ${orig > pi.base ? `<div><span>할인</span><span class="disc">-${won(orig - pi.base)}</span></div>` : ''}
                     ${pi.early ? `<div><span>얼리버드 추가 할인</span><span class="disc">-${won(pi.base - pi.amount)}</span></div>` : ''}
                     <div class="total"><span>결제할 금액</span><span>${won(pi.amount)}</span></div>
+                    ${pi.early ? `<div class="pay-cd" id="pay-cd"></div>` : ''}
                     <span class="note">승인 후 결제해요.${pi.early ? ` 얼리버드는 ${esc(party.earlyUntil.slice(5).replace('-', '/'))}까지 신청 시 적용돼요.` : ''}</span>
                 </div>
                 <details class="privacy"><summary>개인정보 수집·이용 안내 (필수)</summary>
@@ -562,6 +586,7 @@
             },
             read: () => { form.privacy = $('f-privacy').checked; },
             valid: () => form.privacy ? '' : '개인정보 수집·이용에 동의해 주세요.',
+            after: () => startPayCountdown(),
             nextLabel: '신청서 제출하기',
             submit: true,
         },
