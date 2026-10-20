@@ -900,6 +900,11 @@
                 .pf-f .hint { font-size:0.76rem; color:var(--text-secondary); opacity:0.75; margin-top:5px; }
                 .money { position:relative; }
                 .money .edit-input { padding-right:36px; text-align:right; font-variant-numeric:tabular-nums; }
+                .money.wide .edit-input { padding-right:84px; }
+                .pf-poster-wrap { position:relative; display:inline-block; }
+                .pf-poster-wrap img { display:block; max-height:120px; border-radius:8px; }
+                .pf-poster-x { position:absolute; top:-8px; right:-8px; width:24px; height:24px; border-radius:50%; border:none; background:rgba(0,0,0,0.8); color:#fff; font-size:14px; line-height:24px; padding:0; cursor:pointer; box-shadow:0 0 0 1px rgba(255,255,255,0.3); }
+                .pf-poster-x:hover { background:#e5484d; }
                 .money > span { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--text-secondary); font-size:0.9rem; pointer-events:none; }
                 .pf-gender { border-radius:12px; padding:16px; margin-bottom:14px; border:1px solid var(--border-color); }
                 .pf-gender.f { background:rgba(249,168,212,0.05); border-color:rgba(249,168,212,0.25); }
@@ -961,7 +966,7 @@
                     <div class="pf-sec-t"><i class="fa-solid fa-bolt" style="color:var(--accent-gold); margin-right:6px;"></i>얼리버드</div>
                     <div class="pf-grid">
                         <div class="pf-f"><label>추가 할인 금액</label><div class="money"><input class="edit-input" id="pf-early-off" inputmode="numeric" placeholder="5,000" oninput="ptMoneyInput(this)"><span>원</span></div><div class="hint">0이거나 비우면 얼리버드 없음</div></div>
-                        <div class="pf-f"><label>적용 기한</label><div class="money"><input class="edit-input" id="pf-early-days" inputmode="numeric" placeholder="7" oninput="ptMoneyInput(this)"><span>일 전까지</span></div><div class="hint">파티 며칠 전까지 신청하면 적용할지</div></div>
+                        <div class="pf-f"><label>적용 기한</label><div class="money wide"><input class="edit-input" id="pf-early-days" inputmode="numeric" placeholder="7" oninput="ptMoneyInput(this)"><span>일 전까지</span></div><div class="hint">파티 며칠 전까지 신청하면 적용할지</div></div>
                     </div>
                     <div class="pf-sum" id="pf-early-hint"></div>
                 </div>
@@ -977,9 +982,9 @@
                     </div>
                     <div class="pf-f"><label>포스터 이미지 (선택)</label>
                         <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-                            <img id="pf-poster-preview" style="display:none; max-height:120px; border-radius:8px;">
-                            <input type="file" id="pf-poster" accept="image/*" class="edit-input" style="width:auto;">
-                            <label style="display:inline; font-size:0.85rem; margin:0;"><input type="checkbox" id="pf-poster-remove"> 포스터 삭제</label>
+                            <div class="pf-poster-wrap" id="pf-poster-wrap" style="display:none;"><img id="pf-poster-preview"><button type="button" class="pf-poster-x" title="포스터 삭제" onclick="ptRemovePoster()">✕</button></div>
+                            <input type="file" id="pf-poster" accept="image/*" class="edit-input" style="width:auto;" onchange="ptPosterPicked(this)">
+                            <input type="checkbox" id="pf-poster-remove" hidden>
                         </div>
                     </div>
                 </div>
@@ -3557,6 +3562,21 @@
             }
             document.getElementById(selId).innerHTML = html;
         }
+        // 포스터: X 누르면 미리보기 숨기고 저장 시 삭제, 새 파일 고르면 미리보기 교체
+        function ptRemovePoster() {
+            document.getElementById('pf-poster').value = '';
+            document.getElementById('pf-poster-remove').checked = true;
+            document.getElementById('pf-poster-preview').removeAttribute('src');
+            document.getElementById('pf-poster-wrap').style.display = 'none';
+        }
+        function ptPosterPicked(input) {
+            const f = input.files[0];
+            if (!f) return;
+            document.getElementById('pf-poster-remove').checked = false;
+            const prev = document.getElementById('pf-poster-preview');
+            prev.src = URL.createObjectURL(f);
+            document.getElementById('pf-poster-wrap').style.display = 'inline-block';
+        }
         function ptSetStatus(v) {
             _ptStatus = v;
             document.querySelectorAll('#pf-status-seg button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
@@ -3619,7 +3639,8 @@
             document.getElementById('pf-poster').value = '';
             document.getElementById('pf-poster-remove').checked = false;
             const prev = document.getElementById('pf-poster-preview');
-            if (p && p.posterUrl) { prev.src = p.posterUrl; prev.style.display = 'block'; } else prev.style.display = 'none';
+            const wrap = document.getElementById('pf-poster-wrap');
+            if (p && p.posterUrl) { prev.src = p.posterUrl; wrap.style.display = 'inline-block'; } else { prev.removeAttribute('src'); wrap.style.display = 'none'; }
             const panel = document.getElementById('pt-form-panel');
             panel.style.display = 'block';
             panel.scrollIntoView({ behavior: 'smooth' });
