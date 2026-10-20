@@ -556,6 +556,12 @@ tr:hover td {
     border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
+.role-badge.party-manager {
+    background: rgba(192, 132, 252, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(192, 132, 252, 0.3);
+}
+
 /* Responsive Dashboard */
 @media (max-width: 1200px) {
     .stats-grid {

@@ -10,6 +10,16 @@
     <!-- Load FontAwesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin.css?v=1.3.112">
+    <script>
+        // 파티 운영자(party_manager)는 파티 관리 화면만 본다. (실제 접근 제한은 Firestore·Storage 규칙과 서버가 한다)
+        window.IS_PARTY_MGR = (function () {
+            try { var s = JSON.parse(sessionStorage.getItem('monory_admin_session') || 'null'); return !!s && s.role === 'party_manager'; } catch (e) { return false; }
+        })();
+        if (window.IS_PARTY_MGR) document.documentElement.classList.add('party-mgr');
+    </script>
+    <style>
+        .party-mgr .nav-item:not(.nav-parties), .party-mgr .notification-bell, .party-mgr .site-link, .party-mgr .content-area:not(#section-parties) { display: none !important; }
+    </style>
     <style>
         .edit-form-group { margin-bottom: 24px; }
         .edit-label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-secondary); }
@@ -39,6 +49,9 @@
                 <a href="#" class="nav-link" onclick="showSection('reservations')" id="nav-reservations">
                     <i class="fa-regular fa-calendar-check"></i> 예약 관리
                 </a>
+            </li>
+            <li class="nav-item nav-parties">
+                <a href="#" class="nav-link" onclick="showSection('parties')" id="nav-parties"><i class="fa-solid fa-champagne-glasses"></i> 파티 관리</a>
             </li>
             <li class="nav-item">
                 <a href="#" class="nav-link" onclick="showSection('stats')" id="nav-stats"><i class="fa-solid fa-chart-line"></i> 매출 통계</a>
@@ -845,6 +858,155 @@
             </div>
         </div>
 
+        <!-- ============================
+             파티 관리 섹션 (파티 등록 + 신청서 심사)
+             ============================ -->
+        <div class="content-area" id="section-parties" style="display:none;">
+            <style>
+                .pt-chips { display:flex; gap:10px; overflow-x:auto; padding:2px 2px 14px; margin-bottom:6px; }
+                .pt-chip { flex:0 0 auto; display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:150px; max-width:240px; text-align:left; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:12px; padding:10px 14px; color:var(--text-primary); cursor:pointer; font-family:inherit; transition:.2s; }
+                .pt-chip:hover { border-color:rgba(212,175,55,0.5); }
+                .pt-chip.on { border-color:var(--accent-gold); background:rgba(212,175,55,0.12); }
+                .pt-chip .d { font-size:0.78rem; color:var(--text-secondary); }
+                .pt-chip .t { font-weight:600; font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+                .pt-chip .s { font-size:0.76rem; font-weight:600; }
+                .seg { display:inline-flex; border:1px solid var(--border-color); border-radius:10px; overflow:hidden; }
+                .seg button { background:transparent; border:none; color:var(--text-secondary); padding:11px 16px; cursor:pointer; font-family:inherit; font-size:0.9rem; transition:.2s; }
+                .seg button + button { border-left:1px solid var(--border-color); }
+                .seg button.on { background:var(--accent-gold); color:#111; font-weight:700; }
+                .dp { position:relative; }
+                .dp-btn { width:100%; text-align:left; display:flex; justify-content:space-between; align-items:center; }
+                .dp-pop { position:absolute; z-index:60; top:calc(100% + 6px); left:0; width:300px; background:#1b1b1f; border:1px solid var(--border-color); border-radius:14px; padding:14px; box-shadow:0 12px 40px rgba(0,0,0,0.6); }
+                .dp-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-weight:600; }
+                .dp-head button { background:none; border:none; color:var(--text-primary); font-size:1rem; cursor:pointer; padding:6px 10px; border-radius:8px; }
+                .dp-head button:hover { background:rgba(255,255,255,0.08); }
+                .dp-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; text-align:center; }
+                .dp-grid .w { font-size:0.75rem; color:var(--text-secondary); padding:4px 0; }
+                .dp-grid .w:first-child { color:#f87171; } .dp-grid .w:last-child { color:#93c5fd; }
+                .dp-grid button { aspect-ratio:1; border:none; background:transparent; color:var(--text-primary); border-radius:50%; cursor:pointer; font-family:inherit; font-size:0.88rem; }
+                .dp-grid button:hover:not(:disabled) { background:rgba(255,255,255,0.1); }
+                .dp-grid button.sun { color:#f87171; } .dp-grid button.sat { color:#93c5fd; }
+                .dp-grid button.today { outline:1px solid rgba(212,175,55,0.6); }
+                .dp-grid button.sel { background:var(--accent-gold); color:#111; font-weight:700; }
+                .dp-grid button:disabled { opacity:0.25; cursor:default; }
+                .pf-sub { font-size:0.8rem; color:var(--text-secondary); margin-top:6px; }
+                .pf-col { background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:12px; padding:16px; }
+                .pf-col h4 { margin-bottom:12px; font-size:0.95rem; }
+                .pf-sec { background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:14px; padding:20px; margin-bottom:18px; }
+                .pf-sec-t { font-size:1rem; font-weight:700; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border-color); }
+                .pf-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:16px; margin-bottom:16px; }
+                .pf-grid:last-child { margin-bottom:0; }
+                .pf-f label { display:block; font-size:0.85rem; color:var(--text-secondary); margin-bottom:6px; }
+                .pf-f .hint { font-size:0.76rem; color:var(--text-secondary); opacity:0.75; margin-top:5px; }
+                .money { position:relative; }
+                .money .edit-input { padding-right:36px; text-align:right; font-variant-numeric:tabular-nums; }
+                .money > span { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:var(--text-secondary); font-size:0.9rem; pointer-events:none; }
+                .pf-gender { border-radius:12px; padding:16px; margin-bottom:14px; border:1px solid var(--border-color); }
+                .pf-gender.f { background:rgba(249,168,212,0.05); border-color:rgba(249,168,212,0.25); }
+                .pf-gender.m { background:rgba(147,197,253,0.05); border-color:rgba(147,197,253,0.25); }
+                .pf-gender h4 { margin-bottom:14px; font-size:0.98rem; }
+                .pf-sum { margin-top:12px; font-size:0.85rem; color:var(--text-secondary); }
+                .pf-sum b { color:var(--text-primary); }
+                .pf-fixed { padding:12px 16px; border:1px solid var(--border-color); border-radius:8px; color:var(--text-secondary); font-size:0.92rem; }
+            </style>
+            <div class="panel">
+                <div class="panel-header" style="border-bottom:1px solid var(--border-color); padding-bottom:16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <h2 class="panel-title"><i class="fa-solid fa-champagne-glasses" style="color:var(--accent-gold); margin-right:8px;"></i>파티 관리</h2>
+                    <button class="save-btn" style="padding:10px 16px;" onclick="editParty(null)"><i class="fa-solid fa-plus"></i> 새 파티</button>
+                </div>
+                <div class="pt-chips" id="pt-chips"></div>
+                <div id="pt-summary"></div>
+            </div>
+
+            <div class="panel" id="pt-form-panel" style="display:none;">
+                <div class="panel-header" style="margin-bottom:20px;"><h2 class="panel-title" id="pt-form-title">새 파티</h2></div>
+
+                <div class="pf-sec">
+                    <div class="pf-sec-t">기본 정보</div>
+                    <div class="pf-grid">
+                        <div class="pf-f"><label>파티 이름 *</label><input class="edit-input" id="pf-title" placeholder="모노리 할로윈 파티"></div>
+                        <div class="pf-f"><label>주소용 ID *</label><input class="edit-input" id="pf-id" placeholder="halloween-2026"><div class="hint">영문 소문자·숫자·- / 저장 후 변경 불가</div></div>
+                    </div>
+                    <div class="pf-grid">
+                        <div class="pf-f"><label>날짜 *</label>
+                            <div class="dp" id="pf-date-dp"><button type="button" class="edit-input dp-btn" id="pf-date-btn" onclick="ptDpToggle(event)"></button><div class="dp-pop" id="pf-date-pop" style="display:none;" onclick="event.stopPropagation()"></div></div>
+                        </div>
+                        <div class="pf-f"><label>시작 시간 *</label><select class="edit-input" id="pf-start"></select></div>
+                        <div class="pf-f"><label>종료 시간</label><select class="edit-input" id="pf-end"></select></div>
+                    </div>
+                    <div class="pf-f"><label>장소</label><div class="pf-fixed"><i class="fa-solid fa-location-dot" style="color:var(--accent-gold); margin-right:6px;"></i>모노리 (부산 서면) 고정</div></div>
+                </div>
+
+                <div class="pf-sec">
+                    <div class="pf-sec-t">참가비 · 정원</div>
+                    <div class="pf-gender f"><h4 style="color:#f9a8d4;">여성</h4>
+                        <div class="pf-grid">
+                            <div class="pf-f"><label>정가</label><div class="money"><input class="edit-input" id="pf-orig-f" inputmode="numeric" placeholder="30,000" oninput="ptMoneyInput(this)"><span>원</span></div><div class="hint">고객 화면에 취소선으로 표시</div></div>
+                            <div class="pf-f"><label>참가비 *</label><div class="money"><input class="edit-input" id="pf-price-f" inputmode="numeric" placeholder="15,000" oninput="ptMoneyInput(this)"><span>원</span></div><div class="hint">실제 결제 금액</div></div>
+                            <div class="pf-f"><label>정원</label><div class="money"><input class="edit-input" id="pf-cap-f" inputmode="numeric" placeholder="10" oninput="ptMoneyInput(this)"><span>명</span></div></div>
+                        </div>
+                        <div class="pf-sum" id="pf-sum-f"></div>
+                    </div>
+                    <div class="pf-gender m"><h4 style="color:#93c5fd;">남성</h4>
+                        <div class="pf-grid">
+                            <div class="pf-f"><label>정가</label><div class="money"><input class="edit-input" id="pf-orig-m" inputmode="numeric" placeholder="50,000" oninput="ptMoneyInput(this)"><span>원</span></div><div class="hint">고객 화면에 취소선으로 표시</div></div>
+                            <div class="pf-f"><label>참가비 *</label><div class="money"><input class="edit-input" id="pf-price-m" inputmode="numeric" placeholder="30,000" oninput="ptMoneyInput(this)"><span>원</span></div><div class="hint">실제 결제 금액</div></div>
+                            <div class="pf-f"><label>정원</label><div class="money"><input class="edit-input" id="pf-cap-m" inputmode="numeric" placeholder="10" oninput="ptMoneyInput(this)"><span>명</span></div></div>
+                        </div>
+                        <div class="pf-sum" id="pf-sum-m"></div>
+                    </div>
+                </div>
+
+                <div class="pf-sec">
+                    <div class="pf-sec-t"><i class="fa-solid fa-bolt" style="color:var(--accent-gold); margin-right:6px;"></i>얼리버드</div>
+                    <div class="pf-grid">
+                        <div class="pf-f"><label>추가 할인 금액</label><div class="money"><input class="edit-input" id="pf-early-off" inputmode="numeric" placeholder="5,000" oninput="ptMoneyInput(this)"><span>원</span></div><div class="hint">0이거나 비우면 얼리버드 없음</div></div>
+                        <div class="pf-f"><label>적용 기한</label><div class="money"><input class="edit-input" id="pf-early-days" inputmode="numeric" placeholder="7" oninput="ptMoneyInput(this)"><span>일 전까지</span></div><div class="hint">파티 며칠 전까지 신청하면 적용할지</div></div>
+                    </div>
+                    <div class="pf-sum" id="pf-early-hint"></div>
+                </div>
+
+                <div class="pf-sec">
+                    <div class="pf-sec-t">공개 설정</div>
+                    <div class="pf-f" style="margin-bottom:16px;"><label>상태</label>
+                        <div class="seg" id="pf-status-seg">
+                            <button type="button" data-v="draft" onclick="ptSetStatus('draft')">작성 중 (비공개)</button>
+                            <button type="button" data-v="open" onclick="ptSetStatus('open')">모집 중</button>
+                            <button type="button" data-v="closed" onclick="ptSetStatus('closed')">모집 마감</button>
+                        </div>
+                    </div>
+                    <div class="pf-f"><label>포스터 이미지 (선택)</label>
+                        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                            <img id="pf-poster-preview" style="display:none; max-height:120px; border-radius:8px;">
+                            <input type="file" id="pf-poster" accept="image/*" class="edit-input" style="width:auto;">
+                            <label style="display:inline; font-size:0.85rem; margin:0;"><input type="checkbox" id="pf-poster-remove"> 포스터 삭제</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pf-sec">
+                    <div class="pf-sec-t">소개 · 규칙</div>
+                    <div class="pf-f" style="margin-bottom:16px;"><label>소개 문구</label><textarea class="edit-textarea" id="pf-desc" style="min-height:240px;"></textarea></div>
+                    <div class="pf-f"><label>참가 규칙 (한 줄에 하나, 비우면 기본 규칙)</label><textarea class="edit-textarea" id="pf-rules" style="min-height:220px;"></textarea>
+                        <button type="button" style="margin-top:6px; background:none; border:none; color:var(--accent-gold); cursor:pointer; font-size:0.85rem;" onclick="document.getElementById('pf-rules').value = PARTY_DEFAULT_RULES.join('\n')">기본 규칙 불러오기</button>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px;">
+                    <button class="save-btn" id="pf-save" onclick="saveParty()"><i class="fa-solid fa-floppy-disk"></i> 저장</button>
+                    <button class="save-btn" style="background:transparent; color:var(--text-secondary); border:1px solid var(--border-color);" onclick="document.getElementById('pt-form-panel').style.display='none'">닫기</button>
+                </div>
+            </div>
+
+            <div class="panel" id="pt-apps-panel" style="display:none;">
+                <div class="panel-header" style="margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <h2 class="panel-title">신청서 <span id="pt-apps-count" style="font-size:0.9rem; color:var(--text-secondary); font-weight:400;"></span></h2>
+                    <div id="pt-filter" style="display:flex; gap:6px; flex-wrap:wrap;"></div>
+                </div>
+                <div id="pt-apps" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px;"></div>
+            </div>
+        </div>
+
     </main>
 
     <!-- Firebase Auth 설정 및 보안 검사 -->
@@ -955,6 +1117,11 @@
         }
 
         function showSection(name) {
+            if (window.IS_PARTY_MGR) {
+                name = 'parties';
+                const t = document.querySelector('.page-title');
+                if (t) t.textContent = '파티 관리';
+            }
             toggleAdminSidebar(false);
             // 모든 섹션 숨기기
             document.getElementById('section-members') && (document.getElementById('section-members').style.display = 'none');
@@ -962,6 +1129,7 @@
             document.getElementById('section-cms') && (document.getElementById('section-cms').style.display = 'none');
             document.getElementById('section-events') && (document.getElementById('section-events').style.display = 'none');
             document.getElementById('section-stats') && (document.getElementById('section-stats').style.display = 'none');
+            document.getElementById('section-parties') && (document.getElementById('section-parties').style.display = 'none');
             const mainContent = document.querySelector('.content-area:not([id])');
             if (mainContent) mainContent.style.display = 'none';
 
@@ -980,6 +1148,9 @@
             } else if (name === 'stats') {
                 document.getElementById('section-stats').style.display = 'block';
                 loadRevenueStats();
+            } else if (name === 'parties') {
+                document.getElementById('section-parties').style.display = 'block';
+                loadParties();
             } else {
                 if (mainContent) mainContent.style.display = 'block';
             }
@@ -2083,7 +2254,7 @@
                     allMembersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     
                     // 관리자 수 뱃지 업데이트
-                    const adminCount = allMembersData.filter(m => m.role === 'super_admin' || m.role === 'general_admin').length;
+                    const adminCount = allMembersData.filter(m => m.role === 'super_admin' || m.role === 'general_admin' || m.role === 'party_manager').length;
                     const badge = document.getElementById('admin-count-badge');
                     if (badge) badge.textContent = adminCount;
 
@@ -2107,7 +2278,7 @@
 
             let filtered = allMembersData;
             if (currentMemberFilter === 'admin') {
-                filtered = allMembersData.filter(m => m.role === 'super_admin' || m.role === 'general_admin');
+                filtered = allMembersData.filter(m => m.role === 'super_admin' || m.role === 'general_admin' || m.role === 'party_manager');
             }
 
             if (filtered.length === 0) {
@@ -2127,6 +2298,8 @@
                     badgeHtml = '<div class="role-badge super-admin"><i class="fa-solid fa-crown"></i> 최고 관리자</div>';
                 } else if (m.role === 'general_admin') {
                     badgeHtml = '<div class="role-badge general-admin"><i class="fa-solid fa-user-tie"></i> 일반 관리자</div>';
+                } else if (m.role === 'party_manager') {
+                    badgeHtml = '<div class="role-badge party-manager"><i class="fa-solid fa-champagne-glasses"></i> 파티 운영자</div>';
                 }
 
                 // 액션 렌더링
@@ -2142,8 +2315,14 @@
                         } else {
                             actionHtml = '<span style="font-size:0.75rem; color:var(--text-secondary);">해제 권한 없음</span>';
                         }
+                    } else if (m.role === 'party_manager') {
+                        actionHtml = myRole === 'super_admin'
+                            ? `<button onclick="changeUserRole('${m.id}', 'user', '${m.name}')" style="padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #ef4444; color:#ef4444; border-radius:6px; cursor:pointer;" onmouseover="this.style.background='rgba(239,68,68,0.1)'" onmouseout="this.style.background='transparent'">권한 해제</button>`
+                            : '<span style="font-size:0.75rem; color:var(--text-secondary);">해제 권한 없음</span>';
                     } else { // 일반 유저
-                        actionHtml = `<button onclick="changeUserRole('${m.id}', 'general_admin', '${m.name}')" style="padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid var(--accent-gold); color:var(--accent-gold); border-radius:6px; cursor:pointer;" onmouseover="this.style.background='rgba(212,175,55,0.1)'" onmouseout="this.style.background='transparent'">관리자 승격</button>`;
+                        actionHtml = `<div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button onclick="changeUserRole('${m.id}', 'general_admin', '${m.name}')" style="padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid var(--accent-gold); color:var(--accent-gold); border-radius:6px; cursor:pointer; white-space:nowrap;" onmouseover="this.style.background='rgba(212,175,55,0.1)'" onmouseout="this.style.background='transparent'">관리자 승격</button>
+                            <button onclick="changeUserRole('${m.id}', 'party_manager', '${m.name}')" style="padding:4px 8px; font-size:0.75rem; background:transparent; border:1px solid #c084fc; color:#c084fc; border-radius:6px; cursor:pointer; white-space:nowrap;" onmouseover="this.style.background='rgba(192,132,252,0.12)'" onmouseout="this.style.background='transparent'">파티 운영자 지정</button></div>`;
                     }
                 } else {
                     actionHtml = '-';
@@ -2219,7 +2398,7 @@
 
         // 권한 변경 함수
         function changeUserRole(uid, newRole, name) {
-            const label = newRole === 'general_admin' ? '일반 관리자 승격' : '관리자 권한 해제';
+            const label = newRole === 'general_admin' ? '일반 관리자 승격' : newRole === 'party_manager' ? '파티 운영자 지정 (파티 관리 화면만 볼 수 있어요)' : '권한 해제';
             if (!confirm(`'${name}' 회원을 ${label} 처리하시겠습니까?`)) return;
 
             const db = firebase.firestore();
@@ -2752,7 +2931,7 @@
 
         // 대시보드 진입 시 데이터 통합 로드
         document.addEventListener('DOMContentLoaded', () => {
-            if (typeof firebase !== 'undefined') {
+            if (typeof firebase !== 'undefined' && !window.IS_PARTY_MGR) {
                 waitAdminAuth().then(() => {
                     loadReservations();
                     loadDashboardStats();
@@ -3107,11 +3286,389 @@
 
         // 초기화 시 리스너 등록
         document.addEventListener('DOMContentLoaded', () => {
-            if (typeof firebase !== 'undefined') {
+            if (typeof firebase !== 'undefined' && !window.IS_PARTY_MGR) {
                 waitAdminAuth().then(() => initNotificationListener());
             }
             // 직전에 열어둔 탭 복구 (기본값: dashboard)
             const lastSection = sessionStorage.getItem('admin_current_section') || 'dashboard';
             waitAdminAuth().then(() => showSection(lastSection));
         });
+    </script>
+    <script>
+        // ── 파티 관리 ───────────────────────────────────────────────
+        // 파티 정보는 여기서 직접 저장(parties), 신청서 승인·거절·취소는 서버 함수가 처리한다 (문자 발송·환불 포함)
+        const PARTY_DEFAULT_RULES = [
+            '모노리 파티는 모두가 편안하게 즐길 수 있도록 100% 사전 승인제로 운영돼요.',
+            '신청서(사진·소개)를 보고 승인 여부를 정해요. 성비와 분위기에 따라 승인되지 않을 수 있으며, 결제는 승인 후에만 하므로 미승인 시 결제된 금액은 없어요.',
+            '승인되면 문자로 결제 링크를 보내드려요. 결제 기한(48시간) 안에 결제해야 참가가 확정돼요.',
+            '주류는 무료로 제공돼요. 청소년은 참여할 수 없고, 현장에서 신분증을 확인할 수 있어요.',
+            '다른 참가자에게 불쾌감을 주는 언행을 하면 퇴장 조치될 수 있으며, 이 경우 환불되지 않아요.',
+            '파티 7일 전까지 취소하면 전액 환불되고, 그 이후 개인 사정으로 인한 취소는 환불되지 않아요.',
+            '모노리 사정으로 파티가 열리지 않으면 100% 전액 환불해 드려요.',
+            '현장 분위기를 담기 위해 사진·영상 촬영이 있을 수 있으며, 얼굴은 블러 처리 후 모노리 SNS에 게시될 수 있어요.',
+        ];
+        const PT_STATUS = {
+            pending:   { label: '심사 중',     color: '#D4AF37' },
+            approved:  { label: '승인·결제 대기', color: '#38bdf8' },
+            paid:      { label: '참가 확정',   color: '#22c55e' },
+            rejected:  { label: '미승인',      color: '#888' },
+            cancelled: { label: '취소',        color: '#ef4444' },
+        };
+        const PT_GENDER = { male: '남', female: '여' };
+        let _parties = [], _ptSelected = null, _ptApps = [], _ptFilter = 'all';
+        let _ptPartiesUnsub = null, _ptAppsUnsub = null;
+        const _ptPhotoUrls = {};
+        const ptEsc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const ptWon = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원';
+        const ptTs = (ts) => {
+            const ms = ts && ts.toMillis ? ts.toMillis() : 0;
+            if (!ms) return '-';
+            const k = new Date(ms + 9 * 3600000);
+            return `${k.getUTCMonth() + 1}/${k.getUTCDate()} ${String(k.getUTCHours()).padStart(2, '0')}:${String(k.getUTCMinutes()).padStart(2, '0')}`;
+        };
+
+        function loadParties() {
+            if (_ptPartiesUnsub || typeof firebase === 'undefined') return;
+            _ptPartiesUnsub = firebase.firestore().collection('parties').onSnapshot((snap) => {
+                _parties = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+                if (!_ptSelected && _parties.length) _ptSelected = _parties[0].id;
+                renderPartyChips();
+                if (_ptSelected) selectParty(_ptSelected, true);
+                else document.getElementById('pt-summary').innerHTML = '<p style="color:var(--text-secondary);">오른쪽 위 \'새 파티\'로 첫 파티를 만들어 주세요.</p>';
+            }, (e) => {
+                console.error(e);
+                document.getElementById('pt-summary').innerHTML = '<p style="color:#ef4444;">파티 목록을 불러오지 못했습니다. (권한 또는 보안 규칙 확인)</p>';
+            });
+        }
+
+        function selectParty(id, keepApps) {
+            if (!id) return;
+            const changed = id !== _ptSelected || !_ptAppsUnsub;
+            _ptSelected = id;
+            renderPartyChips();
+            renderPartySummary();
+            if (!changed && keepApps) return;
+            if (_ptAppsUnsub) _ptAppsUnsub();
+            document.getElementById('pt-apps-panel').style.display = 'block';
+            document.getElementById('pt-apps').innerHTML = '<p style="color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin"></i> 불러오는 중...</p>';
+            _ptAppsUnsub = firebase.firestore().collection('party_applications').where('partyId', '==', id).onSnapshot((snap) => {
+                _ptApps = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+                    .sort((a, b) => ((b.createdAt && b.createdAt.toMillis()) || 0) - ((a.createdAt && a.createdAt.toMillis()) || 0));
+                renderPartySummary();
+                renderPartyApps();
+            }, (e) => {
+                console.error(e);
+                document.getElementById('pt-apps').innerHTML = '<p style="color:#ef4444;">신청서를 불러오지 못했습니다.</p>';
+            });
+        }
+
+        function renderPartySummary() {
+            const p = _parties.find((x) => x.id === _ptSelected);
+            const el = document.getElementById('pt-summary');
+            if (!p) { el.innerHTML = ''; return; }
+            const cnt = (g, st) => _ptApps.filter((a) => a.gender === g && a.status === st).length;
+            const row = (g, label, color) => {
+                const cap = Number(g === 'female' ? p.capacityFemale : p.capacityMale) || 0;
+                const paid = cnt(g, 'paid');
+                return `<div style="flex:1; min-width:220px; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; padding:14px 16px;">
+                    <div style="font-weight:600; color:${color}; margin-bottom:6px;">${label} ${ptWon(g === 'female' ? p.priceFemale : p.priceMale)}</div>
+                    <div style="font-size:0.88rem; color:var(--text-secondary); line-height:1.8;">
+                        확정 <b style="color:#22c55e; font-size:1.05rem;">${paid}</b>${cap ? ` / 정원 ${cap}` : ''} · 결제 대기 ${cnt(g, 'approved')} · 심사 중 ${cnt(g, 'pending')}
+                    </div></div>`;
+            };
+            const statusLabel = { draft: '작성 중 (비공개)', open: '모집 중', closed: '모집 마감' }[p.status] || p.status;
+            const link = `${location.origin}/party.html?p=${encodeURIComponent(p.id)}`;
+            el.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+                    <div>
+                        <div style="font-size:1.2rem; font-weight:600;">${ptEsc(p.title)}</div>
+                        <div style="color:var(--text-secondary); font-size:0.9rem;">${ptEsc(p.date)} ${ptEsc(p.startTime || '')}${p.endTime ? '~' + ptEsc(p.endTime) : ''} · <span style="color:${p.status === 'open' ? '#22c55e' : 'var(--text-secondary)'}">${statusLabel}</span></div>
+                        <div style="font-size:0.85rem; margin-top:4px;"><a href="${link}" target="_blank" style="color:var(--accent-gold);">${link}</a>
+                            <button onclick="navigator.clipboard.writeText('${link}').then(()=>alert('신청 링크를 복사했어요.'))" style="background:none; border:1px solid var(--border-color); color:var(--text-secondary); border-radius:6px; padding:2px 8px; margin-left:6px; cursor:pointer; font-size:0.8rem;">복사</button></div>
+                    </div>
+                    <button class="save-btn" style="padding:10px 16px; background:transparent; color:var(--accent-gold); border:1px solid var(--accent-gold);" onclick="editParty('${ptEsc(p.id)}')"><i class="fa-solid fa-pen"></i> 파티 정보 수정</button>
+                </div>
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">${row('female', '여성', '#f9a8d4')}${row('male', '남성', '#93c5fd')}</div>`;
+        }
+
+        function renderPartyApps() {
+            const counts = { all: _ptApps.length };
+            _ptApps.forEach((a) => { counts[a.status] = (counts[a.status] || 0) + 1; });
+            document.getElementById('pt-apps-count').textContent = `(총 ${_ptApps.length}건)`;
+            const tabs = [['all', '전체'], ...Object.entries(PT_STATUS).map(([k, v]) => [k, v.label])];
+            document.getElementById('pt-filter').innerHTML = tabs.map(([k, l]) => `<button onclick="_ptFilter='${k}'; renderPartyApps();" style="padding:6px 12px; border-radius:20px; cursor:pointer; font-size:0.82rem; border:1px solid ${_ptFilter === k ? 'var(--accent-gold)' : 'var(--border-color)'}; background:${_ptFilter === k ? 'rgba(212,175,55,0.15)' : 'transparent'}; color:${_ptFilter === k ? 'var(--accent-gold)' : 'var(--text-secondary)'};">${l} ${counts[k] || 0}</button>`).join('');
+            const list = _ptApps.filter((a) => _ptFilter === 'all' || a.status === _ptFilter);
+            const box = document.getElementById('pt-apps');
+            if (!list.length) { box.innerHTML = '<p style="color:var(--text-secondary);">해당하는 신청서가 없어요.</p>'; return; }
+            box.innerHTML = list.map(ptAppCard).join('');
+            list.forEach((a) => (a.photos || []).forEach((path, i) => ptLoadPhoto(path, `ph-${a.id}-${i}`)));
+        }
+
+        function ptAppCard(a) {
+            const st = PT_STATUS[a.status] || { label: a.status, color: '#888' };
+            const gColor = a.gender === 'female' ? '#f9a8d4' : '#93c5fd';
+            const yy = a.birth ? String(a.birth).slice(2, 4) + '년생' : '';
+            const photos = (a.photos || []).map((p, i) => `<div style="flex:1; aspect-ratio:3/4; background:#111; border-radius:8px; overflow:hidden;"><img id="ph-${ptEsc(a.id)}-${i}" style="width:100%; height:100%; object-fit:cover; cursor:zoom-in; display:block;" onclick="if(this.src) window.open(this.src,'_blank')"></div>`).join('');
+            let actions = '';
+            if (a.status === 'pending') {
+                actions = `<button onclick="ptReview('${a.id}','approve')" style="flex:1; padding:10px; border:none; border-radius:8px; background:#22c55e; color:#000; font-weight:600; cursor:pointer;">승인</button>
+                           <button onclick="ptReview('${a.id}','reject')" style="flex:1; padding:10px; border:1px solid var(--border-color); border-radius:8px; background:transparent; color:var(--text-secondary); cursor:pointer;">거절</button>`;
+            } else if (a.status === 'approved') {
+                actions = `<button onclick="ptReview('${a.id}','approve')" style="flex:1; padding:10px; border:1px solid #38bdf8; border-radius:8px; background:transparent; color:#38bdf8; cursor:pointer;">결제 안내 재발송(기한 연장)</button>
+                           <button onclick="ptReview('${a.id}','reject')" style="flex:1; padding:10px; border:1px solid var(--border-color); border-radius:8px; background:transparent; color:var(--text-secondary); cursor:pointer;">거절</button>`;
+            } else if (a.status === 'paid') {
+                actions = `<button onclick="ptCancel('${a.id}')" style="flex:1; padding:10px; border:1px solid #ef4444; border-radius:8px; background:transparent; color:#ef4444; cursor:pointer;">참가 취소·환불</button>`;
+            }
+            const money = a.status === 'paid' ? `결제 ${ptWon(a.paidAmount)} · ${ptTs(a.paidAt)}`
+                : a.status === 'approved' ? `참가비 ${ptWon(a.amount)} · 결제 기한 ${ptTs(a.payDeadline)}`
+                : a.status === 'cancelled' && a.refundAmount ? `환불 ${ptWon(a.refundAmount)}` : '';
+            return `<div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-left:3px solid ${st.color}; border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; gap:6px;">${photos || '<div style="color:var(--text-secondary); font-size:0.85rem;">사진 없음(파기됨)</div>'}</div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div><b style="font-size:1.05rem;">${ptEsc(a.name)}</b> <span style="color:${gColor}; font-weight:600;">${PT_GENDER[a.gender] || ''}</span> <span style="color:var(--text-secondary); font-size:0.88rem;">${yy}</span></div>
+                    <span style="font-size:0.78rem; padding:3px 10px; border-radius:20px; color:${st.color}; border:1px solid ${st.color};">${st.label}</span>
+                </div>
+                <div style="font-size:0.88rem; color:var(--text-secondary); line-height:1.7;">
+                    ${ptEsc(a.job || '-')} · ${a.instagram ? `<a href="https://instagram.com/${encodeURIComponent(a.instagram)}" target="_blank" style="color:var(--accent-gold);">@${ptEsc(a.instagram)}</a>` : '인스타 없음'}<br>
+                    ${ptEsc(a.phone)} · 신청 ${ptTs(a.createdAt)}${money ? `<br><span style="color:var(--text-primary);">${money}</span>` : ''}
+                </div>
+                ${a.intro ? `<div style="font-size:0.9rem; white-space:pre-line; background:rgba(0,0,0,0.25); border-radius:8px; padding:10px; max-height:160px; overflow:auto;">${ptEsc(a.intro)}</div>` : ''}
+                ${actions ? `<div style="display:flex; gap:8px;">${actions}</div>` : ''}
+            </div>`;
+        }
+
+        function ptLoadPhoto(path, imgId) {
+            const set = (url) => { const img = document.getElementById(imgId); if (img) img.src = url; };
+            if (_ptPhotoUrls[path]) return set(_ptPhotoUrls[path]);
+            firebase.storage().ref(path).getDownloadURL().then((url) => { _ptPhotoUrls[path] = url; set(url); }).catch((e) => console.warn('사진 불러오기 실패', path, e.code));
+        }
+
+        async function ptReview(id, action) {
+            const a = _ptApps.find((x) => x.id === id);
+            const msg = action === 'approve'
+                ? (a.status === 'approved' ? `${a.name}님께 결제 안내 문자를 다시 보내고 결제 기한을 48시간 연장할까요?` : `${a.name}님을 승인할까요?\n승인 즉시 결제 링크가 문자로 발송됩니다.`)
+                : `${a.name}님을 미승인 처리할까요?\n안내 문자가 발송됩니다.`;
+            if (!confirm(msg)) return;
+            try {
+                const r = await firebase.functions().httpsCallable('reviewPartyApplication')({ id, action });
+                if (r.data.smsOk === false) alert('처리는 됐지만 문자 발송에 실패했어요. 직접 연락해 주세요.');
+            } catch (e) { alert('처리 실패: ' + (e.message || e)); }
+        }
+
+        async function ptCancel(id) {
+            const a = _ptApps.find((x) => x.id === id);
+            const input = prompt(`${a.name}님 참가를 취소합니다.\n환불할 금액을 입력하세요. (결제 ${ptWon(a.paidAmount)}, 0 = 환불 없이 취소)`, String(a.paidAmount || 0));
+            if (input === null) return;
+            const refundAmount = Number(String(input).replace(/[^0-9]/g, ''));
+            if (!Number.isFinite(refundAmount) || refundAmount > Number(a.paidAmount)) { alert('금액이 올바르지 않아요.'); return; }
+            if (!confirm(`${ptWon(refundAmount)} 환불하고 참가를 취소할까요? 고객에게 취소 문자가 발송됩니다.`)) return;
+            try {
+                const r = await firebase.functions().httpsCallable('cancelPartyApplication')({ id, refundAmount });
+                if (r.data.smsOk === false) alert('취소는 됐지만 문자 발송에 실패했어요. 직접 연락해 주세요.');
+            } catch (e) { alert('취소 실패: ' + (e.message || e)); }
+        }
+
+        const PARTY_TEMPLATE = {
+            title: '모노리 할로윈 파티', id: 'halloween-2026', date: '2026-10-31', startTime: '19:00', endTime: '23:00', status: 'draft',
+            originalPriceFemale: 30000, priceFemale: 15000, capacityFemale: 10,
+            originalPriceMale: 50000, priceMale: 30000, capacityMale: 10,
+            earlyOff: 5000, earlyDays: 7,
+            description: [
+                '🎃 올해 할로윈은 모노리에서 함께해요!',
+                '',
+                '코스프레는 안 해도 괜찮아요. 편하게 와도 좋고, 마음껏 꾸며 와도 좋아요.',
+                '대신 오늘 밤, 가장 즐겁게 놀아 주세요.',
+                '',
+                '■ 이런 파티예요',
+                '· 처음 만나도 어색하지 않게, 진행자와 함께하는 게임과 미션',
+                '· 주류 무료 제공',
+                '· 100% 사전 승인제로 운영되는 안전한 분위기',
+                '',
+                '■ 오늘의 시상',
+                '게임과 미션 결과로 순위를 뽑아, 상위 참가자에게 선물을 드려요.',
+                '누구에게나 기회가 열려 있어요. 가볍게 즐기다 보면 어느새 상위권일지도 몰라요.',
+            ].join('\n'),
+        };
+        let _ptEditingId = null, _ptStatus = 'draft', _ptDate = '';
+        const PT_WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+        const ptYmd = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const ptParse = (s) => { const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? { y: +m[1], m: +m[2], d: +m[3] } : null; };
+        const ptKoDate = (s) => { const t = ptParse(s); return t ? `${t.y}년 ${t.m}월 ${t.d}일 (${PT_WEEK[new Date(Date.UTC(t.y, t.m - 1, t.d)).getUTCDay()]})` : ''; };
+        const ptTodayYmd = () => { const k = new Date(Date.now() + 9 * 3600000); return ptYmd(k.getUTCFullYear(), k.getUTCMonth() + 1, k.getUTCDate()); };
+        const ptAddDays = (s, n) => { const t = ptParse(s); const d = new Date(Date.UTC(t.y, t.m - 1, t.d + n)); return ptYmd(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()); };
+        const ptDayDiff = (a, b) => { const x = ptParse(a), y = ptParse(b); return Math.round((Date.UTC(y.y, y.m - 1, y.d) - Date.UTC(x.y, x.m - 1, x.d)) / 86400000); };
+
+        function renderPartyChips() {
+            const box = document.getElementById('pt-chips');
+            if (!box) return;
+            const label = { draft: '작성 중', open: '모집 중', closed: '마감' };
+            const color = { draft: '#888', open: '#22c55e', closed: '#ef4444' };
+            box.innerHTML = _parties.length ? _parties.map((p) => `<button type="button" class="pt-chip ${p.id === _ptSelected ? 'on' : ''}" onclick="selectParty('${ptEsc(p.id)}')">
+                <span class="d">${ptEsc(ptKoDate(p.date))}</span><span class="t">${ptEsc(p.title)}</span><span class="s" style="color:${color[p.status] || '#888'}">● ${label[p.status] || ptEsc(p.status)}</span></button>`).join('')
+                : '<span style="color:var(--text-secondary); font-size:0.9rem;">아직 파티가 없어요. 오른쪽 위 \'새 파티\'로 만들어 주세요.</span>';
+        }
+
+        // ── 달력 선택기 ──
+        let _dpView = { y: 0, m: 0 };
+        function ptDpToggle(e) {
+            e.stopPropagation();
+            const pop = document.getElementById('pf-date-pop');
+            if (pop.style.display === 'block') { pop.style.display = 'none'; return; }
+            const t = ptParse(_ptDate) || ptParse(ptTodayYmd());
+            _dpView = { y: t.y, m: t.m };
+            ptDpDraw();
+            pop.style.display = 'block';
+        }
+        function ptDpNav(delta) {
+            let m = _dpView.m + delta, y = _dpView.y;
+            if (m < 1) { m = 12; y--; } else if (m > 12) { m = 1; y++; }
+            _dpView = { y, m };
+            ptDpDraw();
+        }
+        function ptDpDraw() {
+            const { y, m } = _dpView, today = ptTodayYmd();
+            const first = new Date(Date.UTC(y, m - 1, 1)).getUTCDay(), days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+            let cells = PT_WEEK.map((w) => `<div class="w">${w}</div>`).join('') + '<div></div>'.repeat(first);
+            for (let d = 1; d <= days; d++) {
+                const ymd = ptYmd(y, m, d), dow = (first + d - 1) % 7;
+                const cls = [ymd === _ptDate ? 'sel' : '', ymd === today ? 'today' : '', dow === 0 ? 'sun' : dow === 6 ? 'sat' : ''].join(' ');
+                cells += `<button type="button" class="${cls}" ${ymd < today && ymd !== _ptDate ? 'disabled' : ''} onclick="ptDpPick('${ymd}')">${d}</button>`;
+            }
+            document.getElementById('pf-date-pop').innerHTML = `<div class="dp-head"><button type="button" onclick="ptDpNav(-1)">‹</button><span>${y}년 ${m}월</span><button type="button" onclick="ptDpNav(1)">›</button></div><div class="dp-grid">${cells}</div>`;
+        }
+        function ptDpPick(ymd) {
+            _ptDate = ymd;
+            ptDpShow();
+            document.getElementById('pf-date-pop').style.display = 'none';
+            ptEarlyHint();
+        }
+        function ptDpShow() {
+            document.getElementById('pf-date-btn').innerHTML = _ptDate
+                ? `<span>${ptKoDate(_ptDate)}</span><i class="fa-regular fa-calendar" style="color:var(--accent-gold)"></i>`
+                : `<span style="color:var(--text-secondary)">날짜를 선택하세요</span><i class="fa-regular fa-calendar" style="color:var(--accent-gold)"></i>`;
+        }
+        document.addEventListener('click', () => { const pop = document.getElementById('pf-date-pop'); if (pop) pop.style.display = 'none'; });
+
+        function ptTimeOptions(selId, value, allowBlank) {
+            let html = allowBlank ? '<option value="">미정</option>' : '';
+            for (let h = 0; h < 24; h++) for (const mm of ['00', '30']) {
+                const v = `${String(h).padStart(2, '0')}:${mm}`;
+                html += `<option value="${v}" ${v === value ? 'selected' : ''}>${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${mm}</option>`;
+            }
+            document.getElementById(selId).innerHTML = html;
+        }
+        function ptSetStatus(v) {
+            _ptStatus = v;
+            document.querySelectorAll('#pf-status-seg button').forEach((b) => b.classList.toggle('on', b.dataset.v === v));
+        }
+        // 금액 입력칸: 숫자만 남기고 천 단위 쉼표를 넣는다
+        function ptMoneyInput(el) {
+            const digits = el.value.replace(/[^0-9]/g, '');
+            el.value = digits ? Number(digits).toLocaleString('ko-KR') : '';
+            if (el.id.startsWith('pf-orig') || el.id.startsWith('pf-price') || el.id.startsWith('pf-early')) { ptPriceHint(); ptEarlyHint(); }
+        }
+        const ptNum = (id) => { const t = document.getElementById(id).value.replace(/[^0-9]/g, ''); return t === '' ? null : Number(t); };
+        const ptSetMoney = (id, n) => { document.getElementById(id).value = n == null || n === '' ? '' : Number(n).toLocaleString('ko-KR'); };
+
+        function ptPriceHint() {
+            [['f', '여성'], ['m', '남성']].forEach(([k, label]) => {
+                const orig = ptNum('pf-orig-' + k), price = ptNum('pf-price-' + k), el = document.getElementById('pf-sum-' + k);
+                if (!el) return;
+                if (price == null) { el.textContent = ''; return; }
+                const pct = orig && orig > price ? Math.round((1 - price / orig) * 100) : 0;
+                el.innerHTML = orig && orig > price ? `고객에게 <s>${ptWon(orig)}</s> → <b>${ptWon(price)}</b> <b style="color:#fb923c;">(${pct}% 할인)</b>으로 보여요.` : `고객에게 <b>${ptWon(price)}</b>으로 보여요.`;
+            });
+        }
+
+        function ptEarlyHint() {
+            const off = ptNum('pf-early-off') || 0, days = ptNum('pf-early-days') || 0;
+            const el = document.getElementById('pf-early-hint');
+            if (!off) { el.textContent = '얼리버드 없이 판매합니다.'; return; }
+            if (!_ptDate) { el.textContent = '날짜를 먼저 선택해 주세요.'; return; }
+            const pf = ptNum('pf-price-f'), pm = ptNum('pf-price-m');
+            const prices = [pf != null ? `여성 <b>${ptWon(Math.max(0, pf - off))}</b>` : '', pm != null ? `남성 <b>${ptWon(Math.max(0, pm - off))}</b>` : ''].filter(Boolean).join(' · ');
+            el.innerHTML = `<b>${ptKoDate(ptAddDays(_ptDate, -days))}</b>까지 신청하면 ${ptWon(off)} 추가 할인${prices ? ` → ${prices}` : ''}<br>고객 화면에 마감까지 카운트다운이 표시돼요.`;
+        }
+
+        function editParty(id) {
+            let p = id ? _parties.find((x) => x.id === id) : null;
+            _ptEditingId = p ? p.id : null;
+            let src;
+            if (p) {
+                const off = p.earlyPriceFemale != null && p.priceFemale != null ? p.priceFemale - p.earlyPriceFemale : (p.earlyPriceMale != null ? p.priceMale - p.earlyPriceMale : 0);
+                src = { ...p, earlyOff: off > 0 ? off : 0, earlyDays: p.earlyUntil && p.date ? ptDayDiff(p.earlyUntil, p.date) : 7 };
+            } else if (_parties.length) {
+                // 새 파티는 가장 최근 파티를 복사해서 시작 (날짜·이름·ID만 비움)
+                const last = _parties[0];
+                const off = last.earlyPriceFemale != null && last.priceFemale != null ? last.priceFemale - last.earlyPriceFemale : 0;
+                src = { ...last, title: '', id: '', date: '', status: 'draft', earlyOff: off > 0 ? off : 0, earlyDays: last.earlyUntil && last.date ? ptDayDiff(last.earlyUntil, last.date) : 7 };
+            } else {
+                src = PARTY_TEMPLATE;
+            }
+            const v = (elId, val) => { document.getElementById(elId).value = val == null ? '' : val; };
+            document.getElementById('pt-form-title').textContent = p ? '파티 정보 수정' : '새 파티';
+            v('pf-title', src.title); v('pf-id', src.id); document.getElementById('pf-id').disabled = !!p;
+            _ptDate = src.date || ''; ptDpShow();
+            ptTimeOptions('pf-start', src.startTime || '19:00', false); ptTimeOptions('pf-end', src.endTime || '', true);
+            ptSetMoney('pf-orig-f', src.originalPriceFemale); ptSetMoney('pf-price-f', src.priceFemale); ptSetMoney('pf-cap-f', src.capacityFemale);
+            ptSetMoney('pf-orig-m', src.originalPriceMale); ptSetMoney('pf-price-m', src.priceMale); ptSetMoney('pf-cap-m', src.capacityMale);
+            ptSetMoney('pf-early-off', src.earlyOff || 0); ptSetMoney('pf-early-days', src.earlyDays == null ? 7 : src.earlyDays);
+            ptPriceHint(); ptEarlyHint();
+            ptSetStatus(src.status || 'draft');
+            v('pf-desc', src.description); v('pf-rules', src.rules != null ? src.rules : PARTY_DEFAULT_RULES.join('\n'));
+            document.getElementById('pf-poster').value = '';
+            document.getElementById('pf-poster-remove').checked = false;
+            const prev = document.getElementById('pf-poster-preview');
+            if (p && p.posterUrl) { prev.src = p.posterUrl; prev.style.display = 'block'; } else prev.style.display = 'none';
+            const panel = document.getElementById('pt-form-panel');
+            panel.style.display = 'block';
+            panel.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function saveParty() {
+            const g = (id) => document.getElementById(id).value.trim();
+            const num = ptNum;
+            const id = _ptEditingId || g('pf-id').toLowerCase();
+            const priceF = num('pf-price-f'), priceM = num('pf-price-m');
+            const off = num('pf-early-off') || 0, days = num('pf-early-days') || 0;
+            const data = {
+                title: g('pf-title'), date: _ptDate, startTime: g('pf-start'), endTime: g('pf-end'), status: _ptStatus,
+                originalPriceFemale: num('pf-orig-f'), originalPriceMale: num('pf-orig-m'),
+                priceFemale: priceF, priceMale: priceM,
+                capacityFemale: num('pf-cap-f') || 0, capacityMale: num('pf-cap-m') || 0,
+                earlyPriceFemale: off > 0 && priceF != null ? Math.max(0, priceF - off) : null,
+                earlyPriceMale: off > 0 && priceM != null ? Math.max(0, priceM - off) : null,
+                earlyUntil: off > 0 && _ptDate ? ptAddDays(_ptDate, -days) : null,
+                description: document.getElementById('pf-desc').value.trim(), rules: document.getElementById('pf-rules').value.trim(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            };
+            if (!data.title || !data.date || !data.startTime) return alert('파티 이름, 날짜, 시작 시간을 입력해 주세요.');
+            if (!/^[a-z0-9][a-z0-9-]{2,39}$/.test(id)) return alert('주소용 ID는 영문 소문자·숫자·-로 3~40자여야 해요. (예: halloween-2026)');
+            if (priceF == null || priceM == null || priceF < 0 || priceM < 0) return alert('여성·남성 참가비를 입력해 주세요. (무료면 0)');
+            const btn = document.getElementById('pf-save');
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 저장 중...';
+            try {
+                const ref = firebase.firestore().collection('parties').doc(id);
+                if (!_ptEditingId) {
+                    if ((await ref.get()).exists) throw new Error('이미 같은 ID의 파티가 있어요. 다른 ID를 써 주세요.');
+                    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                }
+                const file = document.getElementById('pf-poster').files[0];
+                if (file) {
+                    const img = await compressImage(file, 1600, 0.85);
+                    const snap = await firebase.storage().ref(`parties/${id}/poster_${Date.now()}.jpg`).put(img, { contentType: img.type || 'image/jpeg' });
+                    data.posterUrl = await snap.ref.getDownloadURL();
+                } else if (document.getElementById('pf-poster-remove').checked) {
+                    data.posterUrl = null;
+                }
+                await ref.set(data, { merge: true });   // counts(서버가 채우는 인원 수)는 건드리지 않는다
+                _ptSelected = id;
+                document.getElementById('pt-form-panel').style.display = 'none';
+                alert('저장했어요.' + (data.status === 'draft' ? '\n(작성 중 상태라 아직 고객에게 보이지 않아요. 준비되면 \'모집 중\'으로 바꿔 주세요)' : ''));
+            } catch (e) {
+                alert('저장 실패: ' + (e.message || e));
+            } finally {
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> 저장';
+            }
+        }
     </script>

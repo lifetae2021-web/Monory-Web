@@ -16,7 +16,7 @@ const OUT = path.join(ROOT, 'dist');
 // ── 공개할 파일 (루트 기준) ─────────────────────────────────
 const SITE_FILES = [
     // 페이지
-    'index.html', 'community.html', 'mypage.html', 'login.html', 'admin.html',
+    'index.html', 'community.html', 'party.html', 'mypage.html', 'login.html', 'admin.html',
     'payment-success.html', 'terms.html', 'privacy.html', '404.html',
     // 스타일 / 스크립트
     'style.css', 'admin.css', 'kakao-auth.js', 'version-badge.js',

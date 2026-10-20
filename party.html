@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>파티 신청 | Monory</title>
+    <meta name="description" content="모노리에서 열리는 파티에 참가 신청하세요. 100% 사전 승인제로 운영됩니다.">
+    <link rel="icon" type="image/png" href="assets/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script defer src="/__/firebase/10.8.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-firestore-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-auth-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-functions-compat.js"></script>
+    <script defer src="/__/firebase/10.8.0/firebase-storage-compat.js"></script>
+    <script defer src="/__/firebase/init.js"></script>
+    <script defer src="kakao-auth.js?v=2"></script>
+    <script defer src="https://cdn.iamport.kr/v1/iamport.js"></script>
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --panel: #141417;
+            --panel-2: #1b1b1f;
+            --line: rgba(255, 255, 255, 0.09);
+            --text: #ffffff;
+            --sub: #a0a0a5;
+            --gold: #D4AF37;
+            --gold-soft: rgba(212, 175, 55, 0.12);
+            --ok: #4ade80;
+            --bad: #f87171;
+            --female: #f9a8d4;
+            --male: #93c5fd;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { background: var(--bg); color: var(--text); }
+        body { font-family: 'Noto Sans KR', sans-serif; line-height: 1.6; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+        a { color: inherit; text-decoration: none; }
+        button { font-family: inherit; cursor: pointer; }
+        .hidden { display: none !important; }
+
+        .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: rgba(10, 10, 12, 0.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+        .topbar img { height: 22px; }
+        .topbar .who { font-size: 0.82rem; color: var(--sub); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; }
+
+        .wrap { max-width: 560px; margin: 0 auto; padding: 24px 16px 120px; }
+        .center-msg { text-align: center; color: var(--sub); padding: 80px 0; }
+
+        /* 파티 소개 */
+        .poster { width: 100%; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
+        .poster img { width: 100%; display: block; }
+        .poster-fallback { aspect-ratio: 4 / 3; display: flex; flex-direction: column; justify-content: flex-end; padding: 28px; background: radial-gradient(120% 90% at 80% 0%, rgba(212, 175, 55, 0.28), transparent 60%), radial-gradient(90% 80% at 0% 100%, rgba(249, 115, 22, 0.18), transparent 60%), var(--panel); }
+        .poster-fallback .eyebrow { font-family: 'Outfit', sans-serif; letter-spacing: 0.2em; font-size: 0.75rem; color: var(--gold); }
+        .poster-fallback .ttl { font-size: 1.9rem; font-weight: 700; line-height: 1.25; margin-top: 6px; }
+        .party-head { margin: 22px 0 14px; }
+        .party-head h1 { font-size: 1.6rem; line-height: 1.3; }
+        .meta { display: grid; gap: 8px; margin-top: 12px; color: var(--sub); font-size: 0.95rem; }
+        .meta i { width: 20px; color: var(--gold); }
+        .desc { white-space: pre-line; color: #d6d6da; margin: 18px 0; font-size: 0.97rem; }
+
+        .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0; }
+        .price-card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+        .price-card .g { font-size: 0.85rem; color: var(--sub); }
+        .price-card .amt { font-family: 'Outfit', sans-serif; font-size: 1.45rem; font-weight: 600; margin-top: 2px; }
+        .price-card .was { font-size: 0.85rem; color: var(--sub); text-decoration: line-through; margin-top: 2px; }
+        .price-card .pct { color: #fb923c; font-weight: 700; font-size: 1.1rem; margin-right: 6px; }
+        .price-card .after { font-size: 0.78rem; color: var(--sub); margin-top: 4px; }
+        .cd { margin: 18px 0 0; padding: 16px; border-radius: 16px; text-align: center; border: 1px solid rgba(212, 175, 55, 0.45); background: linear-gradient(135deg, rgba(212, 175, 55, 0.16), rgba(249, 115, 22, 0.08)); }
+        .cd .lb { font-size: 0.88rem; color: var(--gold); font-weight: 700; }
+        .cd .tm { display: flex; justify-content: center; gap: 8px; margin: 10px 0 8px; }
+        .cd .u { min-width: 62px; background: rgba(0, 0, 0, 0.45); border-radius: 12px; padding: 8px 4px; }
+        .cd .u b { display: block; font-family: 'Outfit', sans-serif; font-size: 1.7rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+        .cd .u span { font-size: 0.7rem; color: var(--sub); }
+        .cd .sb { font-size: 0.85rem; color: #e6e6ea; }
+        .cd.plain { border-color: var(--line); background: var(--panel); }
+        .cd.plain .lb { color: var(--sub); }
+        .price-card .early { display: inline-block; font-size: 0.72rem; color: #111; background: var(--gold); border-radius: 6px; padding: 1px 7px; margin-top: 6px; font-weight: 700; }
+        .seat { margin-top: 10px; font-size: 0.82rem; }
+        .seat-bar { height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+        .seat-bar > span { display: block; height: 100%; border-radius: 99px; }
+        .hot { color: #fb923c; font-weight: 600; }
+
+        .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin: 16px 0; }
+        .card h3 { font-size: 1.02rem; margin-bottom: 10px; }
+        .rules { list-style: none; display: grid; gap: 10px; font-size: 0.93rem; color: #d6d6da; }
+        .rules li { padding-left: 16px; position: relative; }
+        .rules li::before { content: ''; position: absolute; left: 0; top: 0.7em; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+
+        .cta-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 70%, transparent); }
+        .cta-bar .inner { max-width: 560px; margin: 0 auto; }
+        .btn { width: 100%; border: none; border-radius: 14px; padding: 16px; font-size: 1.02rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: transform .1s, opacity .2s; }
+        .btn:active { transform: scale(0.99); }
+        .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .btn-gold { background: var(--gold); color: #111; }
+        .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+        .btn-kakao { background: #FEE500; color: #191600; }
+
+        /* 상태 카드 */
+        .status { text-align: center; padding: 28px 20px; }
+        .status .pill { display: inline-block; border: 1px solid currentColor; border-radius: 999px; padding: 4px 14px; font-size: 0.85rem; }
+        .status .big { font-size: 1.6rem; font-weight: 700; margin: 14px 0 6px; }
+        .status p { color: var(--sub); font-size: 0.93rem; }
+        .status .row { display: flex; justify-content: space-between; background: var(--panel-2); border-radius: 12px; padding: 14px 16px; margin-top: 14px; font-size: 0.95rem; }
+
+        /* 신청서 (한 화면에 한 질문) */
+        .wizard { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: flex; flex-direction: column; }
+        .progress { display: flex; gap: 4px; padding: 12px 16px 0; max-width: 560px; width: 100%; margin: 0 auto; }
+        .progress span { flex: 1; height: 3px; border-radius: 99px; background: rgba(255, 255, 255, 0.12); transition: background .3s; }
+        .progress span.on { background: var(--gold); }
+        .wz-top { display: flex; align-items: center; justify-content: space-between; max-width: 560px; width: 100%; margin: 0 auto; padding: 10px 8px 0; }
+        .wz-top button { background: none; border: none; color: var(--sub); font-size: 0.95rem; padding: 8px; }
+        .wz-body { flex: 1; overflow-y: auto; max-width: 560px; width: 100%; margin: 0 auto; padding: 28px 20px 24px; }
+        .wz-body h2 { font-size: 1.45rem; line-height: 1.4; margin-bottom: 8px; }
+        .wz-body .hint { color: var(--sub); font-size: 0.92rem; margin-bottom: 22px; }
+        .wz-foot { max-width: 560px; width: 100%; margin: 0 auto; padding: 12px 20px calc(16px + env(safe-area-inset-bottom)); }
+        .field { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; color: var(--text); font-size: 1.1rem; font-family: inherit; outline: none; transition: border-color .2s; }
+        .field:focus { border-color: var(--gold); }
+        textarea.field { min-height: 180px; resize: vertical; font-size: 1rem; line-height: 1.6; }
+        .counter { text-align: right; font-size: 0.82rem; color: var(--sub); margin-top: 6px; }
+        .err { color: var(--bad); font-size: 0.88rem; margin-top: 10px; min-height: 1.2em; }
+        .choice { display: grid; gap: 10px; }
+        .choice button { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px; color: var(--text); font-size: 1.05rem; display: flex; justify-content: space-between; align-items: center; }
+        .choice button small { color: var(--sub); font-size: 0.85rem; }
+        .choice button.sel { border-color: var(--gold); background: var(--gold-soft); }
+        .at-wrap { position: relative; }
+        .at-wrap span { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--sub); font-size: 1.1rem; }
+        .at-wrap .field { padding-left: 36px; }
+        .check { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-size: 0.93rem; color: #d6d6da; cursor: pointer; }
+        .check input { width: 20px; height: 20px; accent-color: var(--gold); margin-top: 2px; flex-shrink: 0; }
+        .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .ph { aspect-ratio: 3 / 4; border-radius: 12px; border: 1px dashed rgba(255, 255, 255, 0.2); background: var(--panel); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--sub); }
+        .ph img { width: 100%; height: 100%; object-fit: cover; }
+        .ph .x { position: absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(0, 0, 0, 0.7); color: #fff; font-size: 0.8rem; }
+        .ph .main-tag { position: absolute; left: 6px; bottom: 6px; font-size: 0.7rem; background: var(--gold); color: #111; border-radius: 6px; padding: 1px 6px; font-weight: 700; }
+        .summary { display: grid; gap: 8px; font-size: 0.93rem; }
+        .summary div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+        .summary div span:first-child { color: var(--sub); flex-shrink: 0; }
+        .summary div span:last-child { text-align: right; word-break: break-all; }
+        details.privacy { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-top: 16px; font-size: 0.86rem; color: var(--sub); }
+        details.privacy summary { cursor: pointer; color: #d6d6da; }
+        details.privacy table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        details.privacy td { border-top: 1px solid var(--line); padding: 8px 4px; vertical-align: top; }
+        details.privacy td:first-child { width: 72px; color: #d6d6da; }
+
+        .party-list a { display: block; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 12px; }
+        .party-list .t { font-weight: 700; font-size: 1.1rem; }
+        .party-list .d { color: var(--sub); font-size: 0.9rem; margin-top: 4px; }
+
+        .toast { position: fixed; left: 50%; bottom: 100px; transform: translateX(-50%); background: #26262b; color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 0.9rem; z-index: 100; max-width: calc(100% - 32px); text-align: center; }
+        .footer-links { text-align: center; color: #66666b; font-size: 0.8rem; margin-top: 40px; }
+        .footer-links a { margin: 0 8px; }
+    </style>
+</head>
+<body>
+    <header class="topbar">
+        <a href="index.html"><img src="assets/monory_logo_header.png" alt="MONORY"></a>
+        <span class="who hidden" id="who"></span>
+    </header>
+
+    <main class="wrap" id="app">
+        <div class="center-msg" id="loading"><i class="fa-solid fa-circle-notch fa-spin"></i> 불러오는 중...</div>
+    </main>
+
+    <div class="cta-bar hidden" id="cta-bar"><div class="inner" id="cta-inner"></div></div>
+
+    <!-- 신청서 -->
+    <div class="wizard hidden" id="wizard">
+        <div class="progress" id="wz-progress"></div>
+        <div class="wz-top">
+            <button type="button" id="wz-back"><i class="fa-solid fa-arrow-left"></i> 뒤로</button>
+            <button type="button" id="wz-close">닫기 <i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="wz-body" id="wz-body"></div>
+        <div class="wz-foot" id="wz-foot"></div>
+    </div>
+
+    <script>
+    // ─── 설정 ──────────────────────────────────────────────────────
+    const KAKAO_APP_KEY = 'c697d9b2e64f7b8ba66bf65ef93ab9a2';
+    const MIN_AGE = 19;                      // 서버(functions/party.js)와 같은 값
+    const MAX_PHOTOS = 3;
+    const CONTACT = '010-9130-1577';
+    const THIS_YEAR = Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Seoul', year: 'numeric' }).format(new Date()));
+
+    // 관리자가 파티별 규칙을 비워 두면 이 기본 규칙을 보여준다 (관리자 페이지의 기본값과 같음)
+    const DEFAULT_RULES = [
+        '모노리 파티는 모두가 편안하게 즐길 수 있도록 100% 사전 승인제로 운영돼요.',
+        '신청서(사진·소개)를 보고 승인 여부를 정해요. 성비와 분위기에 따라 승인되지 않을 수 있으며, 결제는 승인 후에만 하므로 미승인 시 결제된 금액은 없어요.',
+        '승인되면 문자로 결제 링크를 보내드려요. 결제 기한(48시간) 안에 결제해야 참가가 확정돼요.',
+        '주류는 무료로 제공돼요. 청소년은 참여할 수 없고, 현장에서 신분증을 확인할 수 있어요.',
+        '다른 참가자에게 불쾌감을 주는 언행을 하면 퇴장 조치될 수 있으며, 이 경우 환불되지 않아요.',
+        '파티 7일 전까지 취소하면 전액 환불되고, 그 이후 개인 사정으로 인한 취소는 환불되지 않아요.',
+        '모노리 사정으로 파티가 열리지 않으면 100% 전액 환불해 드려요.',
+        '현장 분위기를 담기 위해 사진·영상 촬영이 있을 수 있으며, 얼굴은 블러 처리 후 모노리 SNS에 게시될 수 있어요.',
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const won = (n) => (Number(n) || 0).toLocaleString('ko-KR') + '원';
+    const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+    const GENDER = { male: '남성', female: '여성' };
+
+    function toast(msg, ms = 2600) {
+        const t = document.createElement('div');
+        t.className = 'toast'; t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), ms);
+    }
+    function partyWhen(p) {
+        const m = String(p.date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!m) return p.date || '';
+        const dow = WEEK[new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay()];
+        return `${+m[2]}월 ${+m[3]}일 (${dow}) ${p.startTime || ''}${p.endTime ? ' ~ ' + p.endTime : ''}`;
+    }
+    const kstMs = (date, time) => {
+        const d = String(date || '').match(/^(\d{4})-(\d{2})-(\d{2})$/), t = String(time || '00:00').match(/^(\d{1,2}):(\d{2})$/);
+        return d && t ? Date.UTC(+d[1], +d[2] - 1, +d[3], +t[1], +t[2]) - 9 * 3600000 : null;
+    };
+    function priceInfo(p, gender, atMs = Date.now()) {
+        const key = gender === 'female' ? 'Female' : 'Male';
+        const base = Number(p['price' + key]) || 0;
+        const early = p['earlyPrice' + key];
+        const until = p.earlyUntil ? kstMs(p.earlyUntil, '23:59') : null;
+        if (early !== null && early !== undefined && early !== '' && Number(early) >= 0 && until && atMs <= until + 59999) return { amount: Number(early), base, early: true };
+        return { amount: base, base, early: false };
+    }
+    function fmtTs(ts) {
+        const ms = ts && ts.toMillis ? ts.toMillis() : Number(ts);
+        if (!ms) return '';
+        const k = new Date(ms + 9 * 3600000);
+        return `${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일 ${String(k.getUTCHours()).padStart(2, '0')}:${String(k.getUTCMinutes()).padStart(2, '0')}`;
+    }
+
+    // ─── 상태 ──────────────────────────────────────────────────────
+    let user = null;          // Firebase 로그인 사용자
+    let party = null;         // 현재 파티
+    let myApp = null;         // 내 신청서 (없으면 null)
+    const params = new URLSearchParams(location.search);
+    const partyId = params.get('p');
+
+    // ─── 시작 ──────────────────────────────────────────────────────
+    window.addEventListener('load', async () => {
+        if (typeof firebase === 'undefined' || !firebase.apps.length) {
+            $('app').innerHTML = '<div class="center-msg">페이지를 불러오지 못했어요. 새로고침해 주세요.</div>';
+            return;
+        }
+        user = await firebaseAuthState();
+        if (user) {
+            let name = '';
+            try { name = (JSON.parse(localStorage.getItem('monory_user') || '{}').name) || ''; } catch (e) {}
+            $('who').textContent = name ? name + '님' : '로그인됨';
+            $('who').classList.remove('hidden');
+        }
+        if (!partyId) return renderList();
+        await loadAndRender();
+        await handlePaymentReturn();
+    });
+
+    async function loadAndRender() {
+        const db = firebase.firestore();
+        try {
+            const snap = await db.collection('parties').doc(partyId).get();
+            if (!snap.exists) throw new Error('none');
+            party = { id: snap.id, ...snap.data() };
+        } catch (e) {
+            $('app').innerHTML = '<div class="center-msg">파티를 찾을 수 없어요.<br><br><a href="party.html" style="color:var(--gold)">모집 중인 파티 보기</a></div>';
+            return;
+        }
+        myApp = null;
+        if (user) {
+            try {
+                const a = await db.collection('party_applications').doc(`${partyId}_${user.uid}`).get();
+                if (a.exists) myApp = { id: a.id, ...a.data() };
+            } catch (e) { /* 신청서가 없으면 권한 오류로 돌아온다 */ }
+        }
+        renderParty();
+    }
+
+    async function renderList() {
+        let list = [];
+        try {
+            const snap = await firebase.firestore().collection('parties').where('status', '==', 'open').get();
+            list = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+        } catch (e) { console.warn(e); }
+        if (list.length === 1) { location.replace('party.html?p=' + encodeURIComponent(list[0].id)); return; }
+        $('app').innerHTML = `
+            <div class="party-head"><h1>모노리 파티</h1><div class="meta">모노리에서 열리는 파티에 함께해요.</div></div>
+            <div class="party-list">${list.length ? list.map((p) => `
+                <a href="party.html?p=${encodeURIComponent(p.id)}"><div class="t">${esc(p.title)}</div><div class="d">${esc(partyWhen(p))}</div></a>`).join('') : '<div class="center-msg">지금은 모집 중인 파티가 없어요.<br>다음 파티 소식을 기다려 주세요!</div>'}
+            </div>${footer()}`;
+    }
+
+    const footer = () => `<div class="footer-links"><a href="index.html">모노리 홈</a>·<a href="terms.html">이용약관</a>·<a href="privacy.html">개인정보처리방침</a><br>문의 ${CONTACT}</div>`;
+
+    function seatHtml(p, g) {
+        const cap = Number(p['capacity' + (g === 'female' ? 'Female' : 'Male')]) || 0;
+        if (!cap) return '';
+        const paid = (p.counts && p.counts[g] && p.counts[g].paid) || 0;
+        const left = Math.max(0, cap - paid);
+        const pct = Math.min(100, Math.round((paid / cap) * 100));
+        const color = g === 'female' ? 'var(--female)' : 'var(--male)';
+        const label = left === 0 ? '<span class="hot">마감 · 대기 신청 가능</span>' : left <= 3 ? `<span class="hot">마감 임박 · ${left}자리 남음</span>` : `${left}자리 남음`;
+        return `<div class="seat">${label}<div class="seat-bar"><span style="width:${pct}%;background:${color}"></span></div></div>`;
+    }
+
+    function priceCard(p, g) {
+        const pi = priceInfo(p, g);
+        const orig = Number(p['originalPrice' + (g === 'female' ? 'Female' : 'Male')]) || 0;
+        const pct = orig > pi.amount ? Math.round((1 - pi.amount / orig) * 100) : 0;
+        return `<div class="price-card"><div class="g">${GENDER[g]}</div>
+            ${orig > pi.amount ? `<div class="was">${won(orig)}</div>` : ''}
+            <div class="amt">${pct ? `<span class="pct">${pct}%</span>` : ''}${won(pi.amount)}</div>
+            ${pi.early ? `<span class="early">얼리버드 ~${esc(p.earlyUntil.slice(5).replace('-', '/'))}</span><div class="after">마감 후 ${won(pi.base)}</div>` : ''}
+            ${seatHtml(p, g)}</div>`;
+    }
+
+    // 카운트다운: 얼리버드가 남아 있으면 얼리버드 마감까지, 아니면 파티 시작까지
+    let cdTimer = null;
+    function startCountdown() {
+        clearInterval(cdTimer);
+        const el = $('cd');
+        if (!el) return;
+        const p = party;
+        const hasEarly = ['Female', 'Male'].some((k) => p['earlyPrice' + k] !== null && p['earlyPrice' + k] !== undefined && p['earlyPrice' + k] !== '');
+        const earlyEnd = hasEarly && p.earlyUntil ? kstMs(p.earlyUntil, '23:59') + 60000 : null;
+        const startAt = kstMs(p.date, p.startTime);
+        const off = (k) => (Number(p['price' + k]) || 0) - (Number(p['earlyPrice' + k]) || 0);
+        const tick = () => {
+            const now = Date.now();
+            let target = null, label = '', sub = '', plain = false;
+            if (earlyEnd && now < earlyEnd) {
+                target = earlyEnd; label = '⚡ 얼리버드 마감까지';
+                const d = Math.max(off('Female'), off('Male'));
+                sub = d > 0 ? `지금 신청하면 ${won(d)} 추가 할인` : '지금 신청하면 얼리버드 가격';
+            } else if (startAt && now < startAt) {
+                target = startAt; label = '파티 시작까지'; plain = true;
+                sub = p.status === 'open' ? '자리가 차면 신청이 마감돼요' : '';
+            }
+            if (!target) { el.classList.add('hidden'); clearInterval(cdTimer); return; }
+            el.classList.remove('hidden');
+            el.classList.toggle('plain', plain);
+            const t = Math.max(0, target - now), dd = Math.floor(t / 86400000), hh = Math.floor(t % 86400000 / 3600000), mm = Math.floor(t % 3600000 / 60000), ss = Math.floor(t % 60000 / 1000);
+            const u = (n, l) => `<div class="u"><b>${String(n).padStart(2, '0')}</b><span>${l}</span></div>`;
+            el.innerHTML = `<div class="lb">${label}</div><div class="tm">${u(dd, '일')}${u(hh, '시간')}${u(mm, '분')}${u(ss, '초')}</div>${sub ? `<div class="sb">${esc(sub)}</div>` : ''}`;
+        };
+        tick();
+        cdTimer = setInterval(tick, 1000);
+    }
+
+    const rulesOf = (p) => { const r = String(p.rules || '').split('\n').map((s) => s.trim()).filter(Boolean); return r.length ? r : DEFAULT_RULES; };
+
+    function renderParty() {
+        const p = party;
+        document.title = `${p.title || '파티'} | Monory`;
+        const poster = p.posterUrl
+            ? `<div class="poster"><img src="${esc(p.posterUrl)}" alt="${esc(p.title)}"></div>`
+            : `<div class="poster"><div class="poster-fallback"><div class="eyebrow">MONORY PARTY</div><div class="ttl">${esc(p.title)}</div></div></div>`;
+        const started = kstMs(p.date, p.startTime) !== null && Date.now() >= kstMs(p.date, p.startTime);
+        $('app').innerHTML = `
+            ${poster}
+            <div class="party-head">
+                <h1>${esc(p.title)}</h1>
+                <div class="meta">
+                    <div><i class="fa-regular fa-calendar"></i>${esc(partyWhen(p))}</div>
+                    <div><i class="fa-solid fa-location-dot"></i>모노리 · 부산 서면</div>
+                    <div><i class="fa-solid fa-champagne-glasses"></i>주류 무료 제공 · 청소년 참여 불가</div>
+                </div>
+            </div>
+            <div id="my-status"></div>
+            <div class="cd hidden" id="cd"></div>
+            <div class="price-grid">${priceCard(p, 'female')}${priceCard(p, 'male')}</div>
+            ${p.description ? `<div class="desc">${esc(p.description)}</div>` : ''}
+            <div class="card"><h3>참가 규칙</h3><ul class="rules">${rulesOf(p).map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>
+            ${footer()}`;
+
+        if (p.status === 'open' && !started) startCountdown();
+
+        // 하단 버튼 / 내 신청 상태
+        const cta = $('cta-inner');
+        $('cta-bar').classList.remove('hidden');
+        if (myApp) {
+            renderMyStatus();
+        } else if (p.status !== 'open' || started) {
+            cta.innerHTML = `<button class="btn btn-ghost" disabled>${started ? '종료된 파티예요' : '신청이 마감되었어요'}</button>`;
+        } else if (!user) {
+            cta.innerHTML = `<button class="btn btn-kakao" onclick="loginThenBack()"><i class="fa-solid fa-comment"></i> 카카오로 로그인하고 신청하기</button>`;
+        } else {
+            cta.innerHTML = `<button class="btn btn-gold" onclick="openWizard()">참가 신청하기 <i class="fa-solid fa-arrow-right"></i></button>`;
+        }
+    }
+
+    function renderMyStatus() {
+        const a = myApp, el = $('my-status'), cta = $('cta-inner');
+        const box = (color, pill, big, desc, extra = '') => `<div class="card status" style="border-color:${color}"><span class="pill" style="color:${color}">${pill}</span><div class="big">${big}</div><p>${desc}</p>${extra}</div>`;
+        cta.innerHTML = '';
+        $('cta-bar').classList.remove('hidden');
+        if (a.status === 'pending') {
+            el.innerHTML = box('var(--gold)', '심사 중', '신청이 접수됐어요', '신청서를 꼼꼼히 확인하고 있어요. 결과는 문자로 알려드릴게요.<br>심사 중에는 신청서를 고칠 수 있어요.');
+            cta.innerHTML = `<button class="btn btn-ghost" onclick="openWizard(true)"><i class="fa-solid fa-pen"></i> 신청서 수정하기</button>`;
+        } else if (a.status === 'approved') {
+            const dl = a.payDeadline && a.payDeadline.toMillis ? a.payDeadline.toMillis() : 0;
+            const expired = dl && Date.now() > dl;
+            el.innerHTML = box('var(--ok)', '승인 완료', expired ? '결제 기한이 지났어요' : '결제하면 참가 확정!',
+                expired ? `모노리(${CONTACT})로 문의해 주세요.` : '아래 결제를 마치면 참가가 확정돼요.',
+                `<div class="row"><span>참가비</span><b>${won(a.amount)}</b></div>${dl ? `<div class="row"><span>결제 기한</span><b>${fmtTs(dl)}까지</b></div>` : ''}`);
+            cta.innerHTML = expired ? '' : `<button class="btn btn-gold" id="btn-pay" onclick="pay()"><i class="fa-solid fa-lock"></i> ${won(a.amount)} 결제하기</button>`;
+        } else if (a.status === 'paid') {
+            el.innerHTML = box('var(--ok)', '참가 확정', '함께해요! 🎉', '당일 입장 방법은 파티 전날 문자로 안내드릴게요.',
+                `<div class="row"><span>결제 금액</span><b>${won(a.paidAmount)}</b></div>`);
+        } else if (a.status === 'rejected') {
+            el.innerHTML = box('var(--sub)', '미승인', '이번엔 함께하기 어려워요', '관심 가져 주셔서 감사해요. 결제된 금액은 없으며, 다음 파티에서 꼭 만나요.');
+        } else if (a.status === 'cancelled') {
+            el.innerHTML = box('var(--sub)', '취소', '참가가 취소되었어요', a.refundAmount > 0 ? `${won(a.refundAmount)}이 환불 처리되었어요.` : `문의는 ${CONTACT}`);
+        }
+        if (!cta.innerHTML) $('cta-bar').classList.add('hidden');
+    }
+
+    // 카카오 로그인: 로그인 처리(index.html)가 끝나면 이 페이지로 돌아온다
+    function loginThenBack() {
+        try { localStorage.setItem('monory_after_login', location.pathname.replace(/^\//, '') + location.search); } catch (e) {}
+        location.href = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_APP_KEY}&redirect_uri=${encodeURIComponent(location.origin)}&response_type=code&scope=profile_nickname,profile_image&prompt=select_account`;
+    }
+
+    // ─── 신청서 ────────────────────────────────────────────────────
+    const form = { gender: '', name: '', birth: '', phone: '', job: '', instagram: '', noInsta: false, intro: '', photos: [], privacy: false };
+    let step = 0;
+
+    const STEPS = [
+        {
+            key: 'rules',
+            render: () => `<h2>모노리 파티는<br>100% 사전 승인제예요</h2><p class="hint">아래 내용에 모두 동의하셔야 참여할 수 있어요.</p>
+                <ul class="rules">${rulesOf(party).map((r) => `<li>${esc(r)}</li>`).join('')}</ul>`,
+            foot: () => `<div class="choice"><button type="button" class="sel" onclick="next()" style="justify-content:center;font-weight:700;background:var(--gold);color:#111;border:none;">모두 동의해요</button>
+                <button type="button" onclick="toast('규칙에 동의하셔야 신청할 수 있어요.')" style="justify-content:center;">동의하지 않아요</button></div>`,
+            noNext: true,
+        },
+        {
+            key: 'gender',
+            render: () => `<h2>성별을 알려주세요</h2><p class="hint">참가비와 성비 구성에 사용돼요.</p>
+                <div class="choice">${['female', 'male'].map((g) => { const pi = priceInfo(party, g); return `<button type="button" class="${form.gender === g ? 'sel' : ''}" onclick="pickGender('${g}')">${GENDER[g]}<small>${won(pi.amount)}${pi.early ? ' · 얼리버드' : ''}</small></button>`; }).join('')}</div>`,
+            valid: () => form.gender ? '' : '성별을 선택해 주세요.',
+        },
+        {
+            key: 'name',
+            render: () => `<h2>이름을 알려주세요</h2><p class="hint">실명으로 적어 주세요. 현장 입장 확인에 사용돼요.</p>
+                <input class="field" id="f-name" maxlength="20" autocomplete="name" placeholder="홍길동" value="${esc(form.name)}">`,
+            read: () => { form.name = $('f-name').value.trim(); },
+            valid: () => form.name.length >= 2 ? '' : '이름을 2자 이상 입력해 주세요.',
+        },
+        {
+            key: 'birth',
+            render: () => `<h2>생년월일을 알려주세요</h2><p class="hint">연령 확인에 사용돼요. ${THIS_YEAR - MIN_AGE}년생까지 참여할 수 있어요.</p>
+                <input class="field" id="f-birth" inputmode="numeric" maxlength="8" placeholder="예: 19970315" value="${esc(form.birth)}">`,
+            read: () => { form.birth = $('f-birth').value.replace(/\D/g, ''); },
+            valid: () => {
+                const m = form.birth.match(/^(\d{4})(\d{2})(\d{2})$/);
+                if (!m) return '생년월일 8자리를 입력해 주세요.';
+                const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+                if (d.getUTCMonth() !== +m[2] - 1 || d.getUTCDate() !== +m[3] || THIS_YEAR - +m[1] > 80) return '생년월일이 올바르지 않아요.';
+                if (THIS_YEAR - +m[1] < MIN_AGE) return `청소년은 참여할 수 없어요. (${THIS_YEAR - MIN_AGE}년생까지 참여 가능)`;
+                return '';
+            },
+        },
+        {
+            key: 'phone',
+            render: () => `<h2>연락처를 알려주세요</h2><p class="hint">승인 결과와 결제 링크를 문자로 보내드려요.</p>
+                <input class="field" id="f-phone" inputmode="numeric" maxlength="13" autocomplete="tel" placeholder="01012345678" value="${esc(form.phone)}">`,
+            read: () => { form.phone = $('f-phone').value.replace(/\D/g, ''); },
+            valid: () => /^010\d{7,8}$/.test(form.phone) ? '' : "올바른 휴대폰 번호를 입력해 주세요. ('-' 없이 숫자만)",
+        },
+        {
+            key: 'job',
+            render: () => `<h2>어떤 일을 하세요?</h2><p class="hint">직업이나 하는 일을 편하게 적어 주세요. (예: 간호사, 마케터, 대학원생)</p>
+                <input class="field" id="f-job" maxlength="40" placeholder="직업" value="${esc(form.job)}">`,
+            read: () => { form.job = $('f-job').value.trim(); },
+            valid: () => form.job ? '' : '직업을 입력해 주세요.',
+        },
+        {
+            key: 'instagram',
+            render: () => `<h2>인스타그램 ID를 알려주세요</h2><p class="hint">심사에 참고해요. 다른 참가자에게 공개되지 않아요.</p>
+                <div class="at-wrap"><span>@</span><input class="field" id="f-insta" maxlength="30" autocapitalize="off" autocorrect="off" placeholder="monory_official" value="${esc(form.instagram)}" ${form.noInsta ? 'disabled' : ''}></div>
+                <label class="check"><input type="checkbox" id="f-noinsta" ${form.noInsta ? 'checked' : ''} onchange="$('f-insta').disabled=this.checked">인스타그램을 하지 않아요</label>`,
+            read: () => { form.noInsta = $('f-noinsta').checked; form.instagram = form.noInsta ? '' : $('f-insta').value.trim().replace(/^@+/, ''); },
+            valid: () => {
+                if (form.noInsta) return '';
+                if (!form.instagram) return "ID를 입력하거나 '인스타그램을 하지 않아요'를 선택해 주세요.";
+                return /^[A-Za-z0-9._]{1,30}$/.test(form.instagram) ? '' : 'ID는 영문·숫자·마침표·밑줄만 쓸 수 있어요.';
+            },
+        },
+        {
+            key: 'photos',
+            render: () => `<h2>사진을 올려 주세요</h2><p class="hint">얼굴이 잘 보이는 사진 1~${MAX_PHOTOS}장. 첫 번째 사진이 대표 사진이에요.<br>사진은 심사에만 쓰이고, 다른 참가자에게 공개되지 않아요.</p>
+                <div class="photos" id="ph-grid"></div>
+                <input type="file" id="f-photo" accept="image/*" multiple class="hidden" onchange="addPhotos(this.files); this.value='';">`,
+            after: () => drawPhotos(),
+            valid: () => form.photos.length ? '' : '사진을 1장 이상 올려 주세요.',
+        },
+        {
+            key: 'intro',
+            render: () => `<h2>간단히 자기소개를 해 주세요</h2><p class="hint">취미, 좋아하는 것, 파티에서 기대하는 점 등 자유롭게 적어 주세요. (10~500자)</p>
+                <textarea class="field" id="f-intro" maxlength="500" placeholder="예) 주말엔 러닝하고 맛집 찾아다니는 걸 좋아해요. 새로운 사람들과 편하게 이야기 나누고 싶어서 신청했어요!" oninput="$('intro-cnt').textContent=this.value.length">${esc(form.intro)}</textarea>
+                <div class="counter"><span id="intro-cnt">${form.intro.length}</span> / 500</div>`,
+            read: () => { form.intro = $('f-intro').value.trim(); },
+            valid: () => form.intro.length >= 10 ? '' : '자기소개를 10자 이상 적어 주세요.',
+        },
+        {
+            key: 'confirm',
+            render: () => {
+                const pi = priceInfo(party, form.gender);
+                return `<h2>마지막으로 확인해 주세요</h2><p class="hint">제출 후 심사 중에는 언제든 고칠 수 있어요.</p>
+                <div class="summary">
+                    <div><span>파티</span><span>${esc(party.title)}</span></div>
+                    <div><span>이름 · 성별</span><span>${esc(form.name)} · ${GENDER[form.gender]}</span></div>
+                    <div><span>생년월일</span><span>${form.birth.replace(/^(\d{4})(\d{2})(\d{2})$/, '$1.$2.$3')}</span></div>
+                    <div><span>연락처</span><span>${form.phone.replace(/^(\d{3})(\d{3,4})(\d{4})$/, '$1-$2-$3')}</span></div>
+                    <div><span>직업</span><span>${esc(form.job)}</span></div>
+                    <div><span>인스타그램</span><span>${form.instagram ? '@' + esc(form.instagram) : '없음'}</span></div>
+                    <div><span>사진</span><span>${form.photos.length}장</span></div>
+                    <div><span>예상 참가비</span><span>${won(pi.amount)} (승인 후 결제)</span></div>
+                </div>
+                <details class="privacy"><summary>개인정보 수집·이용 안내 (필수)</summary>
+                    <table>
+                        <tr><td>수집 항목</td><td>이름, 성별, 생년월일, 연락처, 직업, 인스타그램 ID, 사진, 자기소개</td></tr>
+                        <tr><td>이용 목적</td><td>파티 참가 심사, 연령 확인, 승인·결제·입장 안내 연락, 현장 운영</td></tr>
+                        <tr><td>보관 기간</td><td>파티 종료 후 30일이 지나면 사진·생년월일·직업·인스타그램 ID·자기소개를 파기해요. 이름·연락처·결제 기록은 관계 법령(전자상거래법 등)에 따라 보관해요.</td></tr>
+                        <tr><td>거부 권리</td><td>동의를 거부할 수 있으나, 이 경우 파티 신청이 불가해요.</td></tr>
+                    </table>
+                </details>
+                <label class="check"><input type="checkbox" id="f-privacy" ${form.privacy ? 'checked' : ''}>개인정보 수집·이용에 동의합니다. (필수)</label>`;
+            },
+            read: () => { form.privacy = $('f-privacy').checked; },
+            valid: () => form.privacy ? '' : '개인정보 수집·이용에 동의해 주세요.',
+            nextLabel: '신청서 제출하기',
+            submit: true,
+        },
+    ];
+
+    async function openWizard(edit) {
+        if (!user) return loginThenBack();
+        // 수정: 기존 신청서로 채운다 / 새 신청: 예약 때 저장한 이름·연락처가 있으면 채운다
+        if (edit && myApp) {
+            Object.assign(form, {
+                gender: myApp.gender, name: myApp.name, birth: String(myApp.birth || '').replace(/-/g, ''), phone: String(myApp.phone || '').replace(/\D/g, ''),
+                job: myApp.job || '', instagram: myApp.instagram || '', noInsta: !myApp.instagram, intro: myApp.intro || '', privacy: false,
+                photos: (myApp.photos || []).map((path) => ({ path, url: '' })),
+            });
+            form.photos.forEach((ph) => firebase.storage().ref(ph.path).getDownloadURL().then((u) => { ph.url = u; if (STEPS[step].key === 'photos') drawPhotos(); }).catch(() => {}));
+        } else if (!form.name && !form.phone) {
+            try {
+                const prof = await firebase.firestore().collection('members').doc(user.uid).collection('booking_profile').doc('default').get();
+                if (prof.exists) { form.name = prof.data().name || ''; form.phone = String(prof.data().phone || '').replace(/\D/g, ''); }
+            } catch (e) {}
+        }
+        step = edit ? 1 : 0;
+        $('wizard').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        drawStep();
+    }
+
+    function closeWizard() {
+        $('wizard').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+    $('wz-close').onclick = () => { if (confirm('작성 중인 내용은 이 화면을 닫아도 유지돼요. 닫을까요?')) closeWizard(); };
+    $('wz-back').onclick = () => { readStep(); if (step === 0) closeWizard(); else { step--; drawStep(); } };
+
+    function drawStep() {
+        const s = STEPS[step];
+        $('wz-progress').innerHTML = STEPS.map((_, i) => `<span class="${i <= step ? 'on' : ''}"></span>`).join('');
+        $('wz-body').innerHTML = s.render() + '<div class="err" id="wz-err"></div>';
+        $('wz-foot').innerHTML = s.foot ? s.foot() : `<button class="btn btn-gold" id="wz-next" onclick="next()">${s.nextLabel || '다음'} <i class="fa-solid fa-arrow-right"></i></button>`;
+        if (s.after) s.after();
+        $('wz-body').scrollTop = 0;
+        const input = $('wz-body').querySelector('input.field:not([disabled]), textarea.field');
+        if (input && !('ontouchstart' in window)) input.focus();
+        if (input && input.tagName === 'INPUT') input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); next(); } });
+    }
+    function readStep() { const s = STEPS[step]; if (s.read) s.read(); }
+    function pickGender(g) { form.gender = g; drawStep(); setTimeout(next, 180); }
+
+    async function next() {
+        const s = STEPS[step];
+        readStep();
+        const msg = s.valid ? s.valid() : '';
+        if (msg) { $('wz-err').textContent = msg; return; }
+        if (s.submit) return submitApplication();
+        step++;
+        drawStep();
+    }
+
+    // 사진: 브라우저에서 줄여서(긴 변 1600px, JPEG) 올린다
+    function drawPhotos() {
+        const g = $('ph-grid');
+        if (!g) return;
+        let html = form.photos.map((ph, i) => `<div class="ph">${ph.url ? `<img src="${esc(ph.url)}" alt="">` : '<i class="fa-solid fa-circle-notch fa-spin"></i>'}${i === 0 ? '<span class="main-tag">대표</span>' : ''}<button type="button" class="x" onclick="removePhoto(${i})"><i class="fa-solid fa-xmark"></i></button></div>`).join('');
+        if (form.photos.length < MAX_PHOTOS) html += `<button type="button" class="ph" onclick="$('f-photo').click()"><div style="text-align:center"><i class="fa-solid fa-plus" style="font-size:1.4rem"></i><div style="font-size:0.8rem;margin-top:4px">사진 추가</div></div></button>`;
+        g.innerHTML = html;
+    }
+    function removePhoto(i) { const ph = form.photos.splice(i, 1)[0]; if (ph && ph.file && ph.url) URL.revokeObjectURL(ph.url); drawPhotos(); }
+    async function addPhotos(files) {
+        for (const f of Array.from(files || [])) {
+            if (form.photos.length >= MAX_PHOTOS) { toast(`사진은 ${MAX_PHOTOS}장까지 올릴 수 있어요.`); break; }
+            if (!/^image\//.test(f.type) && !/\.(heic|heif)$/i.test(f.name)) { toast('이미지 파일만 올릴 수 있어요.'); continue; }
+            let blob = f;
+            try { blob = await shrinkImage(f, 1600, 0.85); } catch (e) { /* 줄이지 못하면 원본 사용 */ }
+            if (blob.size > 10 * 1024 * 1024) { toast('사진 용량이 너무 커요. (10MB 이하)'); continue; }
+            form.photos.push({ file: blob, url: URL.createObjectURL(blob) });
+        }
+        drawPhotos();
+        if ($('wz-err')) $('wz-err').textContent = '';
+    }
+    async function shrinkImage(file, maxSide, quality) {
+        const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+        const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+        c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+        return await new Promise((res, rej) => c.toBlob((b) => b ? res(b) : rej(new Error('변환 실패')), 'image/jpeg', quality));
+    }
+
+    async function submitApplication() {
+        const btn = $('wz-next');
+        btn.disabled = true;
+        try {
+            // 1) 새 사진 업로드 (본인 폴더, 본인과 관리자만 볼 수 있음)
+            const paths = [];
+            for (let i = 0; i < form.photos.length; i++) {
+                const ph = form.photos[i];
+                if (ph.path) { paths.push(ph.path); continue; }
+                btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> 사진 올리는 중 (${i + 1}/${form.photos.length})`;
+                const path = `party_private/${user.uid}/${partyId}_${Date.now()}_${i}.jpg`;
+                await firebase.storage().ref(path).put(ph.file, { contentType: ph.file.type || 'image/jpeg' });
+                ph.path = path;
+                paths.push(path);
+            }
+            // 2) 신청서 제출 (서버가 검증·저장)
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> 제출 중...';
+            const r = await firebase.functions().httpsCallable('submitPartyApplication')({
+                partyId,
+                application: {
+                    gender: form.gender, name: form.name, birth: form.birth, phone: form.phone, job: form.job,
+                    instagram: form.instagram, intro: form.intro, photos: paths, consents: { rules: true, privacy: form.privacy },
+                },
+            });
+            closeWizard();
+            toast(r.data.updated ? '신청서를 수정했어요.' : '신청이 완료됐어요! 결과는 문자로 알려드릴게요.', 3500);
+            await loadAndRender();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (e) {
+            console.error(e);
+            $('wz-err').textContent = (e && e.message) || '제출하지 못했어요. 잠시 후 다시 시도해 주세요.';
+            btn.disabled = false;
+            btn.innerHTML = '신청서 제출하기 <i class="fa-solid fa-arrow-right"></i>';
+        }
+    }
+
+    // ─── 결제 ──────────────────────────────────────────────────────
+    async function pay() {
+        const btn = $('btn-pay');
+        const reset = () => { btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-lock"></i> ${won(myApp.amount)} 결제하기`; };
+        btn.disabled = true; btn.textContent = '결제 준비 중...';
+        let prep;
+        try {
+            prep = (await firebase.functions().httpsCallable('preparePartyPayment')({ partyId })).data;
+        } catch (e) { reset(); alert((e && e.message) || '결제를 준비하지 못했어요.'); return; }
+        sessionStorage.setItem('monory_pending_party', JSON.stringify({ merchantUid: prep.merchantUid, partyId }));
+        if (prep.amount === 0) return finishPayment(prep.merchantUid, null);
+        if (typeof IMP === 'undefined') { reset(); alert('결제 모듈을 불러오는 중이에요. 잠시 후 다시 시도해 주세요.'); return; }
+        IMP.init('imp33870371');
+        IMP.request_pay({
+            pg: 'kcp.IPAEX', pay_method: 'card', merchant_uid: prep.merchantUid,
+            name: String(prep.title).slice(0, 40), amount: prep.amount, buyer_name: prep.name, buyer_tel: prep.phone,
+            m_redirect_url: location.origin + '/party.html?p=' + encodeURIComponent(partyId),
+        }, (rsp) => {
+            if (rsp.success) finishPayment(prep.merchantUid, rsp.imp_uid);
+            else {
+                sessionStorage.removeItem('monory_pending_party');
+                if (rsp.error_msg && !rsp.error_msg.includes('취소')) alert('결제 오류: ' + rsp.error_msg);
+                reset();
+            }
+        });
+    }
+
+    async function finishPayment(merchantUid, impUid) {
+        const call = firebase.functions().httpsCallable('confirmPartyPayment');
+        let lastErr;
+        for (let k = 0; k < 3; k++) {
+            try {
+                await call({ merchantUid, impUid: impUid || null });
+                sessionStorage.removeItem('monory_pending_party');
+                toast('결제 완료! 참가가 확정됐어요 🎉', 3500);
+                await loadAndRender();
+                return;
+            } catch (e) {
+                lastErr = e;
+                if (!(e && ['functions/internal', 'functions/unavailable', 'functions/deadline-exceeded'].includes(e.code))) break;
+                await new Promise((r) => setTimeout(r, 1500));
+            }
+        }
+        sessionStorage.removeItem('monory_pending_party');
+        alert((lastErr && lastErr.message) || '결제 확인이 지연되고 있어요. 잠시 후 새로고침해 주세요.');
+        await loadAndRender();
+    }
+
+    // 모바일 결제 후 돌아온 경우(?imp_uid=&merchant_uid=&imp_success=)
+    async function handlePaymentReturn() {
+        const impUid = params.get('imp_uid'), mUid = params.get('merchant_uid'), ok = params.get('imp_success');
+        if (!mUid) return;
+        history.replaceState({}, document.title, location.pathname + '?p=' + encodeURIComponent(partyId));
+        if (ok === 'true' && user) await finishPayment(mUid, impUid);
+        else {
+            sessionStorage.removeItem('monory_pending_party');
+            const err = params.get('error_msg');
+            if (err && !err.includes('취소')) alert('결제 오류: ' + err);
+        }
+    }
+    </script>
+</body>
+</html>

@@ -150,6 +150,6 @@ function rejectedText(r) {
 }
 
 module.exports = {
-    SMS_FROM, normalizePhone, sendSms, getBalance, renderTemplate, reservationFields, fmtDate,
+    SMS_FROM, CONTACT, ADDRESS, normalizePhone, sendSms, getBalance, renderTemplate, reservationFields, fmtDate,
     approvedText, reminderText, cancelledText, rejectedText,
 };

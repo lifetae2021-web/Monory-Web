@@ -11,6 +11,7 @@ const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require("fir
 const { applyPortoneCancellation: applyCancellation } = require("./cancellation");
 const couponSvc = require("./coupons");
 const booking = require("./booking");
+const party = require("./party");
 
 admin.initializeApp();
 
@@ -101,6 +102,8 @@ async function buildLoginClaims(uid) {
     try {
         const m = await admin.firestore().collection("members").doc(uid).get();
         if (m.exists && ["super_admin", "admin", "general_admin"].includes(m.data().role)) claims.admin = true;
+        // 파티 운영자: 관리자 권한은 없고, 파티 신청 사진·포스터만 다룰 수 있다 (Storage 규칙이 이 표식을 본다)
+        if (m.exists && m.data().role === "party_manager") claims.partyStaff = true;
     } catch (e) {
         console.warn("로그인 권한 표식 조회 실패(일반 회원으로 처리):", e.message);
     }
@@ -393,6 +396,14 @@ exports.portoneWebhook = onRequest({ secrets: [...SECRETS, ...TELEGRAM_SECRETS] 
         const payment = await getPortonePayment(impUid, token);
         const db = admin.firestore();
 
+        // 파티 참가비 결제(PRTY-)는 파티 신청서에 반영한다
+        if (/^PRTY-\d+$/.test(String(payment.merchant_uid || ""))) {
+            const r = await handlePartyWebhook(db, payment);
+            console.log("파티 웹훅:", impUid, r);
+            res.status(200).send("party: " + r);
+            return;
+        }
+
         // 포트원 콘솔 등에서 환불/취소된 결제는 웹사이트 예약에도 반영한다
         if (Number(payment.cancel_amount) > 0) {
             const r = await applyCancellation(db, payment);
@@ -431,6 +442,16 @@ async function assertAdmin(request) {
     const m = await admin.firestore().collection("members").doc(String(request.auth.uid)).get();
     if (!m.exists || !ADMIN_ROLES.includes(m.data().role)) {
         throw new HttpsError("permission-denied", "관리자 권한이 필요합니다.");
+    }
+}
+
+// 파티 운영자(party_manager)도 파티 신청 심사·취소는 할 수 있다. 그 밖의 관리 기능은 assertAdmin 만 통과한다.
+async function assertPartyStaff(request) {
+    if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+    if (request.auth.token.email) return;
+    const m = await admin.firestore().collection("members").doc(String(request.auth.uid)).get();
+    if (!m.exists || ![...ADMIN_ROLES, "party_manager"].includes(m.data().role)) {
+        throw new HttpsError("permission-denied", "관리자 또는 파티 운영자 권한이 필요합니다.");
     }
 }
 
@@ -873,4 +894,165 @@ exports.reconcileBookedSlots = onSchedule({ schedule: "every 6 hours", timeZone:
         added++;
     }
     console.log(`예약 현황 점검: 찌꺼기 ${removed}건 삭제, 누락 ${added}건 추가`);
+});
+
+
+// ── 13. 파티 신청·승인·결제 ──────────────────────────────────
+// 신청(무료) → 관리자 승인(결제 안내 문자) → 결제(서버 금액) → 참가 확정(확정 문자). 로직은 party.js, 여기서는 결제·알림만 잇는다.
+function partyError(e, what) {
+    if (e instanceof party.PartyError) return new HttpsError("failed-precondition", e.message);
+    if (e instanceof HttpsError) return e;
+    console.error(`${what} error:`, e.response ? JSON.stringify(e.response.data) : e);
+    return new HttpsError("internal", `${what} 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.`);
+}
+
+async function partyRefund(impUid, amount, reason) {
+    const token = await getPortoneToken();
+    const resp = await axios.post("https://api.iamport.kr/payments/cancel",
+        { imp_uid: impUid, reason, amount, checksum: amount }, { headers: { Authorization: `Bearer ${token}` } });
+    if (resp.data.code !== 0) throw new HttpsError("internal", `환불 실패: ${resp.data.message}`);
+}
+
+// 결제 확인 결과를 처리한다. 확정되면 문자·텔레그램, 확정할 수 없는 결제는 자동 전액 환불. confirmPartyPayment 와 웹훅이 같이 쓴다.
+async function settlePartyPayment(db, { merchantUid, uid = null, payment = null }) {
+    const r = await party.settlePayment(db, { merchantUid, uid, payment });
+    if (r.result === "paid") {
+        const p = await party.loadParty(db, r.application.partyId).catch(() => ({ id: r.application.partyId }));
+        await pushTelegram(party.paidMessage(r.application, p));
+        await pushSms({ phone: r.application.phone, guestName: r.application.name },
+            party.paidText(r.application, p, sms.CONTACT, sms.ADDRESS), "파티 참가 확정");
+    } else if ((r.result === "amount-mismatch" || r.result === "not-approved") && payment && payment.imp_uid) {
+        let refunded = false;
+        try { await partyRefund(payment.imp_uid, Number(payment.amount), "파티 참가 확정 불가로 자동 환불"); refunded = true; } catch (e) { console.error("파티 자동 환불 실패:", e.message); }
+        await pushTelegram(`⚠️ [모노리 파티] 결제 자동 처리 실패 (${r.result === "amount-mismatch" ? "금액 불일치" : "승인 상태가 아님"})\n주문번호 ${merchantUid}\n${refunded ? "자동 전액 환불되었습니다." : "자동 환불 실패! 포트원에서 직접 환불해 주세요."}`);
+    } else if (r.result === "no-intent" && payment) {
+        await pushTelegram(`⚠️ [모노리 파티] 결제는 됐는데 신청 정보가 없습니다\n${payment.buyer_name || "-"} / ${Number(payment.amount).toLocaleString("ko-KR")}원\n주문번호 ${merchantUid}`);
+    }
+    return r;
+}
+
+async function handlePartyWebhook(db, payment) {
+    if (Number(payment.cancel_amount) > 0) return (await party.applyPortoneCancellation(db, payment)).result;
+    if (payment.status !== "paid") return "ignored: " + payment.status;
+    return (await settlePartyPayment(db, { merchantUid: payment.merchant_uid, payment })).result;
+}
+
+exports.submitPartyApplication = onCall({ secrets: TELEGRAM_SECRETS }, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+    const { partyId, application } = request.data || {};
+    const db = admin.firestore();
+    try {
+        const r = await party.submitApplication(db, { uid: request.auth.uid, partyId, input: application });
+        // 수정 제출로 빠진 사진 파일은 지운다
+        const keep = new Set(r.application.photos);
+        for (const path of r.prevPhotos) if (!keep.has(path)) await admin.storage().bucket().file(path).delete().catch(() => {});
+        await pushTelegram(party.newApplicationMessage(r.application, r.party, r.updated));
+        return { success: true, id: r.id, updated: r.updated };
+    } catch (e) { throw partyError(e, "신청서 제출"); }
+});
+
+exports.reviewPartyApplication = onCall({ secrets: NOTIFY_SECRETS }, async (request) => {
+    await assertPartyStaff(request);
+    const { id, action } = request.data || {};
+    if (typeof id !== "string" || !["approve", "reject"].includes(action)) throw new HttpsError("invalid-argument", "요청이 올바르지 않습니다.");
+    const db = admin.firestore();
+    try {
+        if (action === "approve") {
+            const { application: a, party: p } = await party.approveApplication(db, { id, adminUid: request.auth.uid });
+            const smsOk = await pushSms({ phone: a.phone, guestName: a.name }, party.approvedText(a, p, sms.CONTACT), "파티 승인");
+            return { success: true, amount: a.amount, smsOk };
+        }
+        const { application: a } = await party.rejectApplication(db, { id, adminUid: request.auth.uid });
+        const p = await party.loadParty(db, a.partyId).catch(() => ({ id: a.partyId }));
+        const smsOk = await pushSms({ phone: a.phone, guestName: a.name }, party.rejectedText(a, p, sms.CONTACT), "파티 미승인");
+        return { success: true, smsOk };
+    } catch (e) { throw partyError(e, "신청 심사"); }
+});
+
+// 관리자: 참가 취소. 결제한 건은 포트원에서 환불(기본 전액, refundAmount 로 일부만 가능)
+exports.cancelPartyApplication = onCall({ secrets: [...SECRETS, ...NOTIFY_SECRETS] }, async (request) => {
+    await assertPartyStaff(request);
+    const { id, refundAmount, notify: sendNotice = true } = request.data || {};
+    if (typeof id !== "string") throw new HttpsError("invalid-argument", "요청이 올바르지 않습니다.");
+    const db = admin.firestore();
+    const ref = db.collection("party_applications").doc(id);
+    try {
+        const snap = await ref.get();
+        if (!snap.exists) throw new HttpsError("not-found", "신청서를 찾을 수 없습니다.");
+        const a = snap.data();
+        if (["cancelled", "rejected"].includes(a.status)) throw new HttpsError("failed-precondition", "이미 취소되었거나 미승인된 신청입니다.");
+        let refund = 0;
+        const paidReal = a.status === "paid" && a.impUid && !String(a.impUid).startsWith("FREE-") && Number(a.paidAmount) > 0;
+        if (paidReal) {
+            refund = refundAmount === undefined || refundAmount === null ? Number(a.paidAmount) : Math.floor(Number(refundAmount));
+            if (!(refund >= 0 && refund <= Number(a.paidAmount))) throw new HttpsError("invalid-argument", "환불 금액이 올바르지 않습니다.");
+            if (refund > 0) await partyRefund(a.impUid, refund, "파티 참가 취소");
+        }
+        await ref.update({
+            status: "cancelled", cancelledAt: admin.firestore.FieldValue.serverTimestamp(), cancelledBy: String(request.auth.uid),
+            refundAmount: refund, updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        let smsOk = null;
+        if (sendNotice && a.status === "paid") {
+            const p = await party.loadParty(db, a.partyId).catch(() => ({ id: a.partyId }));
+            smsOk = await pushSms({ phone: a.phone, guestName: a.name }, party.cancelledText(a, p, sms.CONTACT, refund), "파티 취소");
+        }
+        return { success: true, refundAmount: refund, smsOk };
+    } catch (e) { throw partyError(e, "참가 취소"); }
+});
+
+exports.preparePartyPayment = onCall(async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+    try {
+        return await party.preparePayment(admin.firestore(), { uid: request.auth.uid, partyId: (request.data || {}).partyId });
+    } catch (e) { throw partyError(e, "결제 준비"); }
+});
+
+exports.confirmPartyPayment = onCall({ secrets: [...SECRETS, ...NOTIFY_SECRETS] }, async (request) => {
+    if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+    const { merchantUid, impUid } = request.data || {};
+    if (typeof merchantUid !== "string" || !/^PRTY-\d+$/.test(merchantUid)) throw new HttpsError("invalid-argument", "결제 정보가 올바르지 않습니다.");
+    const db = admin.firestore();
+    try {
+        const it = await db.collection("party_payments").doc(merchantUid).get();
+        if (!it.exists) throw new HttpsError("not-found", "결제 준비 정보를 찾을 수 없습니다.");
+        if (String(it.data().uid) !== String(request.auth.uid)) throw new HttpsError("permission-denied", "본인의 결제만 확인할 수 있습니다.");
+        let payment = null;
+        if (it.data().amount > 0) {
+            const token = await getPortoneToken();
+            if (impUid) payment = await getPortonePayment(String(impUid), token);
+            else {
+                const resp = await axios.get(`https://api.iamport.kr/payments/find/${encodeURIComponent(merchantUid)}`, { headers: { Authorization: `Bearer ${token}` } });
+                if (resp.data.code !== 0) throw new HttpsError("failed-precondition", "결제 내역을 찾을 수 없습니다.");
+                payment = resp.data.response;
+            }
+        }
+        const r = await settlePartyPayment(db, { merchantUid, uid: request.auth.uid, payment });
+        if (r.result === "paid" || r.result === "exists") return { success: true };
+        const msg = {
+            "payment-invalid": "결제가 완료되지 않았습니다.",
+            "amount-mismatch": "결제 금액이 올바르지 않아 자동 환불 처리되었습니다.",
+            "not-approved": "승인 상태가 바뀌어 결제가 자동 환불되었습니다. 모노리로 문의해 주세요.",
+        }[r.result] || "참가를 확정하지 못했습니다.";
+        throw new HttpsError("failed-precondition", msg);
+    } catch (e) { throw partyError(e, "결제 확인"); }
+});
+
+// 신청서가 바뀌면 파티의 성별·상태별 인원 수를 다시 센다 (공개 화면 "남은 자리" 표시용)
+exports.syncPartyCounts = onDocumentWritten(
+    { document: "party_applications/{appId}", region: "asia-northeast3" },
+    async (event) => {
+        const before = event.data.before.exists ? event.data.before.data() : null;
+        const after = event.data.after.exists ? event.data.after.data() : null;
+        const partyId = (after || before || {}).partyId;
+        if (!partyId) return;
+        if (before && after && before.status === after.status && before.gender === after.gender) return;
+        await party.recountParty(admin.firestore(), partyId);
+    }
+);
+
+// 파티 후 30일이 지난 신청서의 사진·생년월일·직업·인스타·소개 파기 (매일 새벽)
+exports.purgePartyApplications = onSchedule({ schedule: "30 4 * * *", timeZone: "Asia/Seoul" }, async () => {
+    const n = await party.purgeOldApplications(admin.firestore(), admin.storage().bucket());
+    console.log(`파티 신청서 개인정보 파기: ${n}건`);
 });

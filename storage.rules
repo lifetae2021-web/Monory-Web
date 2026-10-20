@@ -7,6 +7,11 @@ service firebase.storage {
       return request.auth != null && (request.auth.token.email != null || request.auth.token.admin == true);
     }
 
+    // 파티 운영자: 로그인 때 서버가 partyStaff 표식을 붙인 계정 (members.role 이 party_manager)
+    function isPartyStaff() {
+      return request.auth != null && request.auth.token.partyStaff == true;
+    }
+
     // 고객 리뷰 사진: 로그인한 회원이 이미지 파일(5MB 이하)을 새로 올릴 수만 있다. 덮어쓰기·삭제는 관리자만
     match /reviews/{file} {
       allow read: if true;
@@ -17,9 +22,27 @@ service firebase.storage {
       allow update, delete: if isAdmin();
     }
 
-    // 그 외 모든 경로(갤러리, 대표 이미지, 소개 이미지 등): 누구나 읽기, 쓰기는 관리자만
-    match /{allPaths=**} {
+    // 파티 신청 사진(비공개): 로그인한 본인 폴더에 이미지(10MB 이하)를 새로 올릴 수만 있다.
+    // 보기는 본인과 관리자만, 삭제는 관리자만(서버는 규칙과 무관하게 지운다)
+    match /party_private/{uid}/{file} {
+      allow create: if request.auth != null && request.auth.uid == uid
+                    && resource == null
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow read: if (request.auth != null && request.auth.uid == uid) || isAdmin() || isPartyStaff();
+      allow delete: if isAdmin();
+    }
+
+    // 파티 포스터: 누구나 읽기, 올리기는 관리자와 파티 운영자
+    match /parties/{partyId}/{file} {
       allow read: if true;
+      allow write: if isAdmin() || isPartyStaff();
+    }
+
+    // 그 외 모든 경로(갤러리, 대표 이미지, 소개 이미지 등): 누구나 읽기, 쓰기는 관리자만
+    //  - 파티 신청 사진(party_private/)은 공개 읽기에서 뺀다 (규칙은 하나라도 허용하면 통과되므로 여기서 제외해야 한다)
+    match /{allPaths=**} {
+      allow read: if !allPaths.matches('party_private/.*');
       allow write: if isAdmin();
     }
   }

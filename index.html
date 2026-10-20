@@ -37,6 +37,7 @@
             <li><a href="#home">HOME</a></li>
             <li><a href="#gallery">공간사진</a></li>
             <li><a href="community.html">커뮤니티</a></li>
+            <li><a href="party.html">파티</a></li>
             <li><a href="#reservation" style="color: var(--accent-gold); font-weight: bold;">예약하기</a></li>
             <li><a href="#location">오시는길</a></li>
         </ul>
@@ -651,7 +652,16 @@
             // Step 3: UI 업데이트 + 세션 저장 + Firestore 저장
             updateNavbarUser(user);
             localStorage.setItem('monory_user', JSON.stringify(user));
-            saveUserToFirestore(user);
+            const saving = saveUserToFirestore(user);
+
+            // 다른 페이지(예: 파티 신청)에서 로그인하러 온 경우: 회원 저장이 끝나면 원래 페이지로 돌려보낸다
+            let afterLogin = null;
+            try { afterLogin = localStorage.getItem('monory_after_login'); localStorage.removeItem('monory_after_login'); } catch (x) {}
+            if (afterLogin && /^\/?[a-z0-9_-]+\.html(\?[^#]*)?$/i.test(afterLogin)) {
+                try { await Promise.race([saving, new Promise(r => setTimeout(r, 4000))]); } catch (x) {}
+                window.location.replace(afterLogin.charAt(0) === '/' ? afterLogin : '/' + afterLogin);
+                return;
+            }
 
         } catch(e) {
             console.error('카카오 로그인 처리 오류:', e);
@@ -679,10 +689,10 @@
         try {
             const db     = firebase.firestore();
             const docRef = db.collection('members').doc(String(user.kakaoId));
-            docRef.get().then(function (doc) {
+            return docRef.get().then(function (doc) {
                 const now = firebase.firestore.Timestamp.now();
                 if (!doc.exists) {
-                    docRef.set({
+                    return docRef.set({
                         kakaoId:      user.kakaoId,
                         name:         user.name,
                         email:        user.email,
@@ -690,12 +700,11 @@
                         provider:     'kakao',
                         joinedAt:     now,
                         lastLoginAt:  now
-                    });
-                    console.log('✅ 신규 회원 등록:', user.name);
+                    }).then(function () { console.log('✅ 신규 회원 등록:', user.name); });
 
                     // 가입 환영 쿠폰은 서버(Cloud Functions)가 회원 문서 생성을 감지해 자동 지급한다
                 } else {
-                    docRef.update({ lastLoginAt: now });
+                    return docRef.update({ lastLoginAt: now });
                 }
             }).catch(function (e) {
                 console.warn('Firestore 저장 실패:', e.code);
@@ -746,8 +755,10 @@
         try {
             ensureFirebaseSession().then(function (u) { if (!u) throw new Error('no-session'); return firebase.firestore().collection('members').doc(String(kakaoId)).get(); }).then(function (doc) {
                 const role = doc.exists ? doc.data().role : null;
-                const isAdmin = (role === 'super_admin' || role === 'general_admin');
+                const isAdmin = (role === 'super_admin' || role === 'general_admin' || role === 'party_manager');
                 item.style.display = isAdmin ? '' : 'none';
+                const link = item.querySelector('a');
+                if (link) link.textContent = role === 'party_manager' ? '파티 운영 페이지' : '관리자페이지';
                 adminMenuInfo = isAdmin ? { kakaoId: kakaoId, role: role, name: doc.data().name || '' } : null;
             }).catch(function () {});
         } catch (e) {}
@@ -2722,6 +2733,7 @@
             <li><a href="#home" onclick="closeMobileMenu()">HOME</a></li>
             <li><a href="#gallery" onclick="closeMobileMenu()">공간사진</a></li>
             <li><a href="community.html" onclick="closeMobileMenu()">커뮤니티</a></li>
+            <li><a href="party.html" onclick="closeMobileMenu()">파티</a></li>
             <li><a href="#reservation" onclick="closeMobileMenu()">예약하기</a></li>
             <li><a href="#location" onclick="closeMobileMenu()">오시는길</a></li>
             <li id="mobile-admin-link" style="display:none;"><a href="admin.html" onclick="enterAdminPage()">관리자페이지</a></li>
