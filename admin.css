@@ -690,6 +690,14 @@ tr:hover td {
         font-size: 0.76rem;
         font-weight: 600;
     }
+    /* 등급·쿠폰 칸은 내용이 길어도 카드 밖으로 잘리지 않고 줄바꿈 */
+    #members-table td > :not(:first-child), #members-table td { min-width: 0; }
+    #members-table td:nth-child(5) { white-space: normal !important; flex-wrap: wrap; justify-content: flex-end; }
+    #members-table td:nth-child(5)::before { margin-right: auto; }
+    #members-table td:nth-child(5) > div:first-child { flex-wrap: wrap; justify-content: flex-end; }
+    #members-table td:nth-child(5) .role-badge { margin-top: 6px; }
+    #members-table td:nth-child(7) { flex-wrap: wrap; justify-content: flex-end; text-align: right !important; }
+    #members-table td:nth-child(7)::before { margin-right: auto; }
     #members-table td[colspan] { display: block; text-align: center; }
     #members-table td[colspan]::before { content: none; }
     #members-table td:nth-child(1) { display: none; }

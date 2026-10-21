@@ -186,7 +186,8 @@ h1, h2, h3, h4, h5 {
     transform: translateZ(0);
     /* 화면 밖 오버플로우 차단 */
     max-width: 100vw;
-    overflow: hidden;
+    overflow-x: clip;
+    overflow-y: visible; /* 햄버거 드롭다운이 헤더 밖으로 펼쳐지도록 */
 }
 
 .navbar.scrolled {
