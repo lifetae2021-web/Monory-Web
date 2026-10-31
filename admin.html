@@ -65,6 +65,9 @@
                 <a href="#" class="nav-link" onclick="showSection('events')" id="nav-events"><i class="fa-solid fa-users-viewfinder"></i> 키링크 이벤트</a>
             </li>
             <li class="nav-item">
+                <a href="#" class="nav-link" onclick="showSection('cleaning')" id="nav-cleaning"><i class="fa-solid fa-broom"></i> 청소 매뉴얼</a>
+            </li>
+            <li class="nav-item">
                 <a href="#" class="nav-link" onclick="showSection('cms')" id="nav-cms"><i class="fa-solid fa-pen-to-square"></i> 콘텐츠 편집 (CMS)</a>
             </li>
             <li class="nav-item" style="margin-top: auto; position: absolute; bottom: 20px; width: 100%;">
@@ -1012,6 +1015,70 @@
             </div>
         </div>
 
+        <!-- ============================
+             청소 매뉴얼 섹션 (구역별 체크리스트, monory_config/cleaning_manual 에 저장)
+             ============================ -->
+        <div class="content-area" id="section-cleaning" style="display:none;">
+            <style>
+                #section-cleaning .cl-wrap { max-width:760px; margin:0 auto; }
+                .cl-head { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:18px; }
+                .cl-head h2 { font-size:1.35rem; font-weight:700; letter-spacing:-0.02em; margin:0; }
+                .cl-head p { font-size:0.8rem; color:var(--text-secondary); margin:4px 0 0; }
+                .cl-actions { display:flex; gap:8px; }
+                .cl-icon-btn { display:inline-flex; align-items:center; gap:6px; height:38px; padding:0 14px; border-radius:999px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:var(--text-primary); font-family:inherit; font-size:0.85rem; cursor:pointer; transition:.2s; }
+                .cl-icon-btn:hover { background:rgba(255,255,255,0.09); }
+                .cl-icon-btn.primary { background:var(--accent-gold); border-color:transparent; color:#111; font-weight:600; }
+                .cl-icon-btn.primary:hover { filter:brightness(1.08); }
+                .cl-progress { position:sticky; top:0; z-index:5; background:linear-gradient(135deg, rgba(212,175,55,0.14), rgba(212,175,55,0.04)); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(212,175,55,0.22); border-radius:18px; padding:18px 20px; margin-bottom:22px; }
+                .cl-progress-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+                .cl-pct { font-size:1.9rem; font-weight:700; letter-spacing:-0.03em; color:var(--accent-gold); line-height:1; }
+                .cl-pct-sub { font-size:0.85rem; color:var(--text-secondary); }
+                .cl-bar { height:8px; border-radius:999px; background:rgba(255,255,255,0.07); overflow:hidden; }
+                .cl-bar i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, #b8932a, var(--accent-gold), #f0d77a); transition:width .45s cubic-bezier(.2,.8,.2,1); }
+                .cl-progress.all-done { background:linear-gradient(135deg, rgba(34,197,94,0.16), rgba(34,197,94,0.04)); border-color:rgba(34,197,94,0.3); }
+                .cl-progress.all-done .cl-pct { color:#22c55e; }
+                .cl-progress.all-done .cl-bar i { background:#22c55e; }
+                .cl-zone { background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); border-radius:18px; padding:6px; margin-bottom:14px; }
+                .cl-zone-h { display:flex; align-items:center; gap:12px; padding:12px 14px 10px; }
+                .cl-num { width:28px; height:28px; border-radius:9px; display:grid; place-items:center; font-size:0.78rem; font-weight:700; background:rgba(212,175,55,0.14); color:var(--accent-gold); flex:0 0 auto; }
+                .cl-zone.done .cl-num { background:rgba(34,197,94,0.16); color:#22c55e; }
+                .cl-zone-t { flex:1; font-weight:700; font-size:1rem; letter-spacing:-0.01em; }
+                .cl-pill { font-size:0.75rem; font-weight:600; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,0.06); color:var(--text-secondary); }
+                .cl-zone.done .cl-pill { background:rgba(34,197,94,0.14); color:#22c55e; }
+                .cl-item { display:flex; align-items:flex-start; gap:14px; padding:13px 14px; border-radius:12px; cursor:pointer; line-height:1.5; font-size:0.95rem; transition:background .15s; -webkit-tap-highlight-color:transparent; }
+                .cl-item:hover { background:rgba(255,255,255,0.04); }
+                .cl-item input { appearance:none; -webkit-appearance:none; width:22px; height:22px; margin:0; flex:0 0 auto; border-radius:7px; border:1.5px solid rgba(255,255,255,0.25); background:transparent; cursor:pointer; display:grid; place-items:center; transition:.18s; }
+                .cl-item input::after { content:''; width:6px; height:11px; border:solid #111; border-width:0 2.5px 2.5px 0; transform:rotate(45deg) scale(0); margin-top:-2px; transition:transform .18s cubic-bezier(.2,.8,.2,1.4); }
+                .cl-item input:checked { background:var(--accent-gold); border-color:var(--accent-gold); }
+                .cl-item input:checked::after { transform:rotate(45deg) scale(1); }
+                .cl-item span { padding-top:1px; transition:color .2s; }
+                .cl-item.done span { color:var(--text-secondary); text-decoration:line-through; text-decoration-color:rgba(255,255,255,0.25); }
+                .cl-empty { text-align:center; padding:48px 20px; color:var(--text-secondary); border:1px dashed rgba(255,255,255,0.12); border-radius:18px; }
+                .cl-hint { font-size:0.85rem; color:var(--text-secondary); background:rgba(255,255,255,0.03); border-radius:12px; padding:12px 14px; margin-bottom:12px; line-height:1.6; }
+                .cl-hint code { color:var(--accent-gold); font-family:inherit; font-weight:600; }
+                #cl-editor { width:100%; min-height:460px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:16px; color:var(--text-primary); padding:16px 18px; font-family:inherit; font-size:0.95rem; line-height:1.7; resize:vertical; box-sizing:border-box; outline:none; transition:border-color .2s; }
+                #cl-editor:focus { border-color:rgba(212,175,55,0.5); }
+                @media (max-width: 600px) {
+                    .cl-icon-btn .lbl { display:none; }
+                    .cl-icon-btn { width:38px; padding:0; justify-content:center; }
+                    .cl-icon-btn.primary.wide { width:auto; padding:0 14px; }
+                    .cl-icon-btn.primary.wide .lbl { display:inline; }
+                }
+            </style>
+            <div class="cl-wrap">
+                <div class="cl-head">
+                    <div>
+                        <h2>청소 매뉴얼</h2>
+                        <p id="cl-meta"></p>
+                    </div>
+                    <div class="cl-actions" id="cl-actions"></div>
+                </div>
+                <div id="cl-progress"></div>
+                <div id="cl-body"><p style="color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin"></i> 불러오는 중...</p></div>
+            </div>
+        </div>
+        </div>
+
     </main>
 
     <!-- Firebase Auth 설정 및 보안 검사 -->
@@ -1135,6 +1202,7 @@
             document.getElementById('section-events') && (document.getElementById('section-events').style.display = 'none');
             document.getElementById('section-stats') && (document.getElementById('section-stats').style.display = 'none');
             document.getElementById('section-parties') && (document.getElementById('section-parties').style.display = 'none');
+            document.getElementById('section-cleaning') && (document.getElementById('section-cleaning').style.display = 'none');
             const mainContent = document.querySelector('.content-area:not([id])');
             if (mainContent) mainContent.style.display = 'none';
 
@@ -1156,6 +1224,9 @@
             } else if (name === 'parties') {
                 document.getElementById('section-parties').style.display = 'block';
                 loadParties();
+            } else if (name === 'cleaning') {
+                document.getElementById('section-cleaning').style.display = 'block';
+                loadCleaningManual();
             } else {
                 if (mainContent) mainContent.style.display = 'block';
             }
@@ -3331,6 +3402,136 @@
             const k = new Date(ms + 9 * 3600000);
             return `${k.getUTCMonth() + 1}/${k.getUTCDate()} ${String(k.getUTCHours()).padStart(2, '0')}:${String(k.getUTCMinutes()).padStart(2, '0')}`;
         };
+
+        // ── 청소 매뉴얼 ──────────────────────────────
+        //  - 내용은 monory_config/cleaning_manual 의 text 한 덩어리로 저장한다
+        //  - 형식: '# 구역명' 줄이 구역 제목, 그 아래 한 줄이 체크 항목 하나
+        //  - 체크 표시는 이 기기(브라우저)에만 남는 진행 상황이라 다른 관리자와 공유되지 않는다
+        //  - 아직 저장된 적이 없으면 아래 기본 매뉴얼을 보여주고, 한 번 저장하면 저장된 내용이 우선한다
+        const CL_DEFAULT_TEXT = [
+            '# 입장 직후',
+            '빔프로젝터, 티비모뎀 켜서 유튜브로 듣고 싶은 음악 켜고 스피커 및 마이크 테스트',
+            '냉장고 및 분실물 확인 후 비닐봉지에 넣어서 창고에 따로 보관',
+            '',
+            '# 청소',
+            '화장실 청소',
+            '야구장 옷 냄새 확인 — 너무 심하면 따로 분류',
+            '테이블 닦기',
+            '쇼파 정리',
+            '바닥 청소',
+            '쓰레기 분리수거함 정리',
+            '설거지 기름기 확인',
+            '싱크대 및 음식물 쓰레기통 정리',
+            '정리한 쓰레기는 5층 창고에 보관',
+            '보드게임 정리',
+            '',
+            '# 마무리',
+            '화장실부터 옷, 쇼파 등 전체적으로 페브리즈',
+            '4층 현관 잠그기 (# 버튼), 1층 공동현관 잠그기 (0 버튼)',
+        ].join('\n');
+        let _clText = '', _clEditing = false, _clUnsub = null, _clLastPct = 0;
+        const CL_CHECK_KEY = 'cleaning_manual_checks';
+        const clLoadChecks = () => { try { return JSON.parse(localStorage.getItem(CL_CHECK_KEY)) || {}; } catch (e) { return {}; } };
+        const clSaveChecks = (c) => { try { localStorage.setItem(CL_CHECK_KEY, JSON.stringify(c)); } catch (e) {} };
+
+        function clParse(text) {
+            const zones = [];
+            String(text || '').split('\n').forEach((raw) => {
+                const line = raw.trim();
+                if (!line) return;
+                if (line.startsWith('#')) zones.push({ title: line.replace(/^#+\s*/, ''), items: [] });
+                else {
+                    if (!zones.length) zones.push({ title: '공통', items: [] });
+                    zones[zones.length - 1].items.push(line.replace(/^[-*·•]\s*/, ''));
+                }
+            });
+            return zones;
+        }
+
+        function loadCleaningManual() {
+            if (_clUnsub || typeof firebase === 'undefined') return;
+            _clUnsub = firebase.firestore().collection('monory_config').doc('cleaning_manual').onSnapshot((doc) => {
+                const d = doc.exists ? doc.data() : {};
+                _clText = typeof d.text === 'string' ? d.text : CL_DEFAULT_TEXT;
+                document.getElementById('cl-meta').textContent = d.updatedAt && d.updatedAt.toMillis ? `마지막 수정 ${ptTs(d.updatedAt)}${d.updatedBy ? ' (' + d.updatedBy + ')' : ''}` : '';
+                if (!_clEditing) renderCleaningManual();
+            }, (e) => {
+                console.error(e);
+                document.getElementById('cl-body').innerHTML = '<p style="color:#ef4444;">청소 매뉴얼을 불러오지 못했습니다. (권한 또는 보안 규칙 확인)</p>';
+            });
+        }
+
+        function renderCleaningManual() {
+            const body = document.getElementById('cl-body'), actions = document.getElementById('cl-actions'), prog = document.getElementById('cl-progress');
+            if (_clEditing) {
+                actions.innerHTML = '<button class="cl-icon-btn" onclick="clCancelEdit()"><i class="fa-solid fa-xmark"></i><span class="lbl">취소</span></button><button class="cl-icon-btn primary wide" onclick="clSave()"><i class="fa-solid fa-check"></i><span class="lbl">저장</span></button>';
+                prog.innerHTML = '<div class="cl-hint"><code># 구역명</code> 으로 구역을 나누고, 그 아래에 할 일을 한 줄에 하나씩 적어 주세요.</div>';
+                body.innerHTML = '<textarea id="cl-editor" placeholder="# 거실&#10;테이블·의자 닦기&#10;바닥 쓸고 닦기&#10;&#10;# 주방&#10;싱크대 설거지·물기 제거"></textarea>';
+                const ed = document.getElementById('cl-editor');
+                ed.value = _clText;
+                ed.focus();
+                return;
+            }
+            actions.innerHTML = '<button class="cl-icon-btn" onclick="clResetChecks()" title="체크 초기화"><i class="fa-solid fa-rotate-left"></i><span class="lbl">초기화</span></button><button class="cl-icon-btn primary" onclick="clStartEdit()" title="편집"><i class="fa-solid fa-pen"></i><span class="lbl">편집</span></button>';
+            const zones = clParse(_clText);
+            if (!zones.length) {
+                prog.innerHTML = '';
+                body.innerHTML = "<div class=\"cl-empty\"><i class=\"fa-solid fa-broom\" style=\"font-size:1.6rem; opacity:0.5; margin-bottom:10px; display:block;\"></i>아직 작성된 매뉴얼이 없어요.<br>오른쪽 위 '편집'을 눌러 작성해 주세요.</div>";
+                return;
+            }
+            const checks = clLoadChecks();
+            let total = 0, done = 0;
+            body.innerHTML = zones.map((z, zi) => {
+                const zDone = z.items.filter((it) => checks[z.title + '\u0000' + it]).length;
+                total += z.items.length; done += zDone;
+                const zAll = z.items.length > 0 && zDone === z.items.length;
+                return `<div class="cl-zone${zAll ? ' done' : ''}"><div class="cl-zone-h"><div class="cl-num">${zAll ? '<i class="fa-solid fa-check"></i>' : zi + 1}</div><div class="cl-zone-t">${ptEsc(z.title)}</div><div class="cl-pill">${zDone} / ${z.items.length}</div></div>${z.items.map((it, ii) => {
+                    const on = !!checks[z.title + '\u0000' + it];
+                    return `<label class="cl-item${on ? ' done' : ''}"><input type="checkbox" ${on ? 'checked' : ''} onchange="clToggle(${zi}, ${ii}, this.checked)"><span>${ptEsc(it)}</span></label>`;
+                }).join('')}</div>`;
+            }).join('');
+            const pct = total ? Math.round((done / total) * 100) : 0;
+            const all = total > 0 && done === total;
+            prog.innerHTML = `<div class="cl-progress${all ? ' all-done' : ''}"><div class="cl-progress-top"><div class="cl-pct">${all ? '<i class="fa-solid fa-circle-check" style="font-size:1.5rem;"></i> 완료' : pct + '%'}</div><div class="cl-pct-sub">${done} / ${total} 항목</div></div><div class="cl-bar"><i style="width:${_clLastPct}%"></i></div></div>`;
+            const bar = prog.querySelector('.cl-bar i');
+            requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = pct + '%'; }));
+            _clLastPct = pct;
+        }
+
+        function clToggle(zi, ii, on) {
+            const z = clParse(_clText)[zi];
+            if (!z) return;
+            const checks = clLoadChecks(), key = z.title + '\u0000' + z.items[ii];
+            if (on) checks[key] = true; else delete checks[key];
+            clSaveChecks(checks);
+            renderCleaningManual();
+        }
+
+        function clResetChecks() {
+            if (!confirm('체크 표시를 모두 지울까요?')) return;
+            clSaveChecks({});
+            renderCleaningManual();
+        }
+
+        function clStartEdit() { _clEditing = true; renderCleaningManual(); }
+        function clCancelEdit() { _clEditing = false; renderCleaningManual(); }
+
+        function clSave() {
+            const text = document.getElementById('cl-editor').value.replace(/\s+$/, '');
+            const user = firebase.auth().currentUser;
+            firebase.firestore().collection('monory_config').doc('cleaning_manual').set({
+                text,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy: (user && (user.displayName || user.email)) || '',
+            }).then(() => {
+                _clText = text;
+                _clEditing = false;
+                renderCleaningManual();
+            }).catch((e) => {
+                console.error(e);
+                alert('저장하지 못했습니다: ' + e.message);
+            });
+        }
 
         function loadParties() {
             if (_ptPartiesUnsub || typeof firebase === 'undefined') return;
