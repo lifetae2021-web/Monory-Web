@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Monory Admin Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,8 +16,12 @@
             try { var s = JSON.parse(sessionStorage.getItem('monory_admin_session') || 'null'); return !!s && s.role === 'party_manager'; } catch (e) { return false; }
         })();
         if (window.IS_PARTY_MGR) document.documentElement.classList.add('party-mgr');
+        // 휴대폰에서 두 손가락·두 번 누르기 확대를 막는다 (아이폰 사파리는 viewport 설정만으로는 막히지 않는다)
+        ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) { document.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false }); });
+        document.addEventListener('touchmove', function (e) { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
     </script>
     <style>
+        html { touch-action: pan-x pan-y; }
         .party-mgr .nav-item:not(.nav-parties), .party-mgr .notification-bell, .party-mgr .site-link, .party-mgr .content-area:not(#section-parties) { display: none !important; }
     </style>
     <style>
@@ -865,6 +869,7 @@
              파티 관리 섹션 (파티 등록 + 신청서 심사)
              ============================ -->
         <div class="content-area" id="section-parties" style="display:none;">
+            <div id="pt-codes" class="cl-codes" style="display:none;"></div>
             <style>
                 .pt-chips { display:flex; gap:10px; overflow-x:auto; padding:2px 2px 14px; margin-bottom:6px; }
                 .pt-chip { flex:0 0 auto; display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:150px; max-width:240px; text-align:left; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:12px; padding:10px 14px; color:var(--text-primary); cursor:pointer; font-family:inherit; transition:.2s; }
@@ -1058,6 +1063,14 @@
                 .cl-hint code { color:var(--accent-gold); font-family:inherit; font-weight:600; }
                 #cl-editor { width:100%; min-height:460px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:16px; color:var(--text-primary); padding:16px 18px; font-family:inherit; font-size:0.95rem; line-height:1.7; resize:vertical; box-sizing:border-box; outline:none; transition:border-color .2s; }
                 #cl-editor:focus { border-color:rgba(212,175,55,0.5); }
+                .cl-codes { background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.07); border-radius:18px; padding:14px 16px 16px; margin-bottom:14px; }
+                .cl-codes-h { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+                .cl-codes-h b { font-size:0.95rem; display:flex; align-items:center; gap:8px; }
+                .cl-codes-h b i { color:var(--accent-gold); }
+                .cl-code-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; }
+                .cl-code { background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:12px 14px; }
+                .cl-code small { display:block; font-size:0.75rem; color:var(--text-secondary); margin-bottom:4px; }
+                .cl-code strong { font-family:'Outfit', ui-monospace, monospace; font-size:1.35rem; font-weight:700; letter-spacing:0.06em; color:var(--text-primary); }
                 @media (max-width: 600px) {
                     .cl-icon-btn .lbl { display:none; }
                     .cl-icon-btn { width:38px; padding:0; justify-content:center; }
@@ -1073,6 +1086,7 @@
                     </div>
                     <div class="cl-actions" id="cl-actions"></div>
                 </div>
+                <div id="cl-codes" class="cl-codes" style="display:none;"></div>
                 <div id="cl-progress"></div>
                 <div id="cl-body"><p style="color:var(--text-secondary);"><i class="fa-solid fa-circle-notch fa-spin"></i> 불러오는 중...</p></div>
             </div>
@@ -1164,15 +1178,6 @@
                             } catch(e) {}
                         }
 
-                        // 로그아웃 동작 연동
-                        const logoutBtn = document.getElementById('btn-logout');
-                        if(logoutBtn) {
-                            logoutBtn.addEventListener('click', () => {
-                                auth.signOut().then(() => {
-                                    sessionStorage.removeItem('monory_admin_session');
-                                    window.location.href = 'login.html';
-                                });
-                            });
                         // 카카오 로그인 관리자: 권한을 회원 문서에서 직접 다시 확인한다
                         //  - 탭마다 따로인 임시 저장(sessionStorage)에만 기대면, 휴대폰에서 새 탭·즐겨찾기·주소 직접 입력으로
                         //    들어왔을 때 권한을 몰라 '관리자 승격' 같은 버튼이 '-'로만 보였다
@@ -1208,6 +1213,15 @@
                             }).catch((e) => console.error('관리자 권한 확인 실패:', e));
                         }
 
+                        // 로그아웃 동작 연동
+                        const logoutBtn = document.getElementById('btn-logout');
+                        if(logoutBtn) {
+                            logoutBtn.addEventListener('click', () => {
+                                auth.signOut().then(() => {
+                                    sessionStorage.removeItem('monory_admin_session');
+                                    window.location.href = 'login.html';
+                                });
+                            });
                         }
                     }
                 });
@@ -1259,6 +1273,8 @@
             } else if (name === 'parties') {
                 document.getElementById('section-parties').style.display = 'block';
                 loadParties();
+                // 파티 운영자는 청소 매뉴얼 메뉴가 없으므로, 출입 비밀번호를 파티 화면 맨 위에 보여준다 (보기만 가능)
+                if (window.IS_PARTY_MGR) { renderDoorCodes(); loadDoorCodes(); }
             } else if (name === 'cleaning') {
                 document.getElementById('section-cleaning').style.display = 'block';
                 loadCleaningManual();
@@ -3483,7 +3499,87 @@
             return zones;
         }
 
+        // 출입 비밀번호: 청소 매뉴얼 맨 위에 카드로 보여준다
+        //  - 비밀번호는 코드에 적지 않는다 (저장소와 admin.html 파일은 누구나 볼 수 있다)
+        //  - 관리자만 읽고 쓸 수 있는 admin_private/door_codes 문서에 저장한다 (firestore.rules 참고)
+        let _clCodes = [], _clCodesEditing = false, _clCodesUnsub = null, _clCodesError = false;
+
+        function loadDoorCodes() {
+            if (_clCodesUnsub || typeof firebase === 'undefined') return;
+            _clCodesUnsub = firebase.firestore().collection('admin_private').doc('door_codes').onSnapshot((doc) => {
+                const d = doc.exists ? doc.data() : {};
+                _clCodes = Array.isArray(d.items) ? d.items : [];
+                _clCodesError = false;
+                if (!_clCodesEditing) renderDoorCodes();
+            }, (e) => {
+                console.error('출입 비밀번호 불러오기 실패:', e);
+                _clCodesError = true;
+                _clCodesUnsub = null;
+                renderDoorCodes();
+            });
+        }
+
+        function renderDoorCodes() {
+            const list = _clCodes.length
+                ? `<div class="cl-code-grid">${_clCodes.map((r) => `<div class="cl-code"><small>${ptEsc(r.label)}</small><strong>${ptEsc(r.code)}</strong></div>`).join('')}</div>`
+                : null;
+            // 파티 운영자용 카드: 보기 전용
+            const ptBox = document.getElementById('pt-codes');
+            if (ptBox && window.IS_PARTY_MGR) {
+                ptBox.style.display = 'block';
+                ptBox.innerHTML = '<div class="cl-codes-h"><b><i class="fa-solid fa-key"></i> 출입 비밀번호</b></div>'
+                    + (_clCodesError ? '<p style="margin:0; color:#ef4444; font-size:0.88rem;">출입 비밀번호를 불러오지 못했습니다.</p>'
+                        : list || '<p style="margin:0; color:var(--text-secondary); font-size:0.88rem;">아직 등록된 비밀번호가 없어요.</p>');
+            }
+            const box = document.getElementById('cl-codes');
+            box.style.display = 'block';
+            const head = (btns) => `<div class="cl-codes-h"><b><i class="fa-solid fa-key"></i> 출입 비밀번호</b><div style="display:flex; gap:8px;">${btns}</div></div>`;
+            if (_clCodesError) {
+                box.innerHTML = head('') + '<p style="margin:0; color:#ef4444; font-size:0.88rem;">출입 비밀번호를 불러오지 못했습니다. (관리자 권한 또는 보안 규칙 확인)</p>';
+                return;
+            }
+            if (_clCodesEditing) {
+                box.innerHTML = head('<button class="cl-icon-btn" onclick="clCodesCancel()"><i class="fa-solid fa-xmark"></i><span class="lbl">취소</span></button><button class="cl-icon-btn primary" onclick="clCodesSave()"><i class="fa-solid fa-check"></i><span class="lbl">저장</span></button>')
+                    + '<div class="cl-hint" style="margin-bottom:10px;">한 줄에 하나씩 <code>장소: 비밀번호</code> 로 적어 주세요.</div>'
+                    + '<textarea id="cl-codes-editor" style="width:100%; min-height:120px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:12px; color:var(--text-primary); padding:12px 14px; font-family:inherit; line-height:1.7; resize:vertical; box-sizing:border-box; outline:none;" placeholder="1층 공동현관: 0000*&#10;4층 현관: 0000"></textarea>';
+                const ed = document.getElementById('cl-codes-editor');
+                ed.value = _clCodes.map((r) => `${r.label}: ${r.code}`).join('\n');
+                ed.focus();
+                return;
+            }
+            box.innerHTML = head('<button class="cl-icon-btn" onclick="clCodesEdit()" title="편집"><i class="fa-solid fa-pen"></i><span class="lbl">편집</span></button>')
+                + (list
+                    || "<p style=\"margin:0; color:var(--text-secondary); font-size:0.88rem;\">아직 등록된 비밀번호가 없어요. '편집'을 눌러 등록해 주세요.</p>");
+        }
+
+        function clCodesEdit() { _clCodesEditing = true; renderDoorCodes(); }
+        function clCodesCancel() { _clCodesEditing = false; renderDoorCodes(); }
+
+        function clCodesSave() {
+            const items = document.getElementById('cl-codes-editor').value.split('\n').map((line) => {
+                const i = line.search(/[:：]/);
+                if (i < 0) return null;
+                const label = line.slice(0, i).trim(), code = line.slice(i + 1).trim();
+                return label && code ? { label, code } : null;
+            }).filter(Boolean);
+            const user = firebase.auth().currentUser;
+            firebase.firestore().collection('admin_private').doc('door_codes').set({
+                items,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy: (user && (user.displayName || user.email || user.uid)) || '',
+            }).then(() => {
+                _clCodes = items;
+                _clCodesEditing = false;
+                renderDoorCodes();
+            }).catch((e) => {
+                console.error(e);
+                alert('저장하지 못했습니다: ' + e.message);
+            });
+        }
+
         function loadCleaningManual() {
+            renderDoorCodes();
+            loadDoorCodes();
             if (_clUnsub || typeof firebase === 'undefined') return;
             _clUnsub = firebase.firestore().collection('monory_config').doc('cleaning_manual').onSnapshot((doc) => {
                 const d = doc.exists ? doc.data() : {};

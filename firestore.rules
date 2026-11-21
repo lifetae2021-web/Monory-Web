@@ -166,6 +166,12 @@ service cloud.firestore {
       }
     }
 
+    // 직원 전용 메모(출입 비밀번호 등): 관리자와 파티 운영자만 읽고, 수정은 관리자만. 고객은 볼 수 없다
+    match /admin_private/{docId} {
+      allow read: if isPartyStaff();
+      allow write: if isGeneralAdmin();
+    }
+
     // 파티 정보: 공개(모집 중·마감)된 파티는 누구나 읽고, 작성 중(draft)인 파티는 관리자만. 저장은 관리자만
     //  - counts(성별·상태별 인원)는 서버가 신청서 변화에 맞춰 채운다
     match /parties/{partyId} {
