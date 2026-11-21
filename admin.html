@@ -1173,6 +1173,41 @@
                                     window.location.href = 'login.html';
                                 });
                             });
+                        // 카카오 로그인 관리자: 권한을 회원 문서에서 직접 다시 확인한다
+                        //  - 탭마다 따로인 임시 저장(sessionStorage)에만 기대면, 휴대폰에서 새 탭·즐겨찾기·주소 직접 입력으로
+                        //    들어왔을 때 권한을 몰라 '관리자 승격' 같은 버튼이 '-'로만 보였다
+                        if (user && !user.email) {
+                            firebase.firestore().collection('members').doc(user.uid).get().then((doc) => {
+                                const d = doc.exists ? doc.data() : {};
+                                const role = d.role || 'user';
+                                if (role !== 'super_admin' && role !== 'general_admin' && role !== 'party_manager') return;
+                                const changed = window.currentAdminRole !== role;
+                                window.currentAdminRole = role;
+                                try { sessionStorage.setItem('monory_admin_session', JSON.stringify({ kakaoId: user.uid, role: role, name: d.name || '' })); } catch (e) {}
+                                const titleEl = document.querySelector('.admin-profile span');
+                                if (titleEl && d.name) {
+                                    titleEl.textContent = d.name + ' ';
+                                    titleEl.insertAdjacentHTML('beforeend', role === 'super_admin'
+                                        ? '<i class="fa-solid fa-crown" style="color:var(--accent-gold); margin-left:4px; font-size:0.8rem;"></i>'
+                                        : '<i class="fa-solid fa-user-tie" style="color:#38bdf8; margin-left:4px; font-size:0.8rem;"></i>');
+                                }
+                                if (!changed) return;
+                                // 파티 운영자인데 저장된 정보가 없어 전체 화면이 보이던 경우: 파티 화면만 보이게 맞춘다
+                                if (role === 'party_manager' && !window.IS_PARTY_MGR) {
+                                    window.IS_PARTY_MGR = true;
+                                    document.documentElement.classList.add('party-mgr');
+                                    showSection('parties');
+                                    return;
+                                }
+                                // 이미 그려진 회원 목록에 관리 버튼·권한 탭을 다시 반영
+                                if (typeof allMembersData !== 'undefined' && allMembersData.length) {
+                                    const tabEl = document.getElementById('member-tabs');
+                                    if (tabEl && role !== 'party_manager') tabEl.style.display = 'flex';
+                                    renderMembersTable();
+                                }
+                            }).catch((e) => console.error('관리자 권한 확인 실패:', e));
+                        }
+
                         }
                     }
                 });
@@ -3410,7 +3445,7 @@
         //  - 아직 저장된 적이 없으면 아래 기본 매뉴얼을 보여주고, 한 번 저장하면 저장된 내용이 우선한다
         const CL_DEFAULT_TEXT = [
             '# 입장 직후',
-            '빔프로젝터, 티비모뎀 켜서 유튜브로 듣고 싶은 음악 켜고 스피커 및 마이크 테스트',
+            '빔프로젝터, 티비모뎀 켜서 넷플릭스 로그인 확인 후 유튜브로 듣고 싶은 음악 켜고 스피커 및 마이크 테스트',
             '냉장고 및 분실물 확인 후 비닐봉지에 넣어서 창고에 따로 보관',
             '',
             '# 청소',
@@ -3422,7 +3457,7 @@
             '쓰레기 분리수거함 정리',
             '설거지 기름기 확인',
             '싱크대 및 음식물 쓰레기통 정리',
-            '정리한 쓰레기는 5층 창고에 보관',
+            '정리한 쓰레기는 5층 창고에 보관 (종이는 1층 바깥에 버리기)',
             '보드게임 정리',
             '',
             '# 마무리',
