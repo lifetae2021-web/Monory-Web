@@ -709,6 +709,29 @@ tr:hover td {
     #members-table td:nth-child(7)::before { content: '보유 쿠폰'; }
     #members-table td:nth-child(8)::before { content: '관리'; }
 
+    /* 대시보드 최근 예약: 좁은 화면에서는 표 대신 한 건씩 카드로 (패키지명이 세로로 쪼개지지 않게) */
+    /*  1줄: 예약자 + 상태 / 2줄: 패키지 / 3줄: 예약일 + 금액 */
+    #dash-res-table, #dash-res-table tbody { display: block; width: 100%; }
+    #dash-res-table thead { display: none; }
+    #dash-res-table tr {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px 12px;
+        align-items: center;
+        padding: 14px 2px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    #dash-res-table tr:last-child { border-bottom: none; }
+    #dash-res-table td { display: block; padding: 0; border: none; min-width: 0; }
+    #dash-res-table tr:hover td { background: transparent; }
+    #dash-res-table td[colspan] { grid-column: 1 / -1; text-align: center; padding: 20px 0; }
+    #dash-res-table td:nth-child(1):not([colspan]) { display: none; }
+    #dash-res-table td:nth-child(2) { order: 1; font-size: 1.02rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #dash-res-table td:nth-child(6) { order: 2; text-align: right; }
+    #dash-res-table td:nth-child(3) { order: 3; grid-column: 1 / -1; font-size: 0.92rem !important; white-space: normal !important; word-break: keep-all; }
+    #dash-res-table td:nth-child(4) { order: 4; color: var(--text-secondary); }
+    #dash-res-table td:nth-child(5) { order: 5; text-align: right; font-size: 1rem; }
+
     /* 카드 형태에서는 마우스/터치 시 회색 강조 없음 */
     #reservations-table tr:hover td, #members-table tr:hover td { background: transparent; }
 
