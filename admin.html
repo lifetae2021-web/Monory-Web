@@ -22,7 +22,7 @@
     </script>
     <style>
         html { touch-action: pan-x pan-y; }
-        .party-mgr .nav-item:not(.nav-parties), .party-mgr .notification-bell, .party-mgr .site-link, .party-mgr .content-area:not(#section-parties) { display: none !important; }
+        .party-mgr .nav-item:not(.nav-parties):not(.nav-cleaning), .party-mgr .notification-bell, .party-mgr .site-link, .party-mgr .content-area:not(#section-parties):not(#section-cleaning) { display: none !important; }
     </style>
     <style>
         .edit-form-group { margin-bottom: 24px; }
@@ -68,7 +68,7 @@
             <li class="nav-item">
                 <a href="#" class="nav-link" onclick="showSection('events')" id="nav-events"><i class="fa-solid fa-users-viewfinder"></i> 키링크 이벤트</a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item nav-cleaning">
                 <a href="#" class="nav-link" onclick="showSection('cleaning')" id="nav-cleaning"><i class="fa-solid fa-broom"></i> 청소 매뉴얼</a>
             </li>
             <li class="nav-item">
@@ -1239,9 +1239,10 @@
 
         function showSection(name) {
             if (window.IS_PARTY_MGR) {
-                name = 'parties';
+                // 파티 운영자는 파티 관리와 청소 매뉴얼(보기 전용)만 볼 수 있다
+                if (name !== 'cleaning') name = 'parties';
                 const t = document.querySelector('.page-title');
-                if (t) t.textContent = '파티 관리';
+                if (t) t.textContent = name === 'cleaning' ? '청소 매뉴얼' : '파티 관리';
             }
             toggleAdminSidebar(false);
             // 모든 섹션 숨기기
@@ -1273,7 +1274,7 @@
             } else if (name === 'parties') {
                 document.getElementById('section-parties').style.display = 'block';
                 loadParties();
-                // 파티 운영자는 청소 매뉴얼 메뉴가 없으므로, 출입 비밀번호를 파티 화면 맨 위에 보여준다 (보기만 가능)
+                // 파티 운영자에게는 출입 비밀번호를 파티 화면 맨 위에도 보여준다 (보기만 가능)
                 if (window.IS_PARTY_MGR) { renderDoorCodes(); loadDoorCodes(); }
             } else if (name === 'cleaning') {
                 document.getElementById('section-cleaning').style.display = 'block';
@@ -3547,7 +3548,7 @@
                 ed.focus();
                 return;
             }
-            box.innerHTML = head('<button class="cl-icon-btn" onclick="clCodesEdit()" title="편집"><i class="fa-solid fa-pen"></i><span class="lbl">편집</span></button>')
+            box.innerHTML = head(window.IS_PARTY_MGR ? '' : '<button class="cl-icon-btn" onclick="clCodesEdit()" title="편집"><i class="fa-solid fa-pen"></i><span class="lbl">편집</span></button>')
                 + (list
                     || "<p style=\"margin:0; color:var(--text-secondary); font-size:0.88rem;\">아직 등록된 비밀번호가 없어요. '편집'을 눌러 등록해 주세요.</p>");
         }
@@ -3603,7 +3604,9 @@
                 ed.focus();
                 return;
             }
-            actions.innerHTML = '<button class="cl-icon-btn" onclick="clResetChecks()" title="체크 초기화"><i class="fa-solid fa-rotate-left"></i><span class="lbl">초기화</span></button><button class="cl-icon-btn primary" onclick="clStartEdit()" title="편집"><i class="fa-solid fa-pen"></i><span class="lbl">편집</span></button>';
+            // 편집은 관리자만 (파티 운영자는 체크만 할 수 있다. 저장 권한도 보안 규칙에서 관리자에게만 있다)
+            actions.innerHTML = '<button class="cl-icon-btn" onclick="clResetChecks()" title="체크 초기화"><i class="fa-solid fa-rotate-left"></i><span class="lbl">초기화</span></button>'
+                + (window.IS_PARTY_MGR ? '' : '<button class="cl-icon-btn primary" onclick="clStartEdit()" title="편집"><i class="fa-solid fa-pen"></i><span class="lbl">편집</span></button>');
             const zones = clParse(_clText);
             if (!zones.length) {
                 prog.innerHTML = '';
